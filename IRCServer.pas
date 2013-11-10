@@ -625,19 +625,16 @@ begin
                         SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
                       else if Users[I].Nickname <> '' then
                         SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
-                      if (S<>'') and (S=Users[I].Nickname) then Break;
                     end
                     else
-                      begin
-                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
-                        if (S<>'') and (S=Users[I].Nickname) then Break;
-                      end;
-                  end;
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                  if (S<>'') and (S=Users[I].Nickname) then Break;
+                  end
                 else if Users[I].InChannel then
                   begin
                     if Users[I].Nickname <> Nickname then
                       SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
-                    else if Nickname <> '' then
+                    else
                       SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
                   end;
                 end;
