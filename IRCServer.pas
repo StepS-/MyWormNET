@@ -389,6 +389,8 @@ begin
         else
         if Command='AWAY' then
         else
+        if Command='WHOIS' then
+        else
         if Command='PASS' then {ignore}
           begin
           Password:=S;
@@ -606,7 +608,7 @@ begin
             end
           end
         else
-        if (Command='WHO')or(Command='WHOIS') then
+        if Command='WHO' then
           begin
           //:wormnet1.team17.com 352 Alexis #AnythingGoes Username no.address.for.you wormnet1.team17.com TiCPU H :0 TiCpu
           //:wormnet1.team17.com 315 Alexis * :End of /WHO list.
