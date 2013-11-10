@@ -1,8 +1,5 @@
- - host names
- - nick changes
- - change own modes?
- - disconnect reasons
- - send pings
- + respond to pings correctly
- - kicks?
- + Unknown game command - Failed
+ - bans
+ - multiple channels support
+ - channel topics
+ - more basic commands support like AWAY etc.
+ - HTTP improvements
