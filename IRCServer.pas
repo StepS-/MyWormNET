@@ -142,6 +142,28 @@ begin
         Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
         Delete(S, 1, Length(Command)+1);
 
+        if Command='IPLOOKUP' then
+          begin
+          if S <> '' then
+            begin
+              if Modes['o'] then
+                begin
+                for I:=0 to Length(Users)-1 do
+                  if S=Users[I].Nickname then
+                    begin
+                      SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :IP of user '+S+' is: '+ConnectingFrom+'.');
+                      Break
+                    end
+                  else if I=Length(Users)-1 then
+                    SendLn(':'+ServerHost+' 401 '+Nickname+' '+S+' :Failed to find an user with this nickname');
+                end
+              else
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+            end
+            else
+              SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
+          end
+        else
         if Command='MUTE' then
           begin
           if S <> '' then

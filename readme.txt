@@ -24,6 +24,7 @@ StepS' modification currently includes the following:
 - Ability to mute non-ops by using the MUTE command (available for ops)
 - Ability to make an announcement (channel notice on behalf of the server) by using the ANNOUNCE command (available for ops)
 - Ability to sendraw a message on behalf of non-ops and you by using the SENDRAW command (available for ops)
+- Ability to look up any user's IP by using the IPLOOKUP command (available for ops), useful when no access to console
 - Empty Username will now be adjusted
 - A missing sharp in IRCChannel will now be adjusted
 - Empty nicknames can no longer initiate the login procedure

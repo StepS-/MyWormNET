@@ -60,7 +60,7 @@ procedure TRequest.Execute;
 var
   Buffer, S, Headers, Body: string;
   I, J, N, R, Bytes: Integer;
-  User: TUser;
+//User: TUser;
   Game: TGame;
 begin
   try
