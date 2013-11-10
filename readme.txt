@@ -18,6 +18,7 @@ StepS' modification currently includes the following:
 - Fixed the passworded games' padlock icons and locale typecodes
 - Removed the annoying hosted/closed game notices
 - Support for the ISON command
+- Finalized the WHO command (now properly gets an one-user or one-channel list)
 - Ability to kick non-ops from the server by using the KICK or KILL command with an optional reason (available for ops)
 - Ability to kick every non-op from the server by using a KICKALL command (available for ops)
 - Ability to prank non-ops by using the PRANK command (available for ops)
