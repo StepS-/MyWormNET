@@ -29,10 +29,13 @@ begin
   WormNATPort     :=Config.ReadInteger('WormNet','WormNATPort',          17018);
   IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
   IRCChannel      :=Config.ReadString ('WormNet','IRCChannel',      '#Welcome');
+  StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
 
   {$IFDEF WIN32}
   WSAStartUp(2, WSA);
   {$ENDIF}
+  if Pos('#',IRCChannel) = 0 then
+    IRCChannel:='#'+IRCChannel;
   if IRCPort>0 then
     StartIRCServer;
   Sleep(50);

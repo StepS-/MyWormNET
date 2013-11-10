@@ -23,7 +23,7 @@ type
 
   TGame=record
     Created: TDateTime;
-    Name, Password, Loc: string;
+    Name, Password, Loc, PassNeeded, LType: string;
     HosterNickname, HosterAddress: string;
     GameID: Integer;
     end;
@@ -43,7 +43,7 @@ uses
 
 procedure CleanUpGames;
 var
-  I, J: Integer; 
+  I, J: Integer;
 begin
   for I:=Length(Games)-1 downto 0 do
     if MinutesBetween(Games[I].Created, Now)>4 then
@@ -124,7 +124,8 @@ begin
 
     Headers:='HTTP/1.0 200 OK'#13#10;
     Headers:=Headers+'X-Powered-By: MyWormNET'#13#10;
-    Headers:=Headers+'X-Test: BlaBla'#13#10;
+//    Headers:=Headers+'Connection: close'#13#10;
+//    Headers:=Headers+'X-Test: BlaBla'#13#10;
     Body:='';
     if FileName='Login.asp' then
     begin
@@ -132,10 +133,17 @@ begin
         Body:='<CONNECT 127.0.0.1>'
       else
         Body:='<CONNECT '+ServerHost+'>';
+      Body:=Body+#13#10'<MOTD>'+GetFile('news.txt')+#13#10'</MOTD>';
     end
     else
+    if FileName='Rankings.asp' then
+      Body:='<CENTER>Sorry, this server doesn''t support rankings.</CENTER>'
+    else
+    if FileName='ProcessGameResult.asp' then
+      Body:='<NOTHING>'
+    else
     if FileName='RequestChannelScheme.asp' then
-      Body:='<SCHEME=Pf,Be>'
+      Body:='<SCHEME=Pf,Be>'#10                      //#10 for Wheat Snooper compatibility
     else
     // Cmd=Create&Name=ßCyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
     if FileName='Game.asp' then
@@ -145,7 +153,11 @@ begin
         Game.Name:=Parameters.Values['Name'];
         if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
         Game.Password:=Parameters.Values['Pwd'];
+        if (Game.Password <> '') then Game.PassNeeded:='1'
+        else Game.PassNeeded:='0';
+        Game.LType:=Parameters.Values['Type'];
         Game.Loc:=Parameters.Values['Loc'];
+        Game.HosterAddress:=Parameters.Values['HostIP'];
         Game.GameID:=GameCounter;
         Game.Created:=Now;
 
@@ -159,12 +171,11 @@ begin
             raise Exception.Create('Can''t find IRC user "'+Parameters.Values['Nick']+'".');
 
           //if(Pos('http://wormnat.xeon.cc/', Parameters.Values['HostIP'])<>0)or(User.ConnectingFrom='127.0.0.1')or(Copy(User.ConnectingFrom, ) then
-          //Game.HosterAddress:=Parameters.Values['HostIP'];
           //else
-          if Pos(':', Parameters.Values['HostIP'])>0 then
-            Game.HosterAddress:=User.ConnectingFrom + Copy(Parameters.Values['HostIP'], Pos(':', Parameters.Values['HostIP']), 1000)
-          else
-            Game.HosterAddress:=User.ConnectingFrom;  // auto-detect the user's external address
+     //     if Pos(':', Parameters.Values['HostIP'])>0 then
+     //       Game.HosterAddress:=User.ConnectingFrom + Copy(Parameters.Values['HostIP'], Pos(':', Parameters.Values['HostIP']), 1000)
+     //     else
+     //       Game.HosterAddress:=User.ConnectingFrom;  // auto-detect the user's external address
           Game.HosterNickname:=User.Nickname;
           end
         else
@@ -175,13 +186,14 @@ begin
         SetLength(Games, Length(Games)+1);
         Games[Length(Games)-1]:=Game;
 
-        for I:=0 to Length(Users)-1 do
+      {  for I:=0 to Length(Users)-1 do
           if Users[I].InChannel then
-            Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');
+            Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');}
         EventLog(Game.HosterNickname+' ('+Game.HosterAddress+') has created a game ("'+Game.Name+'").');
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
-        Body:='<NOTHING>';
+        Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Copy(IRCChannel,Pos('#',IRCChannel)+1,Length(IRCChannel))+'">here</a>.'#10'</body>'#10'</html>';
+        // The string above is for compatibility with Wheat Snooper, lol... Otherwise it can't host. Ridiculous, but still.
         end
       else
       if Parameters.Values['Cmd']='Close' then
@@ -201,9 +213,9 @@ begin
           Log('Trying to close a non-existant game ('+Parameters.Values['GameID']+')')
         else
           begin
-          for I:=0 to Length(Users)-1 do
-            if Users[I].InChannel then
-              Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
+        {  for I:=0 to Length(Users)-1 do
+           if Users[I].InChannel then
+              Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');}
           EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
           end;
         end
@@ -218,11 +230,11 @@ begin
     if FileName='GameList.asp' then
       begin
       CleanUpGames;
-      Body:=Body+'<GAMELISTSTART>'#13#10;
+      Body:=Body+'#10<GAMELISTSTART>'#10;
       for I:=0 to Length(Games)-1 do
        with Games[I] do
-        Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 0 '+IntToStr(GameID)+' 0><BR>'#13#10;
-      Body:=Body+'<GAMELISTEND>'#13#10;
+        Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
+      Body:=Body+'<GAMELISTEND>'#10;
       end
     else
     if FileName='UpdatePlayerInfo.asp' then

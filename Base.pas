@@ -11,6 +11,7 @@ var
   IRCPort, HTTPPort, WormNATPort: Integer;
   IRCOperPassword: string;
   IRCChannel: string;
+  StealthIP: string;
 
 procedure Log(S: string; DiskOnly: Boolean=False);
 procedure EventLog(S: string);

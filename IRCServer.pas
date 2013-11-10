@@ -45,8 +45,8 @@ uses
 
 procedure TUser.Execute;
 var
-  Buffer, S, S2, Command, Target: string;
-  R, Bytes, I, N: Integer;
+  Buffer, S, S2, Command, Target, Description: string;
+  R, Bytes, I, J, N: Integer;
   PingTimer: Integer;
   B: Boolean;
   ReadSet, ErrorSet: record
@@ -66,9 +66,10 @@ var
     SendLn(':'+ServerHost+' 002 '+Nickname+' :This is a minimal WormNet-compatible IRC server emulator,');
     SendLn(':'+ServerHost+' 003 '+Nickname+' :supporting only the base set of IRC features.');
     SendLn(':'+ServerHost+' 004 '+Nickname+' :The server software was written by ');
-    SendLn(':'+ServerHost+' 005 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
+    SendLn(':'+ServerHost+' 005 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>'); 
+    SendLn(':'+ServerHost+' 006 '+Nickname+' :and extended by StepS.');
     if WormNATPort>0 then
-      SendLn(':'+ServerHost+' 006 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
+      SendLn(':'+ServerHost+' 007 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
     //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
     //SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=(ov)@+ CHANTYPES=#& MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK=EFnet CHANMODES=b,k,l,imnpst MODES=4 :are supported by this server');
@@ -140,10 +141,231 @@ begin
         WriteLn('< '+S);
         Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
         Delete(S, 1, Length(Command)+1);
+
+        if Command='MUTE' then
+          begin
+          if S <> '' then
+            begin
+              if Modes['o'] then
+                begin
+                for I:=0 to Length(Users)-1 do
+                  if S=Users[I].Nickname then
+                    begin
+                    if Users[I].Modes['o'] = false then
+                      begin
+                      Users[I].Modes['m'] := true;
+                      Users[I].SendLn(':'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been muted by '+Nickname+'.');
+                      Break
+                      end
+                    else
+                      begin
+                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+S+' :Cannot mute an operator');
+                        Break
+                      end;
+                    end
+                  else if I=Length(Users)-1 then
+                    SendLn(':'+ServerHost+' 401 '+Nickname+' '+S+' :Failed to find an user with this nickname');
+                end
+              else
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+            end
+            else
+              SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
+          end
+        else
+        if (Command='KICK') or (Command='KILL') then
+         begin
+          if S <> '' then
+           begin
+            if Pos(IRCChannel, S) <> 0 then Delete(S, 1, Pos(' ', S));
+            if Pos(' ', S) <> 0 then
+              begin
+                Target:=Copy(S, 1, Pos(' ', S)-1);
+                Description:=Copy(S, Pos(' ', S)+1, Length(S));
+                if Copy(Description, 1, 1) = ':' then Delete(Description, 1, 1);
+              end
+            else
+              begin
+                Target:=Copy(S, 1, Length(S));
+                Description:='No reason specified';
+              end;
+            if Modes['o'] then
+             begin
+              for I:=0 to Length(Users)-1 do
+                if Target=Users[I].Nickname then
+                  begin
+                    if Users[I].Modes['o'] = false then
+                      begin
+                        if Users[I].InChannel then Users[I].InChannel := False;
+                        for J:=0 to Length(Users)-1 do
+                          Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Kicked by '+Nickname+': '+Description);
+                        Users[I].SendLn('ERROR :You have been kicked from the server by '+Nickname+': '+Description);
+                        if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
+                        Break
+                      end
+                    else
+                      begin
+                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot kick an operator');
+                        Break
+                      end;
+                  end
+                else if I=Length(Users)-1 then
+                  SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
+             end
+            else
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+      //        begin
+      //          if InChannel then InChannel := False;
+      //          for I:=0 to Length(Users)-1 do
+      //            Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Kicked: Attempted to use godly powers');
+      //          SendLn('ERROR :Nice try, '+Nickname+'.');
+      //          closesocket(Socket); Socket:=0;
+      //        end;
+           end
+             else
+              SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
+          end
+        else
+        if Command='PRANK' then
+          begin
+           if Pos(' ', S) <> 0 then
+              begin
+                Target:=Copy(S, 1, Pos(' ', S)-1);
+                Description:=Copy(S, Pos(' ', S)+1, Length(S));
+              end
+            else
+              begin
+                Target:=Copy(S, 1, Length(S));
+                Description:='Something bad happened.';
+              end;
+
+            if Modes['o'] then
+                for I:=0 to Length(Users)-1 do
+                    if Target=Users[I].Nickname then
+                      begin
+                      if Users[I].Modes['o'] = false then
+                        begin
+                          Users[I].SendLn('ERROR :'+Description);
+                          Break
+                        end
+                      else
+                        begin
+                          SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot prank an operator');
+                          Break
+                        end;
+                      end
+                    else if I=Length(Users)-1 then
+                      SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
+          end
+        else
+        if Command='KICKALL' then
+          begin
+            if Modes['o'] then
+              begin
+              for I:=0 to Length(Users)-1 do
+                if Users[I].Modes['o'] = false then
+                  begin
+                    for J:=0 to Length(Users)-1 do
+                      Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
+                    Users[I].SendLn('ERROR :Massive kicking started by '+Nickname);
+                  end;
+              end
+            else
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+          end
+        else
+        if Command='SENDRAW' then
+          begin
+           Target:='';
+           Description:='';
+           if S <> '' then
+             begin
+             if Pos(' ', S) <> 0 then
+                begin
+                  Target:=Copy(S, 1, Pos(' ', S)-1);
+                  Description:=Copy(S, Pos(' ', S)+1, Length(S));
+                end;
+             end;
+
+             if Modes['o'] then
+              begin
+              if (Target='') or (Description='') then
+                SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
+              else
+                begin
+                for I:=0 to Length(Users)-1 do
+                  begin
+                  if Target=Users[I].Nickname then
+                    begin
+                      if (Users[I].Modes['o'] = false) or (Users[I] = Self) then
+                        begin
+                        for J:=0 to Length(Users)-1 do
+                          if Users[J] <> Users[I] then
+                            Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Description);
+                        end
+                      else
+                        begin
+                          SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot sendraw an operator');
+                          Break
+                        end;
+                    end
+                  else if I=Length(Users)-1 then
+                      SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
+                  end;
+                 end;
+                end
+               else
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+           end
+        else
+        if Command='ANNOUNCE' then
+          begin 
+            if Modes['o'] then
+              begin
+              if S <> '' then
+                for I:=0 to Length(Users)-1 do
+                  Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+S)
+              else                          
+                SendLn(':'+ServerHost+' 412 '+Nickname+' '+Command+' :No text to send');
+              end
+            else  
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+          end
+        else
+     //   if Command='SERVERRAW' then
+     
+        if Command='ISON' then
+         begin
+          if Nickname <> '' then
+          begin
+          Description:='';
+          while Pos(' ',S) <> 0 do
+            begin
+            Target:=Copy(S, 1, Pos(' ', S)-1);
+            Delete(S, 1, Pos(' ', S));
+            for I:=0 to Length(Users)-1 do
+              if Target=Users[I].Nickname then
+                Description:=Description+Target+' ';
+            end;
+          if S='' then
+            SendLn(':'+ServerHost+' 303 '+Nickname+' :'+Description)
+          else
+            begin
+            Target:=S;
+            for I:=0 to Length(Users)-1 do
+              if Target=Users[I].Nickname then
+                Description:=Description+Target;
+            SendLn(':'+ServerHost+' 303 '+Nickname+' :'+Description);
+            end;
+          end;
+         end
+        else
         if Command='PING' then
           SendLn('PONG :'+ServerHost)
         else
-        if Command='PONG' then 
+        if Command='PONG' then
+        else
+        if Command='AWAY' then
         else
         if Command='PASS' then {ignore}
           begin
@@ -162,16 +384,16 @@ begin
             SendLn(':'+ServerHost+' 464 '+S+' :Password incorrect');
             raise Exception.Create('Bad password!');
             end;}
-          
+
           if Nickname<>'' then
-            SendLn(':'+ServerHost+' 400 :Nick change isn''t supported.')
+            SendLn(':'+ServerHost+' 400 '+Nickname+' '+S+' :Nick change isn''t supported.')
           else
           begin
             for I:=Length(S) downto 1 do
               if Pos(S[I], ValidNickChars)=0 then
                 Delete(S, I, 1);
             if S='' then
-              SendLn(':'+ServerHost+' 432 '+S+' :Erroneous nickname')
+              SendLn(':'+ServerHost+' 432 '+Nickname+' '+S+' :Erroneous nickname')
             else
             begin
               B := False;
@@ -179,16 +401,16 @@ begin
                 if UpperCase(Users[I].Nickname)=UpperCase(S) then
                   B := True;
               if B then
-                SendLn(':'+ServerHost+' 433 '+S+' :Nickname is already in use')
+                SendLn(':'+ServerHost+' 433 '+Nickname+' '+S+' :Nickname is already in use')
               else
                 Nickname:=S;
-              if UserName<>'' then
+              if Nickname<>'' then
                 LogIn;
             end;
           end;
         end
         else
-        // USER Username hostname servername :40 0 RO 
+        // USER Username hostname servername :40 0 RO
         if Command='USER' then
           begin
             Username:=Copy(S, 1, Pos(' ', S)-1);
@@ -198,6 +420,9 @@ begin
             Servername:=Copy(S, 1, Pos(' ', S)-1);
             Delete(S, 1, Pos(':', S));
             Realname:=S;
+
+          if Username='' then
+            Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
           if Nickname<>'' then
             LogIn;
           end
@@ -208,7 +433,7 @@ begin
           if InChannel then
             for I:=0 to Length(Users)-1 do
               if Users[I].InChannel then
-                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' QUIT :'+Copy(S, 2, 1000));
+                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+Copy(S, 2, 1000));
           InChannel := False;
           Break
           end
@@ -216,7 +441,7 @@ begin
         if Command='JOIN' then
           begin
           if Nickname='' then
-            SendLn(':'+ServerHost+' 451 :Register first.')
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
           if InChannel then
             SendLn(':'+ServerHost+' 403 '+Nickname+' '+S+' :You already are in a channel')
@@ -229,7 +454,7 @@ begin
             for I:=0 to Length(Users)-1 do
               if Users[I].InChannel then
                 begin
-                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' JOIN :'+IRCChannel);
+                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
                 if Modes['o'] then
                   Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
                 end;
@@ -250,50 +475,63 @@ begin
         else
         if Command='PART' then
           begin
-          if InChannel then
+          if Nickname='' then
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
+          else
             begin
-            EventLog(Nickname+' ('+ConnectingFrom+') has left #'+IRCChannel);
-            for I:=0 to Length(Users)-1 do
-              if Users[I].InChannel then
-                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' PART '+S);
-            InChannel:=False;
+            if InChannel then
+              begin
+              EventLog(Nickname+' ('+ConnectingFrom+') has left #'+IRCChannel);
+              for I:=0 to Length(Users)-1 do
+                if Users[I].InChannel then
+                  Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S);
+              InChannel:=False;
+              end;
             end;
           end
         else
         if Command='MODE' then
           begin
-          Target:=Copy(S, 1, Pos(' ', S+' ')-1);
-          Delete(S, 1, Pos(':', S+':')-1);
-          if S<>'' then
-            SendLn(':'+ServerHost+' 472 '+Nickname+' :Sorry, you can''t set modes for anything.')
+          if Nickname='' then
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
-            if Target=IRCChannel then
-              begin
-              SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
-              end
+            begin
+            Target:=Copy(S, 1, Pos(' ', S+' ')-1);
+            Delete(S, 1, Pos(':', S+':')-1);
+            if S<>'' then
+              SendLn(':'+ServerHost+' 472 '+Nickname+' :Sorry, you can''t set modes for anything.')
             else
-              begin
-              User:=nil;
-              for I:=0 to Length(Users)-1 do
-                if Users[I].Nickname=Target then
-                  User:=Users[I];
-              if User=nil then
-                SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :No such nick/channel.')
+              if Target=IRCChannel then
+                begin
+                SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
+                end
               else
                 begin
-                S:='';
-                for C:=#0 to #255 do
-                  if Modes[C] then
-                    S:=S+C;
-                SendLn(':'+ServerHost+' 324 '+Nickname+' '+Target+' +'+S);
+                User:=nil;
+                for I:=0 to Length(Users)-1 do
+                  if Users[I].Nickname=Target then
+                    User:=Users[I];
+                if User=nil then
+                  SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :No such nick/channel.')
+                else
+                  begin
+                  S:='';
+                  for C:=#0 to #255 do
+                    if Modes[C] then
+                      S:=S+C;
+                  SendLn(':'+ServerHost+' 324 '+Nickname+' '+Target+' +'+S);
+                  end;
                 end;
-              end;
+            end;
           end
         else
         if(Command='PRIVMSG')or(Command='NOTICE') then
           begin
           if Nickname='' then
-            SendLn(':'+ServerHost+' 451 :Register first.')
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
+          else
+          if Modes['m'] then
+            SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
           else
             begin
             Target:=Copy(S, 1, Pos(' ', S+' ')-1);
@@ -303,7 +541,7 @@ begin
               EventLog('['+IRCChannel+'] <'+Nickname+'> '+Copy(S, 1, 1000));
               for I:=0 to Length(Users)-1 do
                 if Users[I].InChannel and (Users[I]<>Self)then
-                  Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' '+Command+' '+IRCChannel+' '+S);
+                  Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+IRCChannel+' '+S);
               end
             else
               begin
@@ -318,7 +556,7 @@ begin
                 Target := User.Nickname;
                 EventLog('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Copy(S, 1, 1000));
                 LogToOper('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Copy(S, 1, 1000));
-                User.SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' '+Command+' '+Target+' '+S);
+                User.SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' '+S);
                 end;
               end;
             Sleep(1000); // throttle
@@ -327,41 +565,61 @@ begin
         else
         if Command='OPER' then
           begin
-          if Copy(S, 1, Pos(' ', S+' ')-1)<>IRCOperPassword then
-            Delete(S, 1, Pos(' ', S+' '));  // ignore username
-          if S=IRCOperPassword then
+          if Nickname='' then
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
+          else
             begin
-            EventLog(Nickname+' ('+ConnectingFrom+') has registered as an Operator.');
-            Modes['o']:=True;
-            SendLn(':'+Nickname+' MODE '+Nickname+' :+o');
-            if InChannel then
-              for I:=0 to Length(Users)-1 do
-                if Users[I].InChannel then
+            if Copy(S, 1, Pos(' ', S+' ')-1)<>IRCOperPassword then
+              Delete(S, 1, Pos(' ', S+' '));  // ignore username
+            if S=IRCOperPassword then
+              begin
+              EventLog(Nickname+' ('+ConnectingFrom+') has registered as an Operator.');
+              Modes['o']:=True;
+              SendLn(':'+Nickname+' MODE '+Nickname+' :+o');
+              if InChannel then
+                for I:=0 to Length(Users)-1 do
+                  if Users[I].InChannel then
                   Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
+              end
             end
           end
         else
-        if Command='WHO' then
+        if (Command='WHO')or(Command='WHOIS') then
           begin
           //:wormnet1.team17.com 352 Alexis #AnythingGoes Username no.address.for.you wormnet1.team17.com TiCPU H :0 TiCpu
           //:wormnet1.team17.com 315 Alexis * :End of /WHO list.
-          for I:=0 to Length(Users)-1 do
-            if Users[I].InChannel then
-              SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
-            else
-              SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
-          SendLn(':'+ServerHost+' 315 '+Nickname+' * :End of /WHO list.');
+          if Nickname='' then
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
+          else
+            begin
+              for I:=0 to Length(Users)-1 do
+                if Users[I].Nickname <> Nickname then
+                  begin
+                    if Users[I].InChannel then
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
+                    else if Users[I].Nickname <> '' then
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                  end
+                  else
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+               SendLn(':'+ServerHost+' 315 '+Nickname+' * :End of /WHO list.');
+            end;
           end
         else
         if Command='LIST' then
           begin
-          N:=0;
-          for I:=0 to Length(Users)-1 do
-            if Users[I].InChannel then
-              Inc(N);
-          SendLn(':'+ServerHost+' 321 '+Nickname+' Channel :Users  Name');
-          SendLn(':'+ServerHost+' 322 '+Nickname+' '+IRCChannel+' '+IntToStr(N)+' :');
-          SendLn(':'+ServerHost+' 323 '+Nickname+' :End of /LIST');
+          if Nickname='' then
+            SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
+          else
+            begin
+            N:=0;
+            for I:=0 to Length(Users)-1 do
+              if Users[I].InChannel then
+                Inc(N);
+            SendLn(':'+ServerHost+' 321 '+Nickname+' Channel :Users  Name');
+            SendLn(':'+ServerHost+' 322 '+Nickname+' '+IRCChannel+' '+IntToStr(N)+' :');
+            SendLn(':'+ServerHost+' 323 '+Nickname+' :End of /LIST');
+            end
           end
         else
         if Command='EXPECT' then
@@ -375,7 +633,7 @@ begin
             SendLn(':'+ServerHost+' 401 '+S+' :No such nick.')
           else
             begin
-            SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from '+User.ConnectingFrom);
+            SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from '+StealthIP);
             PrepareLink(Self, User);
             end;
           end
@@ -399,14 +657,14 @@ begin
         if InChannel then
           for I:=0 to Length(Users)-1 do
             if Users[I].InChannel then
-              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' QUIT :Ping timeout');
-        closesocket(Socket); Socket:=0;
+              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Ping timeout');
+        if (Socket <> 0) then closesocket(Socket); Socket:=0;
         Break;
         end;
     until Socket=0;
     Log('[IRC] Closing link to '+ConnectingFrom);
     closesocket(Socket);
-    
+
   except
     on E: Exception do
       begin
@@ -414,7 +672,7 @@ begin
         for I:=0 to Length(Users)-1 do
           if Users[I].InChannel then
             try
-              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+ConnectingFrom+' QUIT :'+E.Message);
+              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+E.Message);
             except
               end;
       Log('[IRC] Error with '+ConnectingFrom+' : '+E.Message);
