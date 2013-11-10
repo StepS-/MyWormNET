@@ -157,15 +157,16 @@ begin
         else Game.PassNeeded:='0';
         Game.LType:=Parameters.Values['Type'];
         Game.Loc:=Parameters.Values['Loc'];
+        Game.HosterNickname:=Parameters.Values['Nick'];
         Game.HosterAddress:=Parameters.Values['HostIP'];
         Game.GameID:=GameCounter;
         Game.Created:=Now;
 
-        if IRCPort>0 then
+      {   if IRCPort>0 then
           begin
           User:=nil;
           for I:=0 to Length(Users)-1 do                      // this check also matches the IP address
-            if (Users[I].Nickname=Parameters.Values['Nick']){and(Users[I].ConnectingFrom=ConnectingFrom)} then
+            if (Users[I].Nickname=Parameters.Values['Nick']) then
               User:=Users[I];
           if User=nil then
             raise Exception.Create('Can''t find IRC user "'+Parameters.Values['Nick']+'".');
@@ -183,12 +184,15 @@ begin
           Game.HosterNickname:=Parameters.Values['Nick'];
           Game.HosterAddress:=Parameters.Values['HostIP'];
           end;
+      }
         SetLength(Games, Length(Games)+1);
         Games[Length(Games)-1]:=Game;
 
-      {  for I:=0 to Length(Users)-1 do
+      {
+        for I:=0 to Length(Users)-1 do
           if Users[I].InChannel then
-            Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');}
+            Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');
+      }
         EventLog(Game.HosterNickname+' ('+Game.HosterAddress+') has created a game ("'+Game.Name+'").');
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
@@ -230,7 +234,7 @@ begin
     if FileName='GameList.asp' then
       begin
       CleanUpGames;
-      Body:=Body+'#10<GAMELISTSTART>'#10;
+      Body:=Body+'<GAMELISTSTART>'#10;
       for I:=0 to Length(Games)-1 do
        with Games[I] do
         Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
