@@ -615,16 +615,36 @@ begin
           else
             begin
               for I:=0 to Length(Users)-1 do
-                if Users[I].Nickname <> Nickname then
+                begin
+                if S<>IRCChannel then
                   begin
-                    if Users[I].InChannel then
+                  if (S<>'') and (S<>Users[I].Nickname) then continue;
+                  if Users[I].Nickname <> Nickname then
+                    begin
+                      if Users[I].InChannel then
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
+                      else if Users[I].Nickname <> '' then
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                      if (S<>'') and (S=Users[I].Nickname) then Break;
+                    end
+                    else
+                      begin
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                        if (S<>'') and (S=Users[I].Nickname) then Break;
+                      end;
+                  end;
+                else if Users[I].InChannel then
+                  begin
+                    if Users[I].Nickname <> Nickname then
                       SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
-                    else if Users[I].Nickname <> '' then
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
-                  end
-                  else
+                    else if Nickname <> '' then
                       SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
-               SendLn(':'+ServerHost+' 315 '+Nickname+' * :End of /WHO list.');
+                  end;
+                end;
+              if S='' then
+                SendLn(':'+ServerHost+' 315 '+Nickname+' * :End of /WHO list.')
+              else
+                SendLn(':'+ServerHost+' 315 '+Nickname+' '+S+' :End of /WHO list.');
             end;
           end
         else
