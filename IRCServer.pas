@@ -151,7 +151,7 @@ begin
                 for I:=0 to Length(Users)-1 do
                   if S=Users[I].Nickname then
                     begin
-                      SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :IP of user '+S+' is: '+ConnectingFrom+'.');
+                      SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :IP of user '+S+' is: '+Users[I].ConnectingFrom+'.');
                       Break
                     end
                   else if I=Length(Users)-1 then
