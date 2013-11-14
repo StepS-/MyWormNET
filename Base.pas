@@ -12,6 +12,7 @@ var
   IRCOperPassword: string;
   IRCChannel: string;
   StealthIP: string;
+  NetworkName: string;
 
 procedure Log(S: string; DiskOnly: Boolean=False);
 procedure EventLog(S: string);
