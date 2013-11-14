@@ -63,16 +63,16 @@ var
   begin
     EventLog(Nickname+' ('+ConnectingFrom+') logged in.');
     SendLn(':'+ServerHost+' 001 '+Nickname+' :Welcome, '+Nickname+' !');
-    SendLn(':'+ServerHost+' 002 '+Nickname+' :This is a minimal WormNet-compatible IRC server emulator,');
-    SendLn(':'+ServerHost+' 003 '+Nickname+' :supporting only the base set of IRC features.');
-    SendLn(':'+ServerHost+' 004 '+Nickname+' :The server software was written by ');
-    SendLn(':'+ServerHost+' 005 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>'); 
-    SendLn(':'+ServerHost+' 006 '+Nickname+' :and extended by StepS.');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :This is a minimal WormNet-compatible IRC server emulator,');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :supporting only the base set of IRC features.');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :The server software was written by ');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :and extended by StepS.');
+    SendLn(':'+ServerHost+' 005 '+Nickname+' :WALLCHOPS PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
     if WormNATPort>0 then
-      SendLn(':'+ServerHost+' 007 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
+      SendLn(':'+ServerHost+' 001 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
     //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
-    //SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=(ov)@+ CHANTYPES=#& MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK=EFnet CHANMODES=b,k,l,imnpst MODES=4 :are supported by this server');
     SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users))+' users on the server.');
     N:=0;
     for I:=0 to Length(Users)-1 do
@@ -492,21 +492,24 @@ begin
               if Users[I].InChannel then
                 begin
                 Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
-                if Modes['o'] then
-                  Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
+                  if Modes['o'] then
+                    Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
                 end;
             S:=':'+ServerHost+' 353 '+Nickname+' = '+IRCChannel+' :';
             for I:=0 to Length(Users)-1 do
               if Users[I].InChannel then
                 begin
+                if Users[I].Modes['q'] then
+                  S:=S+'~';
+                if Users[I].Modes['a'] then
+                  S:=S+'&';
                 if Users[I].Modes['o'] then
                   S:=S+'@';
-                {
-                else if Users[I].Modes['v'] then
-                  S:=S+'+'
-                else if Users[I].Modes['h'] then
+                if Users[I].Modes['h'] then
                   S:=S+'%';
-                }          //does not work with W:A
+                if Users[I].Modes['v'] then
+                  S:=S+'+';
+                          //does not work with W:A
                 S:=S+Users[I].Nickname+' ';
                 end;
             SendLn(S);
@@ -514,6 +517,28 @@ begin
             end
           else
             SendLn(':'+ServerHost+' 403 '+Nickname+' '+S+' :No such channel');
+          end
+        else
+        if Command='NAMES' then
+          begin
+          S:=':'+ServerHost+' 353 '+Nickname+' = '+IRCChannel+' :';
+            for I:=0 to Length(Users)-1 do
+              if Users[I].InChannel then
+                begin
+                if Users[I].Modes['q'] then
+                  S:=S+'~';
+                if Users[I].Modes['a'] then
+                  S:=S+'&';
+                if Users[I].Modes['o'] then
+                  S:=S+'@';
+                if Users[I].Modes['h'] then
+                  S:=S+'%';
+                if Users[I].Modes['v'] then
+                  S:=S+'+';
+                          //does not work with W:A
+                S:=S+Users[I].Nickname+' ';
+                end;
+            SendLn(S);
           end
         else
         if Command='PART' then
@@ -644,7 +669,7 @@ begin
           if Nickname='' then
             SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
-          if Modes['b'] then
+          if Modes['b'] and not Modes['o'] then
             SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
           else
             begin
@@ -708,29 +733,41 @@ begin
             begin
               for I:=0 to Length(Users)-1 do
                 begin
+                Description:='';
+                if Users[I].Modes['q'] then
+                  Description:='~'
+                else if Users[I].Modes['a'] then
+                  Description:='&'
+                else if Users[I].Modes['o'] then
+                  Description:='@'
+                else if Users[I].Modes['h'] then
+                  Description:='%'
+                else if Users[I].Modes['v'] then
+                  Description:='+';
+
                 if S<>IRCChannel then
                   begin
                   if (S<>'') and (S<>Users[I].Nickname) then continue;
                   if Users[I].Nickname <> Nickname then
                     begin
                       if Users[I].InChannel then
-                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
                       else if Users[I].Nickname <> '' then
-                        SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
                     end
                   else
                     if InChannel then
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
                     else
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
                   if (S<>'') and (S=Users[I].Nickname) then Break;
                   end
                 else if Users[I].InChannel then
                   begin
                     if Users[I].Nickname <> Nickname then
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname)
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
                     else
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H :0 '+Users[I].Realname);
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
                   end;
                 end;
               if S='' then
@@ -758,7 +795,7 @@ begin
         else
         if Command='EXPECT' then
           begin
-          Log('Received EXPECT command from '+ConnectingFrom+' for '+S);;
+          Log('Received EXPECT command from '+ConnectingFrom+' for '+S);
           User:=nil;
           for I:=0 to Length(Users)-1 do
             if Users[I].Nickname=S then
@@ -776,7 +813,11 @@ begin
           begin
           for I:=0 to Length(Games)-1 do
            with Games[I] do
-            SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+Name+' '+HosterNickname+' '+HosterAddress);
+            begin
+            if PassNeeded='0' then Description:='[OPEN]'
+            else Description:='[PASS]';
+            SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+Description+' '+Name+' '+HosterNickname+' '+HosterAddress+' | wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme=Pf,Be');
+            end;
           SendLn(':'+ServerHost+' NOTICE '+Nickname+' :--- '+IntToStr(Length(Games))+' games total ---');
           end
         else
