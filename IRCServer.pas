@@ -176,9 +176,19 @@ begin
                     if Users[I].Modes['o'] = false then
                       begin
                         if (Command='MUTE') then
-                          Users[I].Modes['m'] := true
+                          begin
+                          Users[I].Modes['b'] := true;
+                          C:='-';
+                          end
                         else
-                          Users[I].Modes['m'] := false;
+                          begin
+                          Users[I].Modes['b'] := false;
+                          C:='+';
+                          end;
+                        if Users[I].InChannel then
+                          for J:=0 to Length(Users)-1 do
+                            if Users[J].InChannel then
+                              Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+'b '+Users[I].Nickname);
                         Users[I].SendLn(':'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
                         Break
                       end
@@ -557,10 +567,11 @@ begin
                             for K:=2 to Pos(' ',Description)-1 do
                               begin
                               B:=False;
-                              S:=Copy(Description, K, K);
+                              S:=Description[K];
+                              C:=Description[1];
                               if (S<>' ') then
                                 begin
-                                if Copy(Description, 1, 1) = '+' then
+                                if C = '+' then
                                   begin
                                   if Users[I].Modes[S[1]]=false then
                                     begin
@@ -568,7 +579,7 @@ begin
                                     B:=True;
                                     end;
                                   end
-                                else if Copy(Description, 1, 1) = '-' then
+                                else if C = '-' then
                                   begin
                                   if Users[I].Modes[S[1]]=true then
                                     begin
@@ -580,15 +591,16 @@ begin
                                 end;
                               if B then
                                 begin
-                                SendLn(':'+Nickname+' MODE '+Users[I].Nickname+' :'+Copy(Description, 1, 1)+S);
+                                SendLn(':'+Nickname+' MODE '+Users[I].Nickname+' :'+C+S);
                                 if Users[I].InChannel then
                                   for J:=0 to Length(Users)-1 do
                                     if Users[J].InChannel then
-                                      Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+Copy(Description, 1, 1)+S+' '+Users[I].Nickname);
+                                      Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+S+' '+Users[I].Nickname);
                                 end;
                               end;
+                            Break
                             end
-                            else if I = Length(Users)-1 then
+                            else if (I = Length(Users)-1) and (Users[I].Nickname<>Target) then
                               SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
                           end;
                         end
@@ -632,7 +644,7 @@ begin
           if Nickname='' then
             SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
-          if Modes['m'] then
+          if Modes['b'] then
             SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
           else
             begin
