@@ -46,7 +46,7 @@ uses
 procedure TUser.Execute;
 var
   Buffer, S, S2, Command, Target, Description: string;
-  R, Bytes, I, J, N: Integer;
+  R, Bytes, I, J, K, N: Integer;
   PingTimer: Integer;
   B: Boolean;
   ReadSet, ErrorSet: record
@@ -164,7 +164,7 @@ begin
               SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
           end
         else
-        if Command='MUTE' then
+        if (Command='MUTE')or(Command='UNMUTE') then
           begin
           if S <> '' then
             begin
@@ -175,13 +175,16 @@ begin
                     begin
                     if Users[I].Modes['o'] = false then
                       begin
-                      Users[I].Modes['m'] := true;
-                      Users[I].SendLn(':'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been muted by '+Nickname+'.');
-                      Break
+                        if (Command='MUTE') then
+                          Users[I].Modes['m'] := true
+                        else
+                          Users[I].Modes['m'] := false;
+                        Users[I].SendLn(':'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
+                        Break
                       end
                     else
                       begin
-                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+S+' :Cannot mute an operator');
+                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+S+' :Cannot '+LowerCase(Command)+' an operator');
                         Break
                       end;
                     end
@@ -192,7 +195,7 @@ begin
                 SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
             end
             else
-              SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
+              SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters');
           end
         else
         if (Command='KICK') or (Command='KILL') then
@@ -350,7 +353,7 @@ begin
               else                          
                 SendLn(':'+ServerHost+' 412 '+Nickname+' '+Command+' :No text to send');
               end
-            else  
+            else
               SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
           end
         else
@@ -487,7 +490,11 @@ begin
               if Users[I].InChannel then
                 begin
                 if Users[I].Modes['o'] then
-                  S:=S+'@';
+                  S:=S+'@'
+          {      else if Users[I].Modes['v'] then
+                  S:=S+'+'
+                else if Users[I].Modes['h'] then
+                  S:=S+'%';                       } //does not work with W:A
                 S:=S+Users[I].Nickname+' ';
                 end;
             SendLn(S);
@@ -521,31 +528,100 @@ begin
           else
             begin
             Target:=Copy(S, 1, Pos(' ', S+' ')-1);
-            Delete(S, 1, Pos(':', S+':')-1);
-            if S<>'' then
-              SendLn(':'+ServerHost+' 472 '+Nickname+' :Sorry, you can''t set modes for anything.')
-            else
+            Description:='';
+        //    Delete(S, 1, Pos(':', S+':')-1);
+        //    if S<>'' then
+        //      SendLn(':'+ServerHost+' 472 '+Nickname+' :Sorry, you can''t set modes for anything.')
+        //    else
               if Target=IRCChannel then
                 begin
-                SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
-                end
-              else
-                begin
-                User:=nil;
-                for I:=0 to Length(Users)-1 do
-                  if Users[I].Nickname=Target then
-                    User:=Users[I];
-                if User=nil then
-                  SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :No such nick/channel.')
-                else
+                Delete(S,1,Pos(IRCChannel,S));
+                if Pos(' ', S) <> 0 then
                   begin
-                  S:='';
-                  for C:=#0 to #255 do
-                    if Modes[C] then
-                      S:=S+C;
-                  SendLn(':'+ServerHost+' 324 '+Nickname+' '+Target+' +'+S);
-                  end;
-                end;
+                  Delete(S,1,Pos(' ',S));
+                  if (Pos('+',S))or(Pos('-',S)) = 1 then
+                    begin
+                    if Modes['o'] then
+                      begin
+                      if Pos(' ', S) <> 0 then
+                        begin
+                        Description:=Copy(S, 1, Pos(' ', S));
+                        Delete(S, 1, Pos(' ', S));
+                        Target:=S;
+                        for I:=0 to Length(Users)-1 do
+                          begin
+                          if Users[I].Nickname=Target then
+                            begin
+                            for K:=2 to Pos(' ',Description)-1 do
+                              begin
+                              B:=False;
+                              S:=Copy(Description, K, K);
+                              if (S<>' ') then
+                                begin
+                                if Copy(Description, 1, 1) = '+' then
+                                  begin
+                                  if Users[I].Modes[S[1]]=false then
+                                    begin
+                                    Users[I].Modes[S[1]]:=True;
+                                    B:=True;
+                                    end;
+                                  end
+                                else if Copy(Description, 1, 1) = '-' then
+                                  begin
+                                  if Users[I].Modes[S[1]]=true then
+                                    begin
+                                    Users[I].Modes[S[1]]:=False;
+                                    B:=True;
+                                    end
+                                  else B:=False;
+                                  end;
+                                end;
+                              if B then
+                                begin
+                                SendLn(':'+Nickname+' MODE '+Users[I].Nickname+' :'+Copy(Description, 1, 1)+S);
+                                if Users[I].InChannel then
+                                  for J:=0 to Length(Users)-1 do
+                                    if Users[J].InChannel then
+                                      Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+Copy(Description, 1, 1)+S+' '+Users[I].Nickname);
+                                end;
+                              end;
+                            end
+                            else if I = Length(Users)-1 then
+                              SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
+                          end;
+                        end
+                        else
+                          SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
+                      end
+                      else
+                        SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator to change user modes');
+                    end
+                    else
+                      SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
+                  end
+                  else
+                    SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
+                end
+                else
+                  if S='' then
+                    SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn')
+           {     else
+                  begin
+                  User:=nil;
+                  for I:=0 to Length(Users)-1 do
+                    if Users[I].Nickname=Target then
+                      User:=Users[I];
+                  if User=nil then
+                    SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :No such nick/channel.')
+                  else
+                    begin
+                    S:='';
+                    for C:=#0 to #255 do
+                      if Modes[C] then
+                        S:=S+C;
+                    SendLn(':'+ServerHost+' 324 '+Nickname+' '+Target+' +'+S);
+                    end;
+                  end;     }
             end;
           end
         else
@@ -796,7 +872,7 @@ begin
       User:=TUser.Create(True);
       User.Socket:=AcceptSocket;
       User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
-      User.Modes['s']:=True;
+//      User.Modes['s']:=True;
       SetLength(Users, Length(Users)+1);
       Users[Length(Users)-1]:=User;
       User.Resume;
