@@ -490,11 +490,13 @@ begin
               if Users[I].InChannel then
                 begin
                 if Users[I].Modes['o'] then
-                  S:=S+'@'
-          {      else if Users[I].Modes['v'] then
+                  S:=S+'@';
+                {
+                else if Users[I].Modes['v'] then
                   S:=S+'+'
                 else if Users[I].Modes['h'] then
-                  S:=S+'%';                       } //does not work with W:A
+                  S:=S+'%';
+                }          //does not work with W:A
                 S:=S+Users[I].Nickname+' ';
                 end;
             SendLn(S);
