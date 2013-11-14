@@ -178,12 +178,12 @@ begin
                         if (Command='MUTE') then
                           begin
                           Users[I].Modes['b'] := true;
-                          C:='-';
+                          C:='+';
                           end
                         else
                           begin
                           Users[I].Modes['b'] := false;
-                          C:='+';
+                          C:='-';
                           end;
                         if Users[I].InChannel then
                           for J:=0 to Length(Users)-1 do
@@ -600,7 +600,7 @@ begin
                               end;
                             Break
                             end
-                            else if (I = Length(Users)-1) and (Users[I].Nickname<>Target) then
+                            else if I = Length(Users)-1 then
                               SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
                           end;
                         end
