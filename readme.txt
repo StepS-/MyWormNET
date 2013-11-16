@@ -14,6 +14,7 @@ StepS' modification currently includes the following:
 - Changed the Game.asp content to allow The Wheat Snooper host games
 - Fixed the passworded games' padlock icons and locale typecodes
 - Removed the annoying hosted/closed game notices
+- LogToOper is now optional: set yourself to mode +L to enable logging (available for ops and above)
 - Support for the ISON command
 - Finalized the WHO command (now properly gets an one-user or one-channel list)
 - Ability to kick users from the server by using the KICK or KILL command with an optional reason (available for ops and above)
