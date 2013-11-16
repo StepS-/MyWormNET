@@ -620,9 +620,10 @@ begin
                                 begin
                                 if not
                                   (
-                                  ((S='a') or (S='q') and not (Modes['q']))
-                                  or (not (S='v') and not (S='b') and ((Modes['h'])
-                                  and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
+                                    ((S='a') or (S='q') and not (Modes['q']))
+                                    or (not (S='v') and not (S='b') and ((Modes['h'])
+                                        and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
+                                    or ((S='L') and (Target<>Nickname))
                                   )
                                 then
                                   begin
@@ -644,7 +645,10 @@ begin
                                     end;
                                   end
                                   else
-                                    SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S);
+                                    if ((S='L') and (Target<>Nickname)) then
+                                      SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You can only enable logging for yourself')
+                                    else
+                                      SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S);
                                 end;
                               if B then
                                 begin
@@ -988,8 +992,9 @@ var
   I: Integer;
 begin
   for I:=0 to Length(Users)-1 do
-    if (Users[I].Modes['o']) or (Users[I].Modes['q']) then
-      Users[I].SendLn(':'+ServerHost+' NOTICE '+Users[I].Nickname+' :'+S);
+    with Users[I] do
+    if (Modes['L']) and ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
+      SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+S);
 end;
 
 var
