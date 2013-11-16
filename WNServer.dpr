@@ -1,6 +1,6 @@
 // WormNet server.
 
-program WNServer; 
+program WNServer;
 
 uses
 {$IFDEF WIN32}
@@ -16,7 +16,7 @@ var
 {$IFDEF WIN32}
   WSA: TWSAData;
 {$ENDIF}
- 
+
 begin
   ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
   //Log('------------------ '+DateTimeToStr(Now)+' ------------------');
@@ -30,6 +30,7 @@ begin
   IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
   IRCChannel      :=Config.ReadString ('WormNet','IRCChannel',      '#Welcome');
   StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
+  NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
 
   {$IFDEF WIN32}
   WSAStartUp(2, WSA);
