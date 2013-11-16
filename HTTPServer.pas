@@ -225,14 +225,15 @@ begin
           end;
         end
       else
-        Body:='<NOTHING>';
-    {  if Parameters.Values['Cmd']='Failed' then        // ?
+        Body:='<NOTHING>'
+      {
+      if Parameters.Values['Cmd']='Failed' then        // ?
         begin
         Body:='<NOTHING>';
         end
       else
         raise Exception.Create('Unknown game command - '+Parameters.Values['Cmd'])
-    }
+      }
     else
     if FileName='GameList.asp' then
       begin
