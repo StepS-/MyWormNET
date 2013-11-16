@@ -45,8 +45,8 @@ uses
 
 procedure TUser.Execute;
 var
-  Buffer, S, S2, Command, Target, Description: string;
-  R, Bytes, I, J, K, N: Integer;
+  Buffer, S, S2, S3, S4, Command, Target, Description: string;
+  R, Bytes, I, J, K, N, M: Integer;
   PingTimer: Integer;
   B: Boolean;
   ReadSet, ErrorSet: record
@@ -73,11 +73,16 @@ var
       SendLn(':'+ServerHost+' 001 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
     //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
-    SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users))+' users on the server.');
     N:=0;
+    M:=0;
     for I:=0 to Length(Users)-1 do
+      begin
       if (Users[I].Modes['q'])or(Users[I].Modes['a'])or(Users[I].Modes['o'])or(Users[I].Modes['h']) then
         Inc(N);
+      if Users[I].Modes['i'] then
+        Inc(M);
+      end;
+    SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users)-M)+' users and '+IntToStr(M)+' invisible on this server.');
     SendLn(':'+ServerHost+' 252 '+Nickname+' '+IntToStr(N)+' :IRC Operators online');
     SendLn(':'+ServerHost+' 254 '+Nickname+' 1 :channel hard-coded limit');
     SendLn(':'+ServerHost+' 375 '+Nickname+' :- '+ServerHost+' Message of the Day - ');
@@ -240,8 +245,9 @@ begin
                     then
                       begin
                         if Users[I].InChannel then Users[I].InChannel := False;
-                        for J:=0 to Length(Users)-1 do
-                          Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Kicked by '+Nickname+': '+Description);
+                        if not Users[I].Modes['i'] then
+                          for J:=0 to Length(Users)-1 do
+                            Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Kicked by '+Nickname+': '+Description);
                         Users[I].SendLn('ERROR :You have been kicked from the server by '+Nickname+': '+Description);
                         if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
                         Break
@@ -318,8 +324,9 @@ begin
               for I:=0 to Length(Users)-1 do
                 if Users[I].Modes['q'] = false then
                   begin
-                    for J:=0 to Length(Users)-1 do
-                      Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
+                    if not Users[I].Modes['i'] then
+                      for J:=0 to Length(Users)-1 do
+                        Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
                     Users[I].SendLn('ERROR :Massive kicking started by '+Nickname);
                   end;
               end
@@ -489,7 +496,7 @@ begin
         if Command='QUIT' then
           begin
           // :CyberShadow!cybershado@38F7DF98.502358C0.F6DD7E74.IP QUIT :Input/output error
-          if InChannel then
+          if (InChannel) and not (Modes['i']) then
             for I:=0 to Length(Users)-1 do
               if Users[I].InChannel then
                 Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+Copy(S, 2, 1000));
@@ -510,18 +517,23 @@ begin
             EventLog(Nickname+' ('+ConnectingFrom+') has joined #'+IRCChannel);
             InChannel:=True;
             //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
-            for I:=0 to Length(Users)-1 do
-              if Users[I].InChannel then
+            if not Modes['i'] then
+              for I:=0 to Length(Users)-1 do
                 begin
-                Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
-                Description:='qaohv';
-                for K:=1 to 5 do
-                  if Modes[Description[K]] then
-                    Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +'+Description[K]+' '+Nickname);
-                end;
+                if Users[I].InChannel then
+                  begin
+                  Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
+                  S3:='qaohv';
+                  for K:=1 to 5 do
+                    if Modes[S3[K]] then
+                      Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +'+S3[K]+' '+Nickname);
+                  end;
+                end
+            else
+              SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
             S:=':'+ServerHost+' 353 '+Nickname+' = '+IRCChannel+' :';
             for I:=0 to Length(Users)-1 do
-              if Users[I].InChannel then
+              if (Users[I].InChannel) and not (Users[I].Modes['i']) then
                 begin
                 if Users[I].Modes['q'] then
                   S:=S+'~';
@@ -546,7 +558,7 @@ begin
           begin
           S:=':'+ServerHost+' 353 '+Nickname+' = '+IRCChannel+' :';
             for I:=0 to Length(Users)-1 do
-              if Users[I].InChannel then
+              if (Users[I].InChannel) and not (Users[I].Modes['i']) then
                 begin
                 if Users[I].Modes['q'] then
                   S:=S+'~';
@@ -572,9 +584,12 @@ begin
             if InChannel then
               begin
               EventLog(Nickname+' ('+ConnectingFrom+') has left #'+IRCChannel);
-              for I:=0 to Length(Users)-1 do
-                if Users[I].InChannel then
-                  Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S);
+              if Modes['i'] then
+                SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
+              else
+                for I:=0 to Length(Users)-1 do
+                  if Users[I].InChannel then
+                    Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S);
               InChannel:=False;
               end;
             end;
@@ -624,6 +639,9 @@ begin
                                     or (not (S='v') and not (S='b') and ((Modes['h'])
                                         and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
                                     or ((S='L') and (Target<>Nickname))
+                                    or ((Users[I].Modes['q']) and not (Modes['q']))
+                                    or ((Users[I].Modes['a']) and not (Modes['q']))
+                                    or ((Users[I].Modes['o']) and not (Modes['o']) and not (Modes['a']) and not (Modes['q']))
                                   )
                                 then
                                   begin
@@ -648,7 +666,7 @@ begin
                                     if ((S='L') and (Target<>Nickname)) then
                                       SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You can only enable logging for yourself')
                                     else
-                                      SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S);
+                                      SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S+' for a given user');
                                 end;
                               if B then
                                 begin
@@ -656,7 +674,11 @@ begin
                                 if Users[I].InChannel then
                                   for J:=0 to Length(Users)-1 do
                                     if Users[J].InChannel then
-                                      Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+S+' '+Users[I].Nickname);
+                                      if S<>'i' then
+                                        Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+S+' '+Users[I].Nickname)
+                                      else
+                                        if Users[I].Nickname <> Users[J].Nickname then
+                                          Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' PART '+IRCChannel);
                                 end;
                               end;
                             Break
@@ -721,10 +743,10 @@ begin
             else
               begin
               User:=nil;
-              Description:='~&@%+';
-              for I:=1 to 5 do
-                if Pos(Description[I],Target) <> 0 then
-                  Delete(Target,Pos(Description[I],Target),1);
+              S3:='~&@%+';
+              for K:=1 to 5 do
+                if Pos(S3[K],Target) <> 0 then
+                  Delete(Target,Pos(S3[K],Target),1);
               for I:=0 to Length(Users)-1 do
                 if LowerCase(Users[I].Nickname)=LowerCase(Target) then
                   User:=Users[I];
@@ -783,41 +805,52 @@ begin
             begin
               for I:=0 to Length(Users)-1 do
                 begin
-                Description:='';
+                S4:='';
                 if Users[I].Modes['q'] then
-                  Description:='~'
+                  S4:='~'
                 else if Users[I].Modes['a'] then
-                  Description:='&'
+                  S4:='&'
                 else if Users[I].Modes['o'] then
-                  Description:='@'
+                  S4:='@'
                 else if Users[I].Modes['h'] then
-                  Description:='%'
+                  S4:='%'
                 else if Users[I].Modes['v'] then
-                  Description:='+';
+                  S4:='+';
+
+                if S<>'' then
+                  Target:=S
+                else
+                  Target:=Users[I].Nickname;
 
                 if S<>IRCChannel then
                   begin
+                  S3:='~&@%+';
+                  for K:=1 to 5 do
+                    if Pos(S3[K],S) <> 0 then
+                      Delete(S,Pos(S3[K],S),1);
                   if (S<>'') and (S<>Users[I].Nickname) then continue;
                   if Users[I].Nickname <> Nickname then
                     begin
+                    if not (Users[I].Modes['i']) then
                       if Users[I].InChannel then
-                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' H'+S4+' :0 '+Users[I].Realname)
                       else if Users[I].Nickname <> '' then
-                        SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
+                        SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' H'+S4+' :0 '+Users[I].Realname);
                     end
                   else
                     if InChannel then
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' H'+S4+' :0 '+Realname)
                     else
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' * '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' H'+S4+' :0 '+Realname);
                   if (S<>'') and (S=Users[I].Nickname) then Break;
                   end
                 else if Users[I].InChannel then
                   begin
+                  if not (Users[I].Modes['i']) then
                     if Users[I].Nickname <> Nickname then
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname)
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+S4+' :0 '+Users[I].Realname)
                     else
-                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+Users[I].ConnectingFrom+' '+ServerHost+' '+Users[I].Nickname+' H'+Description+' :0 '+Users[I].Realname);
+                      SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' H'+S4+' :0 '+Realname);
                   end;
                 end;
               if S='' then
@@ -879,7 +912,7 @@ begin
         SendLn('PING :'+ServerHost);
       if PingTimer=24000 then
         begin
-        if InChannel then
+        if InChannel and not Modes['i'] then
           for I:=0 to Length(Users)-1 do
             if Users[I].InChannel then
               Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Ping timeout');
@@ -893,7 +926,7 @@ begin
   except
     on E: Exception do
       begin
-      if InChannel then
+      if InChannel and not Modes['i'] then
         for I:=0 to Length(Users)-1 do
           if Users[I].InChannel then
             try
