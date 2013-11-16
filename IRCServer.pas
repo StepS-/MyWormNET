@@ -288,14 +288,14 @@ begin
                 Description:='Something bad happened.';
               end;
 
-            if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
+            if (Modes['q'])or(Modes['a'])or(Modes['o']){or(Modes['h'])} then
                 for I:=0 to Length(Users)-1 do
                     if Target=Users[I].Nickname then
                       begin
                       if (Modes['q'])
                       or ((Modes['a']) and not (Users[I].Modes['q']))
                       or ((Modes['o']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']))
-                      or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
+                //    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
                       then
                         begin
                           Users[I].SendLn('ERROR :'+Description);
