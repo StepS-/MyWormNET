@@ -23,7 +23,7 @@ type
 
   TGame=record
     Created: TDateTime;
-    Name, Password, Loc, PassNeeded, LType: string;
+    Name, Password, Loc, PassNeeded, Channel, LType: string;
     HosterNickname, HosterAddress: string;
     GameID: Integer;
     end;
@@ -156,6 +156,7 @@ begin
         if (Game.Password <> '') then Game.PassNeeded:='1'
         else Game.PassNeeded:='0';
         Game.LType:=Parameters.Values['Type'];
+        Game.Channel:=Parameters.Values['Chan'];
         Game.Loc:=Parameters.Values['Loc'];
         Game.HosterNickname:=Parameters.Values['Nick'];
         Game.HosterAddress:=Parameters.Values['HostIP'];
@@ -196,7 +197,7 @@ begin
         EventLog(Game.HosterNickname+' ('+Game.HosterAddress+') has created a game ("'+Game.Name+'").');
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
-        Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Copy(IRCChannel,Pos('#',IRCChannel)+1,Length(IRCChannel))+'">here</a>.'#10'</body>'#10'</html>';
+        Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Channel+'">here</a>.'#10'</body>'#10'</html>';
         // The string above is for compatibility with Wheat Snooper, lol... Otherwise it can't host. Ridiculous, but still.
         end
       else
