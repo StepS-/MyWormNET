@@ -1,5 +1,6 @@
- - bans
+ - permabans
  - multiple channels support
  - channel topics
  - more basic commands support like AWAY etc.
  - HTTP improvements
+ - anti-flood protection

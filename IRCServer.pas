@@ -68,7 +68,7 @@ var
     SendLn(':'+ServerHost+' 001 '+Nickname+' :The server software was written by ');
     SendLn(':'+ServerHost+' 001 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
     SendLn(':'+ServerHost+' 001 '+Nickname+' :and extended by StepS.');
-    SendLn(':'+ServerHost+' 005 '+Nickname+' :WALLCHOPS PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
+    SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
     if WormNATPort>0 then
       SendLn(':'+ServerHost+' 001 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
@@ -76,7 +76,7 @@ var
     SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users))+' users on the server.');
     N:=0;
     for I:=0 to Length(Users)-1 do
-      if Users[I].Modes['o'] then
+      if (Users[I].Modes['q'])or(Users[I].Modes['a'])or(Users[I].Modes['o'])or(Users[I].Modes['h']) then
         Inc(N);
     SendLn(':'+ServerHost+' 252 '+Nickname+' '+IntToStr(N)+' :IRC Operators online');
     SendLn(':'+ServerHost+' 254 '+Nickname+' 1 :channel hard-coded limit');
@@ -146,19 +146,19 @@ begin
           begin
           if S <> '' then
             begin
-              if Modes['o'] then
+              if (Modes['q'])or(Modes['a'])or(Modes['o']) then
                 begin
                 for I:=0 to Length(Users)-1 do
                   if S=Users[I].Nickname then
                     begin
-                      SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :IP of user '+S+' is: '+Users[I].ConnectingFrom+'.');
+                      SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Nickname+' :IP of user '+S+' is: '+Users[I].ConnectingFrom+'.');
                       Break
                     end
                   else if I=Length(Users)-1 then
                     SendLn(':'+ServerHost+' 401 '+Nickname+' '+S+' :Failed to find an user with this nickname');
                 end
               else
-                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to execute the command');
             end
             else
               SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
@@ -168,12 +168,16 @@ begin
           begin
           if S <> '' then
             begin
-              if Modes['o'] then
+              if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
                 begin
                 for I:=0 to Length(Users)-1 do
                   if S=Users[I].Nickname then
                     begin
-                    if Users[I].Modes['o'] = false then
+                    if (Modes['q'])
+                    or ((Modes['a']) and not (Users[I].Modes['q']))
+                    or ((Modes['o']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']))
+                    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
+                    then
                       begin
                         if (Command='MUTE') then
                           begin
@@ -189,12 +193,12 @@ begin
                           for J:=0 to Length(Users)-1 do
                             if Users[J].InChannel then
                               Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+'b '+Users[I].Nickname);
-                        Users[I].SendLn(':'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
+                        Users[I].SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
                         Break
                       end
                     else
                       begin
-                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+S+' :Cannot '+LowerCase(Command)+' an operator');
+                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+S+' :Cannot '+LowerCase(Command)+' this user due to unsufficient privileges');
                         Break
                       end;
                     end
@@ -202,7 +206,7 @@ begin
                     SendLn(':'+ServerHost+' 401 '+Nickname+' '+S+' :Failed to find an user with this nickname');
                 end
               else
-                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to execute the command');
             end
             else
               SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters');
@@ -224,12 +228,16 @@ begin
                 Target:=Copy(S, 1, Length(S));
                 Description:='No reason specified';
               end;
-            if Modes['o'] then
+            if (Modes['q'])or(Modes['a'])or(Modes['o']){or(Modes['h'])} then
              begin
               for I:=0 to Length(Users)-1 do
                 if Target=Users[I].Nickname then
                   begin
-                    if Users[I].Modes['o'] = false then
+                    if (Modes['q'])
+                    or ((Modes['a']) and not (Users[I].Modes['q']))
+                    or ((Modes['o']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']))
+              //    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
+                    then
                       begin
                         if Users[I].InChannel then Users[I].InChannel := False;
                         for J:=0 to Length(Users)-1 do
@@ -240,7 +248,7 @@ begin
                       end
                     else
                       begin
-                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot kick an operator');
+                        SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot kick this user due to unsufficient privileges');
                         Break
                       end;
                   end
@@ -248,7 +256,13 @@ begin
                   SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :Failed to find an user with this nickname');
              end
             else
-              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+              begin
+              if (Modes['h']) then
+                Description:='. You can use /MUTE to mute this user, though.'
+              else
+                Description:='';
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to execute the command'+Description);
+              end;
       //        begin
       //          if InChannel then InChannel := False;
       //          for I:=0 to Length(Users)-1 do
@@ -274,18 +288,22 @@ begin
                 Description:='Something bad happened.';
               end;
 
-            if Modes['o'] then
+            if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
                 for I:=0 to Length(Users)-1 do
                     if Target=Users[I].Nickname then
                       begin
-                      if Users[I].Modes['o'] = false then
+                      if (Modes['q'])
+                      or ((Modes['a']) and not (Users[I].Modes['q']))
+                      or ((Modes['o']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']))
+                      or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
+                      then
                         begin
                           Users[I].SendLn('ERROR :'+Description);
                           Break
                         end
                       else
                         begin
-                          SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot prank an operator');
+                          SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot prank this user due to unsufficient privileges');
                           Break
                         end;
                       end
@@ -295,10 +313,10 @@ begin
         else
         if Command='KICKALL' then
           begin
-            if Modes['o'] then
+            if Modes['q'] then
               begin
               for I:=0 to Length(Users)-1 do
-                if Users[I].Modes['o'] = false then
+                if Users[I].Modes['q'] = false then
                   begin
                     for J:=0 to Length(Users)-1 do
                       Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
@@ -306,7 +324,7 @@ begin
                   end;
               end
             else
-              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an owner');
           end
         else
         if Command='SENDRAW' then
@@ -322,7 +340,7 @@ begin
                 end;
              end;
 
-             if Modes['o'] then
+             if (Modes['q']){or(Modes['a'])or(Modes['o'])} then
               begin
               if (Target='') or (Description='') then
                 SendLn(':'+ServerHost+' 461 '+Nickname+' '+Command+' :Insufficient parameters')
@@ -332,15 +350,19 @@ begin
                   begin
                   if Target=Users[I].Nickname then
                     begin
-                      if (Users[I].Modes['o'] = false) or (Users[I] = Self) then
+                      if (Modes['q'])
+               //     or ((Modes['a']) and not (Users[I].Modes['q']))
+               //     or ((Modes['o']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']))
+                      or (Users[I] = Self) then
                         begin
                         for J:=0 to Length(Users)-1 do
                           if Users[J] <> Users[I] then
                             Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Description);
+                        Break
                         end
                       else
                         begin
-                          SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot sendraw an operator');
+               //         SendLn(':'+ServerHost+' 484 '+Nickname+' '+Target+' :Cannot sendraw this user due to insufficient privileges');
                           Break
                         end;
                     end
@@ -350,25 +372,25 @@ begin
                  end;
                 end
                else
-                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+                SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to execute this command');
            end
         else
         if Command='ANNOUNCE' then
-          begin 
-            if Modes['o'] then
+          begin
+            if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
               begin
               if S <> '' then
                 for I:=0 to Length(Users)-1 do
-                  Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+S)
-              else                          
+                  Users[I].SendLn(':SERVER'#160'ANNOUNCEMENT!SERVER@'+ServerHost+' NOTICE '+IRCChannel+' :'+S)
+              else
                 SendLn(':'+ServerHost+' 412 '+Nickname+' '+Command+' :No text to send');
               end
             else
-              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator');
+              SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to execute the command');
           end
         else
      //   if Command='SERVERRAW' then
-     
+
         if Command='ISON' then
          begin
           if Nickname <> '' then
@@ -492,8 +514,10 @@ begin
               if Users[I].InChannel then
                 begin
                 Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+IRCChannel);
-                  if Modes['o'] then
-                    Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
+                Description:='qaohv';
+                for K:=1 to 5 do
+                  if Modes[Description[K]] then
+                    Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +'+Description[K]+' '+Nickname);
                 end;
             S:=':'+ServerHost+' 353 '+Nickname+' = '+IRCChannel+' :';
             for I:=0 to Length(Users)-1 do
@@ -509,7 +533,6 @@ begin
                   S:=S+'%';
                 if Users[I].Modes['v'] then
                   S:=S+'+';
-                          //does not work with W:A
                 S:=S+Users[I].Nickname+' ';
                 end;
             SendLn(S);
@@ -535,7 +558,6 @@ begin
                   S:=S+'%';
                 if Users[I].Modes['v'] then
                   S:=S+'+';
-                          //does not work with W:A
                 S:=S+Users[I].Nickname+' ';
                 end;
             SendLn(S);
@@ -578,7 +600,7 @@ begin
                   Delete(S,1,Pos(' ',S));
                   if (Pos('+',S))or(Pos('-',S)) = 1 then
                     begin
-                    if Modes['o'] then
+                    if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
                       begin
                       if Pos(' ', S) <> 0 then
                         begin
@@ -596,23 +618,33 @@ begin
                               C:=Description[1];
                               if (S<>' ') then
                                 begin
-                                if C = '+' then
+                                if not
+                                  (
+                                  ((S='a') or (S='q') and not (Modes['q']))
+                                  or (not (S='v') and not (S='b') and ((Modes['h'])
+                                  and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
+                                  )
+                                then
                                   begin
-                                  if Users[I].Modes[S[1]]=false then
+                                  if C = '+' then
                                     begin
-                                    Users[I].Modes[S[1]]:=True;
-                                    B:=True;
+                                    if Users[I].Modes[S[1]]=false then
+                                      begin
+                                      Users[I].Modes[S[1]]:=True;
+                                      B:=True;
+                                      end;
+                                    end
+                                  else if C = '-' then
+                                    begin
+                                    if Users[I].Modes[S[1]]=true then
+                                      begin
+                                      Users[I].Modes[S[1]]:=False;
+                                      B:=True;
+                                      end
                                     end;
                                   end
-                                else if C = '-' then
-                                  begin
-                                  if Users[I].Modes[S[1]]=true then
-                                    begin
-                                    Users[I].Modes[S[1]]:=False;
-                                    B:=True;
-                                    end
-                                  else B:=False;
-                                  end;
+                                  else
+                                    SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S);
                                 end;
                               if B then
                                 begin
@@ -633,7 +665,7 @@ begin
                           SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
                       end
                       else
-                        SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You must be an operator to change user modes');
+                        SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change user modes');
                     end
                     else
                       SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
@@ -669,8 +701,8 @@ begin
           if Nickname='' then
             SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
-          if Modes['b'] and not Modes['o'] then
-            SendLn(':'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
+          if Modes['b'] then
+            SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
           else
             begin
             Target:=Copy(S, 1, Pos(' ', S+' ')-1);
@@ -685,6 +717,10 @@ begin
             else
               begin
               User:=nil;
+              Description:='~&@%+';
+              for I:=1 to 5 do
+                if Pos(Description[I],Target) <> 0 then
+                  Delete(Target,Pos(Description[I],Target),1);
               for I:=0 to Length(Users)-1 do
                 if LowerCase(Users[I].Nickname)=LowerCase(Target) then
                   User:=Users[I];
@@ -702,7 +738,7 @@ begin
             end;
           end
         else
-        if Command='OPER' then
+        if (Command='OPER')or(Command='TAKEOWN') then
           begin
           if Nickname='' then
             SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
@@ -712,13 +748,23 @@ begin
               Delete(S, 1, Pos(' ', S+' '));  // ignore username
             if S=IRCOperPassword then
               begin
-              EventLog(Nickname+' ('+ConnectingFrom+') has registered as an Operator.');
-              Modes['o']:=True;
-              SendLn(':'+Nickname+' MODE '+Nickname+' :+o');
+              if Command='OPER' then
+                begin
+                Description:='Operator';
+                C:='o';
+                end
+              else
+                begin
+                Description:='Owner';
+                C:='q';
+                end;
+              EventLog(Nickname+' ('+ConnectingFrom+') has registered as an '+Description+'.');
+              Modes[C]:=True;
+              SendLn(':'+Nickname+' MODE '+Nickname+' :+'+C);
               if InChannel then
                 for I:=0 to Length(Users)-1 do
                   if Users[I].InChannel then
-                  Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +o '+Nickname);
+                  Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +'+C+' '+Nickname);
               end
             end
           end
@@ -942,11 +988,11 @@ var
   I: Integer;
 begin
   for I:=0 to Length(Users)-1 do
-    if Users[I].Modes['o'] then
+    if (Users[I].Modes['o']) or (Users[I].Modes['q']) then
       Users[I].SendLn(':'+ServerHost+' NOTICE '+Users[I].Nickname+' :'+S);
 end;
 
-var 
+var
   ThreadID: Cardinal = 0;
 
 procedure StartIRCServer;
