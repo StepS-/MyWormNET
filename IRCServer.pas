@@ -956,7 +956,7 @@ begin
           end
         else
         if Command='TIME' then
-          SendLn(':'+ServerHost+' '+IntToStr(IRCDateTimeNow)+' 0 :'+TextDateTimeNow)
+          SendLn(':'+ServerHost+' 391 '+Nickname+' '+ServerHost+' :'+TextDateTimeNow)
         else
         if Command='GAMES' then
           begin
