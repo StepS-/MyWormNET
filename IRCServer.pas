@@ -76,6 +76,7 @@ var
       SendLn(':'+ServerHost+' 011 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
     //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
+    SendLn(':'+ServerHost+' 003 '+Nickname+' :Your host is '+ServerHost+', running MyWormNET version '+APPVERSION);
     N:=0;
     M:=0;
     for I:=0 to Length(Users)-1 do

@@ -11,9 +11,6 @@ uses
 {$ENDIF}
   SysUtils, Base, IniFiles, HTTPServer, IRCServer, WormNATServer, Data;
 
-const
-  APPVERSION = '1.1.0.0';
-
 var
   Config: TMemIniFile;
 {$IFDEF WIN32}
