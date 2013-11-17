@@ -26,6 +26,8 @@ StepS' modification currently includes the following:
 - Ability to look up any user's IP by using the IPLOOKUP command (available for ops and above), useful when no access to console
 - Ability to change other users' modes when halfopped at least (not for channels right now, but needs to be executed inside a channel)
 - Ability to make users invisible with the +i mode (available for ops and above)
+- Support for the channel banlist
+- Support for the TIME command
 - Support for qaohv user modes
 - Empty Username will now be adjusted
 - A missing sharp in IRCChannel will now be adjusted
