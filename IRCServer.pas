@@ -64,16 +64,16 @@ var
   var I: Integer;
   begin
     EventLog(Nickname+' ('+ConnectingFrom+') logged in.');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :Welcome, '+Nickname+' !');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :This is a minimal WormNet-compatible IRC server emulator,');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :supporting only the base set of IRC features.');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :The server software was written by ');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
-    SendLn(':'+ServerHost+' 001 '+Nickname+' :and extended by StepS.');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :Welcome, '+Nickname+'!');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :This is a minimal WormNet IRC server emulator,');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :supporting only the base set of IRC features.');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :The server software was written by ');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :and extended by StepS.');
     SendLn(':'+ServerHost+' 003 '+Nickname+' :This server was created '+StartupTime);
     SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
     if WormNATPort>0 then
-      SendLn(':'+ServerHost+' 001 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
+      SendLn(':'+ServerHost+' 011 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
     //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
     N:=0;
