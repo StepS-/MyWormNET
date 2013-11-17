@@ -906,6 +906,9 @@ begin
                   end
                 else if Users[I].InChannel then
                   begin
+                  if (Pos(' o',S) <> 0) and not ((Users[I].Modes['h']) or (Users[I].Modes['o']) or (Users[I].Modes['a']) or (Users[I].Modes['q']))
+                    then continue
+                  else
                   if not (Users[I].Modes['i']) then
                     if Users[I].Nickname <> Nickname then
                       SendLn(':'+ServerHost+' 352 '+Nickname+' '+IRCChannel+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+S4+' :0 '+Users[I].Realname)
