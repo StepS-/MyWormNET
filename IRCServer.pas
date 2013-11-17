@@ -358,6 +358,7 @@ begin
                         Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
                     Users[I].LastSenior:=Nickname;
                     Users[I].SendLn('ERROR :Massive kicking started by '+Nickname);
+                    if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
                   end;
               end
             else
