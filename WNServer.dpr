@@ -32,6 +32,8 @@ begin
   StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
   NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
 
+  StartupTime:=TextDateTimeNow;
+
   {$IFDEF WIN32}
   WSAStartUp(2, WSA);
   {$ENDIF}

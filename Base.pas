@@ -13,15 +13,21 @@ var
   IRCChannel: string;
   StealthIP: string;
   NetworkName: string;
+  StartupTime: string;
 
 procedure Log(S: string; DiskOnly: Boolean=False);
 procedure EventLog(S: string);
 function WinSockErrorCodeStr(Code: Integer): string;
 
+function IRCDateTimeNow : Int64;
+function TextDateTimeNow : string;
+
 implementation
 uses
 {$IFNDEF WIN32}
   UnixUtils,
+{$ELSE}
+  Windows,
 {$ENDIF}
   SysUtils, IRCServer;
 
@@ -92,6 +98,40 @@ end;
 function WinSockErrorCodeStr(Code: Integer): string;
 begin
   Result:=StrError(Code);
+end;
+
+{$ENDIF}
+
+{$IFDEF WIN32}
+
+function IRCDateTimeNow : Int64;
+var
+  Timezone : TTimeZoneInformation;
+begin
+  GetTimeZoneInformation(Timezone);
+  Result := Round(Now * SecsPerDay) + (Timezone.Bias * 60) - 2209176000;
+end;
+
+function TextDateTimeNow : string;
+var
+  Timezone : TTimeZoneInformation;
+  UTCDatetime : TDateTime;
+begin
+  GetTimeZoneInformation(Timezone);
+  UTCDatetime := Now + Timezone.Bias/1440;
+  Result := DateToStr(UTCDatetime)+' '+TimeToStr(UTCDatetime)+' UTC';
+end;
+
+{$ELSE}
+
+function IRCDateTimeNow : Int64;
+begin
+  Result := Round(Now * SecsPerDay) - 2209176000;
+end;
+
+function TextDateTimeNow : string;
+begin
+  Result := DateToStr(Now)+' '+TimeToStr(Now)+' server local time';
 end;
 
 {$ENDIF}

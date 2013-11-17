@@ -32,7 +32,6 @@ var
 
 procedure StartIRCServer;
 procedure LogToOper(S: string);
-function IRCTimeNow : Int64;
 
 resourcestring
   IRCPassword='ELSILRACLIHP ';
@@ -71,6 +70,7 @@ var
     SendLn(':'+ServerHost+' 001 '+Nickname+' :The server software was written by ');
     SendLn(':'+ServerHost+' 001 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
     SendLn(':'+ServerHost+' 001 '+Nickname+' :and extended by StepS.');
+    SendLn(':'+ServerHost+' 003 '+Nickname+' :This server was created '+StartupTime);
     SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
     if WormNATPort>0 then
       SendLn(':'+ServerHost+' 001 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
@@ -194,7 +194,7 @@ begin
                             if not Users[I].Modes['b'] then
                               begin
                               Users[I].Modes['b'] := true;
-                              Users[I].LastBanTime:=IRCTimeNow;
+                              Users[I].LastBanTime:=IRCDateTimeNow;
                               B:=true;
                               end;
                             C:='+';
@@ -718,7 +718,7 @@ begin
                                   begin
                                   Users[I].LastSenior:=Nickname;
                                   if C = '+' then
-                                    Users[I].LastBanTime:=IRCTimeNow;
+                                    Users[I].LastBanTime:=IRCDateTimeNow;
                                   Users[I].SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+S3+'muted by '+Nickname+'.');
                                   end;
                                 if Users[I].InChannel then
@@ -1088,11 +1088,6 @@ begin
     with Users[I] do
     if (Modes['L']) and ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
       SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+S);
-end;
-
-function IRCTimeNow : Int64;
-begin
-  IRCTimeNow := Round(Now * SecsPerDay) - 2209176000;
 end;
 
 var
