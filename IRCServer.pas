@@ -18,6 +18,8 @@ type
   TUser=class (TThread)
     ConnectingFrom: string;
     Nickname, Username, Hostname, Servername, Realname: string;
+    LastSenior: string;
+    LastBanTime: Int64;
     Socket: TSocket;
     InChannel: Boolean;
     Modes: array[char] of Boolean;
@@ -30,6 +32,7 @@ var
 
 procedure StartIRCServer;
 procedure LogToOper(S: string);
+function IRCTimeNow : Int64;
 
 resourcestring
   IRCPassword='ELSILRACLIHP ';
@@ -184,22 +187,46 @@ begin
                     or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
                     then
                       begin
-                        if (Command='MUTE') then
+                        B:=false;
+
+                          if (Command='MUTE') then
+                            begin
+                            if not Users[I].Modes['b'] then
+                              begin
+                              Users[I].Modes['b'] := true;
+                              Users[I].LastBanTime:=IRCTimeNow;
+                              B:=true;
+                              end;
+                            C:='+';
+                            end
+
+                          else
+                            begin
+                            if Users[I].Modes['b'] then
+                              begin
+                              Users[I].Modes['b'] := false;
+                              B:=true;
+                              end;
+                            C:='-';
+                            end;
+
+                        if B then
                           begin
-                          Users[I].Modes['b'] := true;
-                          C:='+';
+                          Users[I].LastSenior:=Nickname;
+
+                          if Users[I].InChannel then
+                            for J:=0 to Length(Users)-1 do
+                              if Users[J].InChannel then
+                                Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+'b '+Users[I].Nickname);
+                          Users[I].SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
+                          Break
                           end
                         else
                           begin
-                          Users[I].Modes['b'] := false;
-                          C:='-';
+                          if Command='MUTE' then S3:='already'
+                          else S3:='not';
+                          SendLn(':'+ServerHost+' 401 '+Nickname+' '+S+' :This user has '+S3+' been muted');
                           end;
-                        if Users[I].InChannel then
-                          for J:=0 to Length(Users)-1 do
-                            if Users[J].InChannel then
-                              Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+'b '+Users[I].Nickname);
-                        Users[I].SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+LowerCase(Command)+'d by '+Nickname+'.');
-                        Break
                       end
                     else
                       begin
@@ -244,6 +271,7 @@ begin
               //    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
                     then
                       begin
+                        Users[I].LastSenior:=Nickname;
                         if Users[I].InChannel then Users[I].InChannel := False;
                         if not Users[I].Modes['i'] then
                           for J:=0 to Length(Users)-1 do
@@ -304,6 +332,7 @@ begin
                 //    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
                       then
                         begin
+                          Users[I].LastSenior:=Nickname;
                           Users[I].SendLn('ERROR :'+Description);
                           Break
                         end
@@ -327,6 +356,7 @@ begin
                     if not Users[I].Modes['i'] then
                       for J:=0 to Length(Users)-1 do
                         Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive kicking started by '+Nickname);
+                    Users[I].LastSenior:=Nickname;
                     Users[I].SendLn('ERROR :Massive kicking started by '+Nickname);
                   end;
               end
@@ -479,18 +509,25 @@ begin
         // USER Username hostname servername :40 0 RO
         if Command='USER' then
           begin
-            Username:=Copy(S, 1, Pos(' ', S)-1);
-            Delete(S, 1, Pos(' ', S));
-            Hostname:=Copy(S, 1, Pos(' ', S)-1);
-            Delete(S, 1, Pos(' ', S));
-            Servername:=Copy(S, 1, Pos(' ', S)-1);
-            Delete(S, 1, Pos(':', S));
-            Realname:=S;
+            if (Username='') or (Modes['q']) then
+            begin
+              Username:=Copy(S, 1, Pos(' ', S)-1);
+              Delete(S, 1, Pos(' ', S));
+              Hostname:=Copy(S, 1, Pos(' ', S)-1);
+              Delete(S, 1, Pos(' ', S));
+              Servername:=Copy(S, 1, Pos(' ', S)-1);
+              Delete(S, 1, Pos(':', S));
+              Realname:=S;
 
-          if Username='' then
-            Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
-          if Nickname<>'' then
-            LogIn;
+              LastSenior:='SERVER';
+
+              if Username='' then
+                Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
+              if Nickname<>'' then
+                LogIn;
+            end
+            else
+              SendLn(':'+ServerHost+' 462 '+Nickname+' :You may not reregister');
           end
         else
         if Command='QUIT' then
@@ -615,9 +652,9 @@ begin
                   Delete(S,1,Pos(' ',S));
                   if (Pos('+',S))or(Pos('-',S)) = 1 then
                     begin
-                    if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
+                    if Pos(' ', S) <> 0 then
                       begin
-                      if Pos(' ', S) <> 0 then
+                      if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
                         begin
                         Description:=Copy(S, 1, Pos(' ', S));
                         Delete(S, 1, Pos(' ', S));
@@ -650,6 +687,7 @@ begin
                                     if Users[I].Modes[S[1]]=false then
                                       begin
                                       Users[I].Modes[S[1]]:=True;
+                                      S3:='';
                                       B:=True;
                                       end;
                                     end
@@ -658,27 +696,40 @@ begin
                                     if Users[I].Modes[S[1]]=true then
                                       begin
                                       Users[I].Modes[S[1]]:=False;
+                                      S3:='un';
                                       B:=True;
                                       end
                                     end;
                                   end
                                   else
                                     if ((S='L') and (Target<>Nickname)) then
-                                      SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :You can only enable logging for yourself')
+                                      SendLn(':'+ServerHost+' 502 '+Nickname+' '+Command+' :You can only enable logging for yourself')
                                     else
+                                      begin
                                       SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change mode '+S+' for a given user');
+                                      Break;
+                                      end;
                                 end;
                               if B then
                                 begin
                                 SendLn(':'+Nickname+' MODE '+Users[I].Nickname+' :'+C+S);
+                                if S='b' then
+                                  begin
+                                  Users[I].LastSenior:=Nickname;
+                                  if C = '+' then
+                                    Users[I].LastBanTime:=IRCTimeNow;
+                                  Users[I].SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Users[I].Nickname+' :You have been '+S3+'muted by '+Nickname+'.');
+                                  end;
                                 if Users[I].InChannel then
                                   for J:=0 to Length(Users)-1 do
                                     if Users[J].InChannel then
-                                      if S<>'i' then
-                                        Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+S+' '+Users[I].Nickname)
-                                      else
+                                      if S='i' then
+                                        begin
                                         if Users[I].Nickname <> Users[J].Nickname then
                                           Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' PART '+IRCChannel);
+                                        end
+                                      else
+                                        Users[J].SendLn(':'+Nickname+' MODE '+IRCChannel+' '+C+S+' '+Users[I].Nickname);
                                 end;
                               end;
                             Break
@@ -688,10 +739,16 @@ begin
                           end;
                         end
                         else
-                          SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
+                          SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change user modes');
                       end
                       else
-                        SendLn(':'+ServerHost+' 481 '+Nickname+' '+Command+' :Insufficient privileges to change user modes');
+                        if Pos('+b',S) <> 0 then
+                        begin
+                          for I:=0 to Length(Users)-1 do
+                            if Users[I].Modes['b'] then
+                              SendLn(':'+ServerHost+' 367 '+Nickname+' '+IRCChannel+' '+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Users[I].LastSenior+' '+IntToStr(Users[I].LastBanTime));
+                        SendLn(':'+ServerHost+' 368 '+Nickname+' '+IRCChannel+' :End of Channel Ban List');
+                        end;
                     end
                     else
                       SendLn(':'+ServerHost+' 324 '+Nickname+' '+IRCChannel+' +tn');
@@ -728,7 +785,7 @@ begin
             SendLn(':'+ServerHost+' 451 Username '+Command+' :Register first.')
           else
           if Modes['b'] then
-            SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted and thus cannot talk.')
+            SendLn(':SERVER'#160'MESSAGE!SERVER@'+ServerHost+' PRIVMSG '+Nickname+' :Sorry, but you are muted by '+LastSenior+' and thus cannot talk.')
           else
             begin
             Target:=Copy(S, 1, Pos(' ', S+' ')-1);
@@ -792,7 +849,9 @@ begin
                   if Users[I].InChannel then
                   Users[I].SendLn(':'+ServerHost+' MODE '+IRCChannel+' +'+C+' '+Nickname);
               end
-            end
+              else
+                SendLn(':'+ServerHost+' 464 '+Nickname+' '+Command+' :Incorrect password');
+            end;
           end
         else
         if Command='WHO' then
@@ -1028,6 +1087,11 @@ begin
     with Users[I] do
     if (Modes['L']) and ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
       SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+S);
+end;
+
+function IRCTimeNow : Int64;
+begin
+  IRCTimeNow := Round(Now * SecsPerDay) - 2209176000;
 end;
 
 var
