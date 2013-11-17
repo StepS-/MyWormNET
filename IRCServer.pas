@@ -552,7 +552,7 @@ begin
           else
           if S=IRCChannel then
             begin
-            EventLog(Nickname+' ('+ConnectingFrom+') has joined #'+IRCChannel);
+            EventLog(Nickname+' ('+ConnectingFrom+') has joined '+IRCChannel);
             InChannel:=True;
             //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
             if not Modes['i'] then
@@ -621,7 +621,7 @@ begin
             begin
             if InChannel then
               begin
-              EventLog(Nickname+' ('+ConnectingFrom+') has left #'+IRCChannel);
+              EventLog(Nickname+' ('+ConnectingFrom+') has left '+IRCChannel);
               if Modes['i'] then
                 SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
               else
