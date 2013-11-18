@@ -1,0 +1,1 @@
+This file is the easiest way for you to test your newly created server using W:A v3.7 and newer. Simply go to "graphics\ServerLobby" subfolder under your W:A installation directory, make a backup if needed and replace CommunityServerList.htm with the one provided here. Then make sure its use is enabled in the Advanced Settings, and go to the server selection screen to connect.
