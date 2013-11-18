@@ -18,8 +18,8 @@ StepS' modification currently includes the following:
 - LogToOper is now optional: set yourself to mode +L to enable logging (available for ops and above)
 - Support for the ISON command
 - Finalized the WHO command (now properly gets an one-user or one-channel list)
-- Ability to kick users from the server by using the KICK or KILL command with an optional reason (available for ops and above)
-- Ability to kick every non-owner from the server by using the KICKALL command (available for owners)
+- Ability to kill users from the server by using the KICK or KILL command with an optional reason (available for ops and above)
+- Ability to kill every non-owner from the server by using the KICKALL command (available for owners)
 - Ability to prank users by using the PRANK command (available for ops and above)
 - Ability to mute or unmute users by using the MUTE or UNMUTE commands (available for halfops and above)
 - Ability to make an announcement (channel notice on behalf of the server) by using the ANNOUNCE command (available for halfops and above)
