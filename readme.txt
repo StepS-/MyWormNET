@@ -13,6 +13,7 @@ StepS' modification currently includes the following:
 - Users' IP addresses are no longer forced when hosting
 - Changed the Game.asp content to allow The Wheat Snooper host games
 - Fixed the passworded games' padlock icons and locale typecodes
+- Put IRC commands into procedures
 - Removed the annoying hosted/closed game notices
 - LogToOper is now optional: set yourself to mode +L to enable logging (available for ops and above)
 - Support for the ISON command
@@ -22,7 +23,7 @@ StepS' modification currently includes the following:
 - Ability to prank users by using the PRANK command (available for ops and above)
 - Ability to mute or unmute users by using the MUTE or UNMUTE commands (available for halfops and above)
 - Ability to make an announcement (channel notice on behalf of the server) by using the ANNOUNCE command (available for halfops and above)
-- Ability to sendraw a message on behalf of users and you by using the SENDRAW command (available for owners)
+- Ability to sendraw an entire message by using the SENDRAW command (available for owners)
 - Ability to look up any user's IP by using the IPLOOKUP command (available for ops and above), useful when no access to console
 - Ability to change other users' modes when halfopped at least (not for channels right now, but needs to be executed inside a channel)
 - Ability to make users invisible with the +i mode (available for ops and above)
