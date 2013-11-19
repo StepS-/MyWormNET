@@ -231,14 +231,14 @@ begin
             else
             begin
               Log(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
-              EventLog(ConnectingFrom+' is trying to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
+              EventLog(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
               Break;
             end;
         if N=-1 then
           begin
           //raise Exception.Create('No such game');
           Log(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
-          EventLog(ConnectingFrom+' is trying to close a non-existant game (ID '+Parameters.Values['GameID']+')');
+          EventLog(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
           end
         else
           begin
