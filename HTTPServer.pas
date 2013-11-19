@@ -24,7 +24,7 @@ type
   TGame=record
     Created: TDateTime;
     Name, Password, Loc, PassNeeded, Channel, LType: string;
-    HosterNickname, HosterAddress: string;
+    HosterNickname, HosterAddress, HostedFrom: string;
     GameID: Integer;
     end;
 
@@ -149,6 +149,17 @@ begin
     if FileName='Game.asp' then
       if Parameters.Values['Cmd']='Create' then
         begin
+        for I:=0 to Length(Games)-1 do
+          if Games[I].HostedFrom = ConnectingFrom then
+          begin
+            Game:=Games[I];
+            for J:=I to Length(Games)-2 do
+              Games[J]:=Games[J+1];
+            SetLength(Games, Length(Games)-1);
+            Log(Game.HosterNickname+'''s game "'+Game.Name+'" has closed to prevent flood from IP '+ConnectingFrom);
+            EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed to prevent flood from IP '+ConnectingFrom);
+            Break;
+          end;
         Inc(GameCounter);
         Game.Name:=Parameters.Values['Name'];
         if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
@@ -160,6 +171,7 @@ begin
         Game.Loc:=Parameters.Values['Loc'];
         Game.HosterNickname:=Parameters.Values['Nick'];
         Game.HosterAddress:=Parameters.Values['HostIP'];
+        Game.HostedFrom:=ConnectingFrom;
         Game.GameID:=GameCounter;
         Game.Created:=Now;
 
@@ -194,7 +206,8 @@ begin
           if Users[I].InChannel then
             Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');
       }
-        EventLog(Game.HosterNickname+' ('+Game.HosterAddress+') has created a game ("'+Game.Name+'").');
+        Log(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
+        EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
         Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Channel+'">here</a>.'#10'</body>'#10'</html>';
@@ -202,25 +215,37 @@ begin
         end
       else
       if Parameters.Values['Cmd']='Close' then
-        begin
+      begin
         N:=-1;
         for I:=0 to Length(Games)-1 do
           if IntToStr(Games[I].GameID)=Parameters.Values['GameID'] then
+            if (ConnectingFrom = Games[I].HostedFrom) or (ConnectingFrom = '127.0.0.1') then
             begin
-            Game:=Games[I];
-            for J:=I to Length(Games)-2 do
-              Games[J]:=Games[J+1];
-            SetLength(Games, Length(Games)-1);
-            N:=I;
+              Game:=Games[I];
+              for J:=I to Length(Games)-2 do
+                Games[J]:=Games[J+1];
+              SetLength(Games, Length(Games)-1);
+              N:=I;
+              Break;
+            end
+            else
+            begin
+              Log(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
+              EventLog(ConnectingFrom+' is trying to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
+              Break;
             end;
         if N=-1 then
+          begin
           //raise Exception.Create('No such game');
-          Log('Trying to close a non-existant game ('+Parameters.Values['GameID']+')')
+          Log(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
+          EventLog(ConnectingFrom+' is trying to close a non-existant game (ID '+Parameters.Values['GameID']+')');
+          end
         else
           begin
         {  for I:=0 to Length(Users)-1 do
            if Users[I].InChannel then
               Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');}
+          Log(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
           EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
           end;
         end

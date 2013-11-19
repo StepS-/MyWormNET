@@ -71,9 +71,6 @@ resourcestring
 
 implementation
 uses
-{$IFDEF WINDOWS}
-  Windows,
-{$ENDIF}
   Base, Data, SysUtils, HTTPServer, WormNATServer;
 
 procedure TUser.Execute;
@@ -151,6 +148,11 @@ begin
           if Command='PASS' then
             Password:=S
         else
+          if Command='PING' then
+            SendLn('PONG :'+ServerHost)
+        else
+          if Command='PONG' then
+        else
           if Registered then
             if Command='IPLOOKUP' then
               ExecIplookup(S)
@@ -214,11 +216,6 @@ begin
           else
             if Command='TIME' then
               SendLn(':'+ServerHost+' 391 '+Nickname+' '+ServerHost+' :'+TextDateTimeNow)
-          else
-            if Command='PING' then
-              SendLn('PONG :'+ServerHost)
-          else
-            if Command='PONG' then
           else
             if Command='AWAY' then
           else

@@ -13,6 +13,8 @@ StepS' modification currently includes the following:
 - Users' IP addresses are no longer forced when hosting
 - Changed the Game.asp content to allow The Wheat Snooper host games
 - Fixed the passworded games' padlock icons and locale typecodes
+- Game list can no longer be flooded with the hosts from the same IP
+- Now the hosts can only be closed either from the same IP or from 127.0.0.1
 - Put IRC commands into procedures, as well as a bunch of other things
 - Removed the annoying hosted/closed game notices
 - LogToOper is now optional: set yourself to mode +L to enable logging (available for ops and above)
