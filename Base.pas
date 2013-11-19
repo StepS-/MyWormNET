@@ -67,7 +67,7 @@ procedure EventLog(S: string);
 var
   F: text;
 begin
-  Log(S, True);
+  Log(S);
 
   if Copy(S, 1, 1)<>'-' then
     S:='['+DateTimeToStr(Now)+'] '+S;
