@@ -145,7 +145,7 @@ begin
     if FileName='RequestChannelScheme.asp' then
       Body:='<SCHEME=Pf,Be>'#10                      //#10 for Wheat Snooper compatibility
     else
-    // Cmd=Create&Name=ßCyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
+    // Cmd=Create&Name=ï¿½CyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
     if FileName='Game.asp' then
       if Parameters.Values['Cmd']='Create' then
         begin
@@ -156,7 +156,6 @@ begin
             for J:=I to Length(Games)-2 do
               Games[J]:=Games[J+1];
             SetLength(Games, Length(Games)-1);
-            Log(Game.HosterNickname+'''s game "'+Game.Name+'" has closed to prevent flood from IP '+ConnectingFrom);
             EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed to prevent flood from IP '+ConnectingFrom);
             Break;
           end;
@@ -206,7 +205,6 @@ begin
           if Users[I].InChannel then
             Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');
       }
-        Log(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
         EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
@@ -230,14 +228,12 @@ begin
             end
             else
             begin
-              Log(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
               EventLog(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
               Break;
             end;
         if N=-1 then
           begin
           //raise Exception.Create('No such game');
-          Log(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
           EventLog(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
           end
         else
@@ -245,7 +241,6 @@ begin
         {  for I:=0 to Length(Users)-1 do
            if Users[I].InChannel then
               Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');}
-          Log(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
           EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
           end;
         end
