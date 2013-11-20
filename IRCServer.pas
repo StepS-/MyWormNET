@@ -996,7 +996,8 @@ var
 begin
   //:wormnet1.team17.com 352 DoctorWho #AnythingGoes Username no.address.for.you wormnet1.team17.com TiCPU H :0 TiCpu
   //:wormnet1.team17.com 315 DoctorWho * :End of /WHO list.
-
+  
+  Channel:=ChannelByName(S);
   for I:=0 to Length(Users)-1 do
   begin
     Pref:='';
@@ -1012,7 +1013,6 @@ begin
     else
       Target:=Users[I].Nickname;
 
-    Channel:=ChannelByName(S);
     if Channel = nil then
     begin
 
@@ -1025,9 +1025,9 @@ begin
       ChanStr:='*';
 
       for K:=0 to Length(Channels)-1 do
-        if Users[I].InChannel[Channels[I].Number] then
+        if Users[I].InChannel[Channels[K].Number] then
         begin
-          ChanStr:=Channels[I].Name;
+          ChanStr:=Channels[K].Name;
           Break;
         end;
 
