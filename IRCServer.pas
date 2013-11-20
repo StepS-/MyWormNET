@@ -768,7 +768,7 @@ begin
     begin
       CurChan:=Channel.Name;
       N:=Channel.Number;
-      EventLog(Nickname+' ('+ConnectingFrom+') has joined '+CurChan+'.');
+      EventLog(Nickname+' has joined '+CurChan+'.');
       InChannel[N]:=True;
       //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
       if not Modes['i'] then
@@ -804,7 +804,7 @@ begin
     begin
       S:=Channel.Name;
       N:=Channel.Number;
-      EventLog(Nickname+' ('+ConnectingFrom+') has left '+S);
+      EventLog(Nickname+' has left '+S);
       if Modes['i'] then
         SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
       else
