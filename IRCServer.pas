@@ -1194,7 +1194,10 @@ begin
                   Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN '+Channels[I].Name);
             end
             else
+            begin
               Users[J].SendLn(':'+Master+' MODE '+Channels[I].Name+' '+Side+Mode+' '+Nickname);
+              if Mode<>'b' then EventLog(Master+' has set mode '+Side+Mode+' to '+Nickname+'.');
+            end;
 
     Result:=true;
   end
