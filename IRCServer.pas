@@ -607,7 +607,7 @@ begin
   begin
     if S <> '' then
     begin
-      for I:=0 to Length(Channels) do
+      for I:=0 to Length(Channels)-1 do
         for J:=0 to Length(Users)-1 do
           if Users[J].InChannel[I] then
             Users[J].SendLn(':SERVER'#160'ANNOUNCEMENT!root@'+ServerHost+' NOTICE '+Channels[I].Name+' :'+S)
