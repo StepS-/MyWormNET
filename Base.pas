@@ -7,18 +7,18 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.2.6.5';
+  APPVERSION = '1.2.6.7';
   
 var
   ServerHost: string;  // our hostname
-  IRCPort, HTTPPort, WormNATPort: Integer;
+  IRCPort, HTTPPort, WormNATPort, VerboseLogging: Integer;
   IRCOperPassword: string;
   IRCChannel: string;
   StealthIP: string;
   NetworkName: string;
   StartupTime: string;
 
-procedure Log(S: string; DiskOnly: Boolean=False);
+procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string);
 function WinSockErrorCodeStr(Code: Integer): string;
 
@@ -34,7 +34,7 @@ uses
 {$ENDIF}
   SysUtils, IRCServer;
 
-procedure Log(S: string; DiskOnly: Boolean=False);
+procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 var
   F: text;
 begin
@@ -50,16 +50,17 @@ begin
   {$I+}
   if IOResult<>0 then ;
 
-  if not DiskOnly then
+  if (VerboseLogging > 0) or (Important) then
+    if not DiskOnly then
     begin
-    // logging to console, if it's enabled
-    {$I-}
-    WriteLn(S);
-    {$I+}
-    if IOResult<>0 then ;
+      // logging to console, if it's enabled
+      {$I-}
+      WriteLn(S);
+      {$I+}
+      if IOResult<>0 then ;
 
-    // echo to IRC OPERs
-    LogToOper(S);
+      // echo to IRC OPERs
+      LogToOper(S);
     end;
 end;
 
@@ -67,7 +68,7 @@ procedure EventLog(S: string);
 var
   F: text;
 begin
-  Log(S);
+  Log(S,false,true);
 
   if Copy(S, 1, 1)<>'-' then
     S:='['+DateTimeToStr(Now)+'] '+S;

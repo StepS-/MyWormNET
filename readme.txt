@@ -13,6 +13,7 @@ StepS' modification currently includes the following:
 - New multi-channel support with channel schemes and topics: can be set with the Channels.ini file, section names must be numbered
 - Users' IP addresses are no longer forced when hosting
 - Changed the Game.asp content to allow The Wheat Snooper host games
+- Now the verbose console logging is off by default; you may enable it again by setting it to 1 in the ini file. Disk logging will still stay verbose unless WNServer.log is deleted.
 - Fixed the passworded games' padlock icons and locale typecodes
 - Game list can no longer be flooded with the hosts from the same IP
 - Now the hosts can only be closed either from the same IP or from 127.0.0.1
