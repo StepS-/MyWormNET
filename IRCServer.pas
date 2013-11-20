@@ -988,7 +988,7 @@ begin
       Description:='Owner';
       Mode:='q';
     end;
-    EventLog(Nickname+' ('+ConnectingFrom+') has registered as an '+Description+'.');
+    EventLog(Nickname+' has registered as an '+Description+'.');
     Modes[Mode]:=True;
     for I:=0 to Length(Channels)-1 do
       if InChannel[Channels[I].Number] then
