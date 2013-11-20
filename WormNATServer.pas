@@ -103,7 +103,7 @@ begin
     until False;
   except
     on E: Exception do
-      Log('Error in link with '+ClientNickname+': '+E.Message);
+      EventLog('Error in link with '+ClientNickname+': '+E.Message);
     end;
   closesocket(ServerSocket);
   closesocket(ClientSocket);
@@ -154,15 +154,15 @@ begin
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
     begin
-    Log('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
   if listen( m_socket, 1 )=SOCKET_ERROR then
     begin
-    Log('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
-  Log('[WormNAT] Listening on port '+IntToStr(WormNATPort)+'.');
+  EventLog('[WormNAT] Listening on port '+IntToStr(WormNATPort)+'.');
 
   repeat
     T:=SizeOf(incoming);
@@ -170,7 +170,7 @@ begin
     if AcceptSocket<>INVALID_SOCKET then
       begin
       T:=SizeOf(incoming);
-      Log('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
+      EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
 
       B:=False;
       for I:=0 to Length(Links)-1 do
@@ -193,7 +193,7 @@ begin
         end;
       if not B then
         begin
-        Log('[WormNAT] Error: Unexpected connection from '+inet_ntoa(incoming.sin_addr));
+        EventLog('[WormNAT] Error: Unexpected connection from '+inet_ntoa(incoming.sin_addr));
         closesocket(AcceptSocket);
         end;
       end

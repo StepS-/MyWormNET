@@ -339,15 +339,15 @@ begin
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
     begin
-    Log('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
   if listen( m_socket, 50 )=SOCKET_ERROR then
     begin
-    Log('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
-  Log('[HTTP] Listening on port '+IntToStr(HTTPPort)+'.');
+  EventLog('[HTTP] Listening on port '+IntToStr(HTTPPort)+'.');
 
   repeat
     T:=SizeOf(incoming);
@@ -355,7 +355,7 @@ begin
     if AcceptSocket<>INVALID_SOCKET then
       begin
       T:=SizeOf(incoming);
-      WriteLn('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
+      Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
 
       Request:=TRequest.Create(True);
       Request.Socket:=AcceptSocket;

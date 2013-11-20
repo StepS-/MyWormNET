@@ -148,7 +148,11 @@ begin
 
       while GetLine(Buffer, S) do
       begin
-        WriteLn('< '+S);
+        if Registered then
+          Log('< :'+Nickname+'!'+Username+'@'+StealthIP+' '+S)
+        else
+          Log('< :'+ConnectingFrom+' '+S);
+
         Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
         Delete(S, 1, Length(Command)+1);
           
@@ -493,6 +497,7 @@ begin
                   for J:=0 to Length(Users)-1 do
                     Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Killed by '+Nickname+': '+Reason);
                 Users[I].SendLn('ERROR :You have been kicked from the server by '+Nickname+': '+Reason);
+                EventLog(Users[I].Nickname+' has been killed by '+Nickname+': '+Reason);
                 if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
                 Break
               end
@@ -549,6 +554,7 @@ begin
           begin
             Users[I].LastSenior:=Nickname;
             Users[I].SendLn('ERROR :'+Description);
+            EventLog(Users[I].Nickname+' has been pranked by '+Nickname+': '+Description);
             Break
           end
         else
@@ -762,7 +768,7 @@ begin
     begin
       CurChan:=Channel.Name;
       N:=Channel.Number;
-      EventLog(Nickname+' ('+ConnectingFrom+') has joined '+CurChan);
+      EventLog(Nickname+' ('+ConnectingFrom+') has joined '+CurChan+'.');
       InChannel[N]:=True;
       //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
       if not Modes['i'] then
@@ -1123,7 +1129,7 @@ var TStr: String;
 begin
   if Socket=0 then Exit;
   TStr:='['+TimeToStr(Now)+'] > '+S;
-  if TStr <> LastStr then WriteLn(TStr);
+  if TStr <> LastStr then Log(TStr);
   LastStr:=TStr;
   S:=S+#13#10;
   if send(Socket, S[1], Length(S), 0)<>Length(S) then
@@ -1163,14 +1169,17 @@ begin
       else
         Pre:='un';
       SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :You have been '+Pre+'muted by '+Master+'.');
+      EventLog(Nickname+' has been '+Pre+'muted by '+Master+'.');
     end
 
     else
       if Mode='i' then
-        if Side = '+' then
-          SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :You have been made invisible by '+Master+'.')
-        else
-          SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :You have been made visible again by '+Master+'.');
+      begin
+        if Side = '+' then Pre:='in'
+        else Pre:='';
+        SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :You have been made '+Pre+'visible by '+Master+'.');
+        EventLog(Nickname+' has been made '+Pre+'visible by '+Master+'.');
+      end;
 
     for I:=0 to Length(Channels)-1 do
       if InChannel[Channels[I].Number] then
@@ -1233,6 +1242,11 @@ begin
       Name   :=ChanFile.ReadString (IntToStr(N),'Name',   '');
       Scheme :=ChanFile.ReadString (IntToStr(N),'Scheme', '');
       Topic  :=ChanFile.ReadString (IntToStr(N),'Topic',  '');
+
+      Name   := Copy(Name,1,Pos(' ',Name+' ')-1);
+      Scheme := Copy(Scheme,1,Pos(' ',Scheme+' ')-1);
+      if Name[1] <> '#' then Name:='#'+Name;
+      
       if not AddChannel(Name,Scheme,Topic) then
         EventLog('[IRC] Channel '+Name+' has already been created: ignored.')
       else             
@@ -1313,15 +1327,15 @@ begin
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
     begin
-    Log('[IRC] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[IRC] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
   if listen( m_socket, 1 )=SOCKET_ERROR then
     begin
-    Log('[IRC] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[IRC] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
-  Log('[IRC] Listening on port '+IntToStr(IRCPort)+'.');
+  EventLog('[IRC] Listening on port '+IntToStr(IRCPort)+'.');
 
   GetChannels;
 
