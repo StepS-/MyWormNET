@@ -327,7 +327,7 @@ begin
     end;
   SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users)-M)+' users and '+IntToStr(M)+' invisible on this server.');
   SendLn(':'+ServerHost+' 252 '+Nickname+' '+IntToStr(N)+' :IRC Operators online');
-  SendLn(':'+ServerHost+' 254 '+Nickname+' '+IntToStr(Length(Channels)-1)+' :channels on this server');
+  SendLn(':'+ServerHost+' 254 '+Nickname+' '+IntToStr(Length(Channels))+' :channels on this server');
   SendLn(':'+ServerHost+' 375 '+Nickname+' :- '+ServerHost+' Message of the Day - ');
   S:=GetFile('motd.txt')+#13#10;
   while GetLine(S, S2) do
