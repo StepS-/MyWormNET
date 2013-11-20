@@ -203,7 +203,10 @@ begin
             Body:='<NOTHING>';
           end
         else
+          begin
+          EventLog(Game.HosterNickname+' has attempted to create a game ("'+Game.Name+'") with address '+Game.HosterAddress+' on a nonexistent channel '+Game.Chan+' from IP '+Game.HostedFrom);
           Body:='<NOTHING>';
+          end;
         end
       else
       if Parameters.Values['Cmd']='Close' then
