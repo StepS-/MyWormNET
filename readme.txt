@@ -10,6 +10,7 @@ StepS' modification currently includes the following:
 
 - Hiding IP addresses for everyone except self, mask configurable with the ini file
 - WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
+- New multi-channel support with channel schemes and topics: can be set with the Channels.ini file, section names must be numbered
 - Users' IP addresses are no longer forced when hosting
 - Changed the Game.asp content to allow The Wheat Snooper host games
 - Fixed the passworded games' padlock icons and locale typecodes

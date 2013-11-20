@@ -23,7 +23,7 @@ type
 
   TGame=record
     Created: TDateTime;
-    Name, Password, Loc, PassNeeded, Channel, LType: string;
+    Name, Password, Loc, PassNeeded, Chan, LType: string;
     HosterNickname, HosterAddress, HostedFrom: string;
     GameID: Integer;
     end;
@@ -58,9 +58,10 @@ end;
 
 procedure TRequest.Execute;
 var
-  Buffer, S, Headers, Body: string;
+  Buffer, S, Str, Headers, Body: string;
   I, J, N, R, Bytes: Integer;
 //User: TUser;
+  Channel: TChannel;
   Game: TGame;
 begin
   try
@@ -143,20 +144,26 @@ begin
       Body:='<NOTHING>'
     else
     if FileName='RequestChannelScheme.asp' then
-      Body:='<SCHEME=Pf,Be>'#10                      //#10 for Wheat Snooper compatibility
+    begin
+      Str:='#'+Parameters.Values['Channel'];
+      Channel:=ChannelByName(Str);
+      if Channel <> nil then
+        Body:='<SCHEME='+Channel.Scheme+'>'#10
+      else
+        Body:='<SCHEME=Pf,Be>'#10;
+    end
     else
-    // Cmd=Create&Name=ï¿½CyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
+    // Cmd=Create&Name=ßCyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
     if FileName='Game.asp' then
       if Parameters.Values['Cmd']='Create' then
         begin
         for I:=0 to Length(Games)-1 do
           if Games[I].HostedFrom = ConnectingFrom then
           begin
-            Game:=Games[I];
+            EventLog(Games[I].HosterNickname+'''s game "'+Games[I].Name+'" has closed to prevent flood from IP '+ConnectingFrom);
             for J:=I to Length(Games)-2 do
               Games[J]:=Games[J+1];
             SetLength(Games, Length(Games)-1);
-            EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed to prevent flood from IP '+ConnectingFrom);
             Break;
           end;
         Inc(GameCounter);
@@ -166,7 +173,7 @@ begin
         if (Game.Password <> '') then Game.PassNeeded:='1'
         else Game.PassNeeded:='0';
         Game.LType:=Parameters.Values['Type'];
-        Game.Channel:=Parameters.Values['Chan'];
+        Game.Chan:=Parameters.Values['Chan'];
         Game.Loc:=Parameters.Values['Loc'];
         Game.HosterNickname:=Parameters.Values['Nick'];
         Game.HosterAddress:=Parameters.Values['HostIP'];
@@ -208,7 +215,7 @@ begin
         EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
 
         Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
-        Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Channel+'">here</a>.'#10'</body>'#10'</html>';
+        Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Chan+'">here</a>.'#10'</body>'#10'</html>';
         // The string above is for compatibility with Wheat Snooper, lol... Otherwise it can't host. Ridiculous, but still.
         end
       else
@@ -259,9 +266,11 @@ begin
       begin
       CleanUpGames;
       Body:=Body+'<GAMELISTSTART>'#10;
+      Str:=Parameters.Values['Channel'];
       for I:=0 to Length(Games)-1 do
-       with Games[I] do
-        Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
+        with Games[I] do
+          if Str=Chan then
+            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
       Body:=Body+'<GAMELISTEND>'#10;
       end
     else
