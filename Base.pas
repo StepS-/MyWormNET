@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.2.8.5';
+  APPVERSION = '1.2.8.8';
   
 var
   ServerHost: string;  // our hostname
@@ -110,7 +110,7 @@ end;
 
 function IRCDateTimeNow : Int64;
 var
-  Timezone : TTimeZoneInformation;
+  Timezone: TTimeZoneInformation;
 begin
   GetTimeZoneInformation(Timezone);
   Result := Round(Now * SecsPerDay) + (Timezone.Bias * 60) - 2209176000;
@@ -118,12 +118,18 @@ end;
 
 function TextDateTimeNow : string;
 var
-  Timezone : TTimeZoneInformation;
-  UTCDatetime : TDateTime;
+  Timezone: TTimeZoneInformation;
+  Side: Char;
+  UTCOffset: TDateTime;
+  StrOffset: String;
 begin
   GetTimeZoneInformation(Timezone);
-  UTCDatetime := Now + Timezone.Bias/1440;
-  Result := DateToStr(UTCDatetime)+' '+TimeToStr(UTCDatetime)+' UTC';
+  UTCOffset := Timezone.Bias/MinsPerDay;
+  StrOffset := TimeToStr(UTCOffset);
+  StrOffset := Copy(StrOffset,1,Length(StrOffset)-3);
+  if UTCOffset>0 then Side:='-'
+  else Side:='+';
+  Result := DateTimeToStr(Now)+' UTC'+Side+StrOffset;
 end;
 
 {$ELSE}
@@ -135,7 +141,7 @@ end;
 
 function TextDateTimeNow : string;
 begin
-  Result := DateToStr(Now)+' '+TimeToStr(Now)+' server local time';
+  Result := DateTimeToStr(Now)+' server local time';
 end;
 
 {$ENDIF}

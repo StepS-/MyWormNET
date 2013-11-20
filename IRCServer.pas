@@ -2,7 +2,7 @@ unit IRCServer;
 
 {$IFDEF FPC}
 {$MODE DELPHI}
-{$ENDIF}                                                                                                                
+{$ENDIF}
 
 interface
 uses                                                            
@@ -857,7 +857,7 @@ begin
                         begin
                           if not
                             (
-                              ((Mode='a') or (Mode='q') and not (Modes['q']))
+                              (((Mode='a') or (Mode='q')) and not (Modes['q']))
                               or (not (Mode='v') and not (Mode='b') and ((Modes['h'])
                                   and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
                               or ((Mode='L') and (Target<>Nickname))
@@ -1196,8 +1196,10 @@ begin
             else
             begin
               Users[J].SendLn(':'+Master+' MODE '+Channels[I].Name+' '+Side+Mode+' '+Nickname);
-              if Mode<>'b' then EventLog(Master+' has set mode '+Side+Mode+' to '+Nickname+'.');
             end;
+
+    if (Mode<>'b')and(Mode<>'i') then
+      EventLog(Master+' has set mode '+Side+Mode+' to '+Nickname+'.');
 
     Result:=true;
   end
