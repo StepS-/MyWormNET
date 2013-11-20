@@ -748,35 +748,42 @@ procedure TUser.ExecJoin(S: String);
 const Command='JOIN';
 var
   I, K, N: Integer;
+  CurChan: String;
   Channel: TChannel;
 begin
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
-  Channel:=ChannelByName(S);
-  EventLog(Nickname+' is attempting to join a channel '+S);
-  if Channel <> nil then
+  S:=S+',';
+  repeat
   begin
-    S:=Channel.Name;
-    N:=Channel.Number;
-    EventLog(Nickname+' ('+ConnectingFrom+') has joined '+S);
-    InChannel[N]:=True;
-    //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
-    if not Modes['i'] then
-      for I:=0 to Length(Users)-1 do
-      begin
-        if Users[I].InChannel[N] then
+    CurChan:=Copy(S,1,Pos(',',S)-1);
+    Delete(S,1,Pos(',',S));
+    Channel:=ChannelByName(CurChan);
+    EventLog(Nickname+' is attempting to join a channel '+CurChan);
+    if Channel <> nil then
+    begin
+      CurChan:=Channel.Name;
+      N:=Channel.Number;
+      EventLog(Nickname+' ('+ConnectingFrom+') has joined '+CurChan);
+      InChannel[N]:=True;
+      //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
+      if not Modes['i'] then
+        for I:=0 to Length(Users)-1 do
         begin
-          Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+S);
-          for K:=1 to Length(IRCPrefModes) do
-            if Modes[IRCPrefModes[K]] then
-              Users[I].SendLn(':'+ServerHost+' MODE '+S+' +'+IRCPrefModes[K]+' '+Nickname);
-        end;
-      end
+          if Users[I].InChannel[N] then
+          begin
+            Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
+            for K:=1 to Length(IRCPrefModes) do
+              if Modes[IRCPrefModes[K]] then
+                Users[I].SendLn(':'+ServerHost+' MODE '+CurChan+' +'+IRCPrefModes[K]+' '+Nickname);
+          end;
+        end
+      else
+        SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
+      ExecNames(CurChan);
+    end
     else
-      SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+S);
-    ExecNames(S);
+      SendError(CurChan,403);
   end
-  else
-    SendError(S,403);
+  until Pos(',',S) = 0;
 end;
 
 procedure TUser.ExecPart(S: String);
@@ -889,7 +896,7 @@ begin
             SendLn(':'+ServerHost+' 324 '+Nickname+' '+Channel.Name+' +tn');
         end
         else
-          SendError(Command,401);
+          SendError(Target,403);
    {     else
           begin
           User:=nil;
