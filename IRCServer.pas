@@ -653,6 +653,7 @@ procedure TUser.ExecNick(S: String);
 const Command='NICK';
 var I: Integer;
 begin
+  SetLength(InChannel,Length(Channels));
   if Nickname<>'' then
     SendLn(':'+ServerHost+' 400 '+Nickname+' '+S+' :Nick change isn''t supported.')
   else
@@ -669,7 +670,6 @@ begin
       else
       begin
         Nickname:=S;
-        SetLength(InChannel,Length(Channels));
         if Username<>'' then
           LogIn(S);
       end;
@@ -757,7 +757,7 @@ begin
     CurChan:=Copy(S,1,Pos(',',S)-1);
     Delete(S,1,Pos(',',S));
     Channel:=ChannelByName(CurChan);
-    EventLog(Nickname+' is attempting to join a channel '+CurChan);
+//    EventLog(Nickname+' is attempting to join a channel '+CurChan);
     if Channel <> nil then
     begin
       CurChan:=Channel.Name;
