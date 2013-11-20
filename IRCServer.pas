@@ -653,11 +653,11 @@ procedure TUser.ExecNick(S: String);
 const Command='NICK';
 var I: Integer;
 begin
-  SetLength(InChannel,Length(Channels));
   if Nickname<>'' then
     SendLn(':'+ServerHost+' 400 '+Nickname+' '+S+' :Nick change isn''t supported.')
   else
   begin
+    SetLength(InChannel,Length(Channels));
     for I:=Length(S) downto 1 do
       if Pos(S[I], ValidNickChars)=0 then
         Delete(S, I, 1);
