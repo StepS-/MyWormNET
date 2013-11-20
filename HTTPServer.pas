@@ -25,6 +25,7 @@ type
     Created: TDateTime;
     Name, Password, Loc, PassNeeded, Chan, LType: string;
     HosterNickname, HosterAddress, HostedFrom: string;
+    Scheme: string;
     GameID: Integer;
     end;
 
@@ -184,6 +185,7 @@ begin
         if Channel <> nil then
           if Pos('Tf',Channel.Scheme) = 0 then
           begin
+            Game.Scheme:=Channel.Scheme;
             Inc(GameCounter);
             Game.GameID:=GameCounter;
             Game.Created:=Now;
@@ -318,7 +320,7 @@ begin
   //WriteLn('> '+S);
   S:=S+#13#10;
   if send(Socket, S[1], Length(S), 0)<>Length(S) then
-    Log('[HTTP > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+') ]');
+    Log('[HTTP] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
 end;
 
 // ***************************************************************

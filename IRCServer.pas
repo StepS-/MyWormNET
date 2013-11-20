@@ -149,9 +149,9 @@ begin
       while GetLine(Buffer, S) do
       begin
         if Registered then
-          Log('< :'+Nickname+'!'+Username+'@'+StealthIP+' '+S)
+          Log('[IRC] < :'+Nickname+'!'+Username+'@'+StealthIP+' '+S)
         else
-          Log('< :'+ConnectingFrom+' '+S);
+          Log('[IRC] < :'+ConnectingFrom+' '+S);
 
         Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
         Delete(S, 1, Length(Command)+1);
@@ -1113,13 +1113,14 @@ const Command='GAMES';
 var
   I: Integer;
   OpenType: String;
-begin
+begin                                 
+  SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :--- Channel | Passworded | Name | Hoster | URL ---');
   for I:=0 to Length(Games)-1 do
   with Games[I] do
   begin
     if PassNeeded='0' then OpenType:='[OPEN]'
     else OpenType:='[PASS]';
-    SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+OpenType+' '+Name+' '+HosterNickname+' '+HosterAddress+' | wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme=Pf,Be');
+    SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :#'+Chan+' | '+OpenType+' | '+Name+' | '+HosterNickname+' | wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme='+Scheme);
   end;
   SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :--- '+IntToStr(Length(Games))+' games total ---');
 end;
@@ -1128,14 +1129,14 @@ procedure TUser.SendLn(S: string);
 var TStr: String;
 begin
   if Socket=0 then Exit;
-  TStr:='['+TimeToStr(Now)+'] > '+S;
+  TStr:='[IRC] > '+S;
   if TStr <> LastStr then Log(TStr);
   LastStr:=TStr;
   S:=S+#13#10;
   if send(Socket, S[1], Length(S), 0)<>Length(S) then
     begin
     Socket:=0;  // avoid infinite recursion
-    Log('[IRC > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+') ]');
+    Log('[IRC] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
     end;
 end;
 

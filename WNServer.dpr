@@ -20,7 +20,7 @@ var
 begin
   ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
   //Log('------------------ '+DateTimeToStr(Now)+' ------------------');
-  EventLog('------------------ '+DateTimeToStr(Now)+' ------------------');
+  EventLog('------------------ '+DateTimeToStr(Now)+' ------------------',true);
   EventLog('Starting MyWormNET version '+APPVERSION+'.');
 
   Config := TMemIniFile.Create(ExtractFilePath(ParamStr(0))+'WNServer.ini');

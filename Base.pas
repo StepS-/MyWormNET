@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.2.8.8';
+  APPVERSION = '1.2.9.0';
   
 var
   ServerHost: string;  // our hostname
@@ -19,7 +19,7 @@ var
   StartupTime: string;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
-procedure EventLog(S: string);
+procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;
 
 function IRCDateTimeNow : Int64;
@@ -64,11 +64,11 @@ begin
     end;
 end;
 
-procedure EventLog(S: string);
+procedure EventLog(S: string; DiskOnly: Boolean=false);
 var
   F: text;
 begin
-  Log(S,false,true);
+  Log(S,DiskOnly,true);
 
   if Copy(S, 1, 1)<>'-' then
     S:='['+DateTimeToStr(Now)+'] '+S;
