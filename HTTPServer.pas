@@ -167,66 +167,39 @@ begin
             SetLength(Games, Length(Games)-1);
             Break;
           end;
-        Str:='#'+Parameters.Values['Chan'];
+
+        Game.Name:=Parameters.Values['Name'];
+        if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
+          Game.Password:=Parameters.Values['Pwd'];
+        if (Game.Password <> '') then Game.PassNeeded:='1'
+        else Game.PassNeeded:='0';
+        Game.LType:=Parameters.Values['Type'];
+        Game.Chan:=Parameters.Values['Chan'];
+        Game.Loc:=Parameters.Values['Loc'];
+        Game.HosterNickname:=Parameters.Values['Nick'];
+        Game.HosterAddress:=Parameters.Values['HostIP'];
+        Game.HostedFrom:=ConnectingFrom;
+        Str:='#'+Game.Chan;
         Channel:=ChannelByName(Str);
         if Channel <> nil then
           if Pos('Tf',Channel.Scheme) = 0 then
           begin
             Inc(GameCounter);
-            Game.Name:=Parameters.Values['Name'];
-            if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
-            Game.Password:=Parameters.Values['Pwd'];
-            if (Game.Password <> '') then Game.PassNeeded:='1'
-            else Game.PassNeeded:='0';
-            Game.LType:=Parameters.Values['Type'];
-            Game.Chan:=Parameters.Values['Chan'];
-            Game.Loc:=Parameters.Values['Loc'];
-            Game.HosterNickname:=Parameters.Values['Nick'];
-            Game.HosterAddress:=Parameters.Values['HostIP'];
-            Game.HostedFrom:=ConnectingFrom;
             Game.GameID:=GameCounter;
             Game.Created:=Now;
 
-        {   if IRCPort>0 then
-            begin
-            User:=nil;
-            for I:=0 to Length(Users)-1 do                      // this check also matches the IP address
-              if (Users[I].Nickname=Parameters.Values['Nick']) then
-                User:=Users[I];
-            if User=nil then
-              raise Exception.Create('Can''t find IRC user "'+Parameters.Values['Nick']+'".');
-
-            //if(Pos('http://wormnat.xeon.cc/', Parameters.Values['HostIP'])<>0)or(User.ConnectingFrom='127.0.0.1')or(Copy(User.ConnectingFrom, ) then
-            //else
-       //     if Pos(':', Parameters.Values['HostIP'])>0 then
-       //       Game.HosterAddress:=User.ConnectingFrom + Copy(Parameters.Values['HostIP'], Pos(':', Parameters.Values['HostIP']), 1000)
-       //     else
-       //       Game.HosterAddress:=User.ConnectingFrom;  // auto-detect the user's external address
-            Game.HosterNickname:=User.Nickname;
-            end
-          else
-            begin
-            Game.HosterNickname:=Parameters.Values['Nick'];
-            Game.HosterAddress:=Parameters.Values['HostIP'];
-            end;
-        }
             SetLength(Games, Length(Games)+1);
             Games[Length(Games)-1]:=Game;
 
-        {
-          for I:=0 to Length(Users)-1 do
-            if Users[I].InChannel then
-              Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+' has created a game ("'+Game.Name+'").');
-        }
-            EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") on '+Game.HosterAddress+' from IP '+Game.HostedFrom);
+            EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") with address '+Game.HosterAddress+' from IP '+Game.HostedFrom);
 
             Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
             Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Chan+'">here</a>.'#10'</body>'#10'</html>';
-        // The string above is for compatibility with Wheat Snooper, otherwise it can't host: Yes, I know, it's quite stupid.
+            // The string above is for compatibility with Wheat Snooper, otherwise it can't host: Yes, I know, it's quite stupid.
           end
           else
           begin
-            EventLog(Game.HosterNickname+' has attempted to create a game ("'+Game.Name+'") on non-gaming channel '+Channel.Name+' from IP '+Game.HostedFrom);
+            EventLog(Game.HosterNickname+' has attempted to create a game ("'+Game.Name+'") with address '+Game.HosterAddress+' on non-gaming channel '+Channel.Name+' from IP '+Game.HostedFrom);
             Body:='<NOTHING>';
           end
         else
