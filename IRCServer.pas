@@ -663,7 +663,6 @@ begin
     SendLn(':'+ServerHost+' 400 '+Nickname+' '+S+' :Nick change isn''t supported.')
   else
   begin
-    SetLength(InChannel,Length(Channels));
     for I:=Length(S) downto 1 do
       if Pos(S[I], ValidNickChars)=0 then
         Delete(S, I, 1);
@@ -1114,13 +1113,13 @@ var
   I: Integer;
   OpenType: String;
 begin                                 
-  SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :--- Channel | Passworded | Name | Hoster | URL ---');
+  SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :--- Channel   Passworded   Name   Hoster | URL ---');
   for I:=0 to Length(Games)-1 do
   with Games[I] do
   begin
     if PassNeeded='0' then OpenType:='[OPEN]'
     else OpenType:='[PASS]';
-    SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :#'+Chan+' | '+OpenType+' | '+Name+' | '+HosterNickname+' | wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme='+Scheme);
+    SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :#'+Chan+'   '+OpenType+'   '+Name+'   '+HosterNickname+' | wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme='+Scheme);
   end;
   SendLn(':SERVER'#160'GAMES!root@'+ServerHost+' PRIVMSG '+Nickname+' :--- '+IntToStr(Length(Games))+' games total ---');
 end;
@@ -1354,6 +1353,7 @@ begin
       Log('[IRC] Connection established from '+inet_ntoa(incoming.sin_addr));
 
       User:=TUser.Create(True);
+      SetLength(User.InChannel,Length(Channels));
       User.Socket:=AcceptSocket;
       User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
 //      User.Modes['s']:=True;
