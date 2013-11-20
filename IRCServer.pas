@@ -2,7 +2,7 @@ unit IRCServer;
 
 {$IFDEF FPC}
 {$MODE DELPHI}
-{$ENDIF}
+{$ENDIF}                                                                                                                
 
 interface
 uses                                                            
@@ -987,7 +987,7 @@ begin
     for I:=0 to Length(Channels)-1 do
       if InChannel[Channels[I].Number] then
         for J:=0 to Length(Users)-1 do
-          if Users[I].InChannel[Channels[I].Number] then
+          if Users[J].InChannel[Channels[I].Number] then
             Users[J].SendLn(':'+ServerHost+' MODE '+Channels[I].Name+' +'+Mode+' '+Nickname);
   end
   else
