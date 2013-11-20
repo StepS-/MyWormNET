@@ -1187,7 +1187,7 @@ begin
           if Users[J].InChannel[Channels[I].Number] then
             if Mode='i' then
             begin
-              if Nickname <> Users[I].Nickname then
+              if Nickname <> Users[J].Nickname then
                 if Side = '+' then
                   Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Channels[I].Name)
                 else
