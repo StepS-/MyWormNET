@@ -157,7 +157,9 @@ begin
 
         Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
         Delete(S, 1, Length(Command)+1);
-          
+
+          if Command='CAP' then
+        else
           if Command='NICK' then
             ExecNick(S)
         else
@@ -311,38 +313,47 @@ var
   I, N, M: Integer;
   S2: String;
 begin
-  EventLog(Nickname+' ('+ConnectingFrom+') logged in.');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :Welcome, '+Nickname+'!');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :This is a custom WormNet IRC server emulator,');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :supporting only the base set of IRC features.');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :The server software was written by ');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
-  SendLn(':'+ServerHost+' 011 '+Nickname+' :and extended by StepS <github.com/StepS->');
-  SendLn(':'+ServerHost+' 003 '+Nickname+' :This server was created '+StartupTime);
-  SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
-  if WormNATPort>0 then
-    SendLn(':'+ServerHost+' 011 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
-  //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
-  //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
-  SendLn(':'+ServerHost+' 003 '+Nickname+' :Your host is '+ServerHost+', running MyWormNET version '+APPVERSION);
-  N:=0;
-  M:=0;
-  for I:=0 to Length(Users)-1 do
-    begin
-    if (Users[I].Modes['q'])or(Users[I].Modes['a'])or(Users[I].Modes['o'])or(Users[I].Modes['h']) then
-      Inc(N);
-    if Users[I].Modes['i'] then
-      Inc(M);
-    end;
-  SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users)-M)+' users and '+IntToStr(M)+' invisible on this server.');
-  SendLn(':'+ServerHost+' 252 '+Nickname+' '+IntToStr(N)+' :IRC Operators online');
-  SendLn(':'+ServerHost+' 254 '+Nickname+' '+IntToStr(Length(Channels))+' :channels on this server');
-  SendLn(':'+ServerHost+' 375 '+Nickname+' :- '+NetworkName+' Message of the Day - ');
-  S:=GetFile('motd.txt')+#13#10;
-  while GetLine(S, S2) do
-   if(S<>'')or(S2<>'') then
-    SendLn(':'+ServerHost+' 372 '+Nickname+' :- '+S2);
-  SendLn(':'+ServerHost+' 376 '+Nickname+' :End of /MOTD command.');
+  if not BannedNick(Nickname) then
+  begin
+    EventLog(Nickname+' ('+ConnectingFrom+') logged in.');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :Welcome, '+Nickname+'!');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :This is a custom WormNet IRC server emulator,');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :supporting only the base set of IRC features.');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :The server software was written by ');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :and extended by StepS <github.com/StepS->');
+    SendLn(':'+ServerHost+' 003 '+Nickname+' :This server was created '+StartupTime);
+    SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
+    if WormNATPort>0 then
+      SendLn(':'+ServerHost+' 011 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
+    //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
+    //SendLn(':'+ServerHost+' 004 '+Nickname+' wormnet1.team17.com 2.8/hybrid-6.3.1 oOiwszcrkfydnxb biklmnopstve');
+    SendLn(':'+ServerHost+' 003 '+Nickname+' :Your host is '+ServerHost+', running MyWormNET version '+APPVERSION);
+    N:=0;
+    M:=0;
+    for I:=0 to Length(Users)-1 do
+      begin
+      if (Users[I].Modes['q'])or(Users[I].Modes['a'])or(Users[I].Modes['o'])or(Users[I].Modes['h']) then
+        Inc(N);
+      if Users[I].Modes['i'] then
+        Inc(M);
+      end;
+    SendLn(':'+ServerHost+' 251 '+Nickname+' :There are '+IntToStr(Length(Users)-M)+' users and '+IntToStr(M)+' invisible on this server.');
+    SendLn(':'+ServerHost+' 252 '+Nickname+' '+IntToStr(N)+' :IRC Operators online');
+    SendLn(':'+ServerHost+' 254 '+Nickname+' '+IntToStr(Length(Channels))+' :channels on this server');
+    SendLn(':'+ServerHost+' 375 '+Nickname+' :- '+NetworkName+' Message of the Day - ');
+    S:=GetFile('motd.txt')+#13#10;
+    while GetLine(S, S2) do
+     if(S<>'')or(S2<>'') then
+      SendLn(':'+ServerHost+' 372 '+Nickname+' :- '+S2);
+    SendLn(':'+ServerHost+' 376 '+Nickname+' :End of /MOTD command.');
+  end
+  else
+  begin
+    SendLn('ERROR :You are banned.');
+    closesocket(Socket);
+    Socket:=0
+  end;
 end;
 
 procedure TUser.SendError(S: String; ErrNo: Integer);
@@ -529,62 +540,71 @@ var
   FilePath, BanFile: String;
   Target, Reason, BType, Result: String;
 begin
-  if S<>'' then
+  if (Modes['o']) or (Modes['a']) or (Modes['q']) then
   begin
-    if Pos(' ', S) <> 0 then
+    if S<>'' then
     begin
-      Target:=Copy(S, 1, Pos(' ', S)-1);
-      Reason:=Copy(S, Pos(' ', S)+1, Length(S));
-      if Reason[1] = ':' then Delete(Reason, 1, 1);
-    end
-    else
-    begin
-      Target:=Copy(S, 1, Length(S));
-      Reason:='No reason specified';
-    end;
-
-    if Command='NICKBAN' then
-    begin
-      BanFile:='banlist_nicks.txt';
-      BType:='Nickname';
-      Result:='banned';
-    end
-    else
-    begin
-      BanFile:='banlist_ips.txt';
-      BType:='IP';
-      Result:='permabanned';
-    end;
-    
-    FilePath := ExtractFilePath(ParamStr(0))+BanFile;
-    Assign(F,FilePath);
-    if not FileExists(FilePath) then
-      Rewrite(F);
-    Append(F);
-    WriteLn(F, Target);
-    Close(F);
-
-    for I:=0 to Length(Users)-1 do
-      if Command='NICKBAN' then
+      if Pos(' ', S) <> 0 then
       begin
-        if UpperCase(Users[I].Nickname) = UpperCase(Target) then
-        begin
-          Users[I].Die(Result,Reason,Nickname);
-          Break;
-        end;
+        Target:=Copy(S, 1, Pos(' ', S)-1);
+        Reason:=Copy(S, Pos(' ', S)+1, Length(S));
+        if Reason[1] = ':' then Delete(Reason, 1, 1);
       end
       else
-        if Command='IPBAN' then
-          if Users[I].ConnectingFrom = Target then
+      begin
+        Target:=Copy(S, 1, Length(S));
+        Reason:='No reason specified';
+      end;
+
+      if Command='NICKBAN' then
+      begin
+        BanFile:='banlist_nicks.txt';
+        BType:='Nickname';
+        Result:='banned';
+        SetLength(NickBans,Length(NickBans)+1);
+        NickBans[Length(NickBans)-1]:=Target;
+      end
+      else
+      begin
+        BanFile:='banlist_ips.txt';
+        BType:='IP';
+        Result:='permabanned';
+        SetLength(IPBans,Length(IPBans)+1);
+        IPBans[Length(NickBans)-1]:=Target;
+      end;
+
+      FilePath := ExtractFilePath(ParamStr(0))+BanFile;
+      Assign(F,FilePath);
+      if not FileExists(FilePath) then
+        Rewrite(F);
+      Append(F);
+      WriteLn(F, Target);
+      Close(F);
+
+      for I:=0 to Length(Users)-1 do
+        if Command='NICKBAN' then
+        begin
+          if UpperCase(Users[I].Nickname) = UpperCase(Target) then
           begin
             Users[I].Die(Result,Reason,Nickname);
             Break;
           end;
+        end
+        else
+          if Command='IPBAN' then
+            if Users[I].ConnectingFrom = Target then
+            begin
+              Users[I].Die(Result,Reason,Nickname);
+              Break;
+            end;
 
-    SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.');
+      SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.');
+    end
+    else
+      SendError(Command,461);
   end
   else
-    SendError(Command,461);
+    SendError(Command,481);
 end;
 
 procedure TUser.ExecPrank(S: String);
@@ -747,25 +767,25 @@ procedure TUser.ExecUser;
 const Command='USER';
 // USER Username hostname servername :40 0 RO
 begin
-  if (Username='') or (Modes['q']) then
-  begin
-    Username:=Copy(S, 1, Pos(' ', S)-1);
-    Delete(S, 1, Pos(' ', S));
-    Hostname:=Copy(S, 1, Pos(' ', S)-1);
-    Delete(S, 1, Pos(' ', S));
-    Servername:=Copy(S, 1, Pos(' ', S)-1);
-    Delete(S, 1, Pos(':', S));
-    Realname:=S;
+    if (Username='') or (Modes['q']) then
+    begin
+      Username:=Copy(S, 1, Pos(' ', S)-1);
+      Delete(S, 1, Pos(' ', S));
+      Hostname:=Copy(S, 1, Pos(' ', S)-1);
+      Delete(S, 1, Pos(' ', S));
+      Servername:=Copy(S, 1, Pos(' ', S)-1);
+      Delete(S, 1, Pos(':', S));
+      Realname:=S;
 
-    LastSenior:='SERVER';
+      LastSenior:='SERVER';
 
-    if Username='' then
-      Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
-    if Nickname<>'' then
-      LogIn(S);
-  end
-  else
-    SendError(Command,462);
+      if Username='' then
+        Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
+      if Nickname<>'' then
+        LogIn(S);
+    end
+    else
+      SendError(Command,462);
 end;
 
 procedure TUser.ExecQuit(S: String);
@@ -1425,24 +1445,26 @@ begin
   GetChannels;
 
   repeat
-    T:=SizeOf(incoming);
-    AcceptSocket := accept( m_socket, @incoming, @T );
-    if AcceptSocket<>INVALID_SOCKET then
-      begin
+  begin
       T:=SizeOf(incoming);
-      Log('[IRC] Connection established from '+inet_ntoa(incoming.sin_addr));
+      AcceptSocket := accept( m_socket, @incoming, @T );
+      if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
+      begin
+        T:=SizeOf(incoming);
+        Log('[IRC] Connection established from '+inet_ntoa(incoming.sin_addr));
 
-      User:=TUser.Create(True);
-      SetLength(User.InChannel,Length(Channels));
-      User.Socket:=AcceptSocket;
-      User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
+        User:=TUser.Create(True);
+        SetLength(User.InChannel,Length(Channels));
+        User.Socket:=AcceptSocket;
+        User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
 //      User.Modes['s']:=True;
-      SetLength(Users, Length(Users)+1);
-      Users[Length(Users)-1]:=User;
-      User.Resume;
+        SetLength(Users, Length(Users)+1);
+        Users[Length(Users)-1]:=User;
+        User.Resume;
       end
-    else
-      Sleep(5);
+      else
+        Sleep(5);
+  end;
   until False;
 end;
 

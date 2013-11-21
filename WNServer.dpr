@@ -38,6 +38,9 @@ begin
   {$IFDEF WIN32}
   WSAStartUp(2, WSA);
   {$ENDIF}
+  
+  LoadBanlists;
+
   if IRCPort>0 then
     StartIRCServer;
   Sleep(50);

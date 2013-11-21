@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.3.0.1';
+  APPVERSION = '1.3.1.1';
   
 var
   ServerHost: string;  // our hostname
@@ -107,6 +107,7 @@ begin
   end
   else
   begin
+    Reset(F);
     while not EOF(F) do
     begin
       SetLength(NickBans, Length(NickBans)+1);
@@ -127,6 +128,7 @@ begin
   end
   else
   begin
+    Reset(F);
     while not EOF(F) do
     begin
       SetLength(IPBans, Length(IPBans)+1);
@@ -137,13 +139,29 @@ begin
 end;
 
 function BannedIP(IP: String): Boolean;
+var I: Integer;
 begin
   Result:=false;
+  for I:=0 to Length(IPBans)-1 do
+  begin
+    if IPBans[I] = IP then
+    begin
+      Result := true;
+      Break;
+    end;
+  end;
 end;
 
 function BannedNick(Nick: String): Boolean;
+var I: Integer;
 begin
   Result:=false;
+  for I:=0 to Length(NickBans)-1 do
+    if UpperCase(NickBans[I]) = UpperCase(Nick) then
+    begin
+      Result := true;
+      Break;
+    end;
 end;
 
 {$IFDEF WIN32}

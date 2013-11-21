@@ -352,20 +352,22 @@ begin
   EventLog('[HTTP] Listening on port '+IntToStr(HTTPPort)+'.');
 
   repeat
-    T:=SizeOf(incoming);
-    AcceptSocket := accept( m_socket, @incoming, @T );
-    if AcceptSocket<>INVALID_SOCKET then
-      begin
+  begin
       T:=SizeOf(incoming);
-      Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
+      AcceptSocket := accept( m_socket, @incoming, @T );
+      if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
+      begin
+        T:=SizeOf(incoming);
+        Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
 
-      Request:=TRequest.Create(True);
-      Request.Socket:=AcceptSocket;
-      Request.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
-      Request.Resume;
+        Request:=TRequest.Create(True);
+        Request.Socket:=AcceptSocket;
+        Request.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
+        Request.Resume;
       end
-    else
-      Sleep(1);
+      else
+        Sleep(1);
+  end;
   until False;
 end;
 

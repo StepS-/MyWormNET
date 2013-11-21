@@ -11,6 +11,7 @@ StepS' modification currently includes the following:
 - Hiding IP addresses for everyone except self, mask configurable with the ini file
 - WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
 - New multi-channel support with channel schemes and topics: can be set with the Channels.ini file, section names must be numbered
+- Banlists for IPs and nicks: to ban when the server is active, use the IPBAN and NICKBAN commands on a target with an optional reason (available for ops and above)
 - Users' IP addresses are no longer forced when hosting
 - Changed the Game.asp content to allow The Wheat Snooper host games
 - Now the verbose console logging is off by default; you may enable it again by setting it to 1 in the ini file. Disk logging will still stay verbose unless WNServer.log is deleted.

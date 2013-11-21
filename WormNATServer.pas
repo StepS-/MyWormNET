@@ -167,7 +167,7 @@ begin
   repeat
     T:=SizeOf(incoming);
     AcceptSocket := accept( m_socket, @incoming, @T );
-    if AcceptSocket<>INVALID_SOCKET then
+    if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
       begin
       T:=SizeOf(incoming);
       EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
