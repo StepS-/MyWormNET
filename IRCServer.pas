@@ -527,7 +527,7 @@ var
   I: Integer;
   F: text;
   FilePath, BanFile: String;
-  Target, Reason, BType: String;
+  Target, Reason, BType, Result: String;
 begin
   if S<>'' then
   begin
@@ -547,11 +547,13 @@ begin
     begin
       BanFile:='banlist_nicks.txt';
       BType:='Nickname';
+      Result:='banned';
     end
     else
     begin
       BanFile:='banlist_ips.txt';
       BType:='IP';
+      Result:='permabanned';
     end;
     
     FilePath := ExtractFilePath(ParamStr(0))+BanFile;
@@ -567,7 +569,7 @@ begin
       begin
         if UpperCase(Users[I].Nickname) = UpperCase(Target) then
         begin
-          Users[I].Die('banned',Reason,Nickname);
+          Users[I].Die(Result,Reason,Nickname);
           Break;
         end;
       end
@@ -575,11 +577,11 @@ begin
         if Command='IPBAN' then
           if Users[I].ConnectingFrom = Target then
           begin
-            Users[I].Die('permabanned',Reason,Nickname);
+            Users[I].Die(Result,Reason,Nickname);
             Break;
           end;
 
-    SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been banned.');
+    SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.');
   end
   else
     SendError(Command,461);

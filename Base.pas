@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.3.0.0';
+  APPVERSION = '1.3.0.1';
   
 var
   ServerHost: string;  // our hostname
@@ -18,11 +18,13 @@ var
   NetworkName: string;
   StartupTime: string;
 
-  IPBanlist, NickBanlist: array of Boolean;
+  IPBans, NickBans: array of String;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;
+
+procedure LoadBanlists;
 
 function BannedIP(IP: String): Boolean;
 function BannedNick(Nick: String): Boolean;
@@ -88,15 +90,61 @@ begin
   if IOResult<>0 then ;
 end;
 
+procedure LoadBanlists;
+var
+  F: text;
+  FilePath: String;
+begin
+  FilePath:=ExtractFilePath(ParamStr(0))+'banlist_nicks.txt';
+  Assign(F,FilePath);
+  if not FileExists(FilePath) then
+  begin
+    Rewrite(F);
+    WriteLn(F, 'fuck');
+    SetLength(NickBans,1);
+    NickBans[0]:='fuck';
+    Close(F);
+  end
+  else
+  begin
+    while not EOF(F) do
+    begin
+      SetLength(NickBans, Length(NickBans)+1);
+      ReadLn(f, NickBans[Length(NickBans)-1]);
+    end;
+    Close(F);
+  end;
+
+  FilePath:=ExtractFilePath(ParamStr(0))+'banlist_ips.txt';
+  Assign(F,FilePath);
+  if not FileExists(FilePath) then
+  begin
+    Rewrite(F);
+    WriteLn(F, '0.0.0.0');
+    SetLength(IPBans,1);
+    IPBans[0]:='0.0.0.0';
+    Close(F);
+  end
+  else
+  begin
+    while not EOF(F) do
+    begin
+      SetLength(IPBans, Length(IPBans)+1);
+      ReadLn(f, IPBans[Length(IPBans)-1]);
+    end;
+    Close(F);
+  end;
+end;
+
 function BannedIP(IP: String): Boolean;
 begin
   Result:=false;
 end;
+
 function BannedNick(Nick: String): Boolean;
 begin
   Result:=false;
 end;
-
 
 {$IFDEF WIN32}
 
