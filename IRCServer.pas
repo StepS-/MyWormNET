@@ -46,10 +46,12 @@ type
     procedure ExecExpect(S: String);
     procedure ExecGames(S: String);
     procedure ExecKill(S: String);
+    procedure ExecBan(Command, S: String);
     procedure ExecOper(Command, S: String);
     procedure ExecMessage(Command, S: String);
     procedure ExecMute(Mute: Boolean; S: String);
 
+    procedure Die(Action, Reason, Master: String);
     function Registered: Boolean;
     function ChangeMode(Side, Mode: Char; Master: String): Boolean;
     end;
@@ -218,6 +220,9 @@ begin
           else
             if (Command='KICK') or (Command='KILL') then
               ExecKill(S)
+          else
+            if (Command='NICKBAN') or (Command='IPBAN') then
+              ExecBan(Command,S)
           else
             if (Command='OPER') or (Command='TAKEOWN') then
               ExecOper(Command,S)
@@ -456,7 +461,7 @@ end;
 procedure TUser.ExecKill(S: String);
 const Command='KILL';
 var
-  I,J: Integer;
+  I: Integer;
   Reason, Target: String;
 begin
   if S <> '' then
@@ -471,7 +476,7 @@ begin
       begin
         Target:=Copy(S, 1, Pos(' ', S)-1);
         Reason:=Copy(S, Pos(' ', S)+1, Length(S));
-        if Copy(Reason, 1, 1) = ':' then Delete(Reason, 1, 1);
+        if Reason[1] = ':' then Delete(Reason, 1, 1);
       end
     else
       begin
@@ -489,16 +494,7 @@ begin
       //    or ((Modes['h']) and not (Users[I].Modes['a']) and not (Users[I].Modes['q']) and not (Users[I].Modes['o']))
             then
               begin
-                Users[I].LastSenior:=Nickname;
-                for J:=0 to Length(Channels)-1 do
-                  if Users[I].InChannel[Channels[I].Number] then
-                     Users[I].InChannel[Channels[I].Number] := False;
-                if not Users[I].Modes['i'] then
-                  for J:=0 to Length(Users)-1 do
-                    Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Killed by '+Nickname+': '+Reason);
-                Users[I].SendLn('ERROR :You have been kicked from the server by '+Nickname+': '+Reason);
-                EventLog(Users[I].Nickname+' has been killed by '+Nickname+': '+Reason);
-                if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
+                Users[I].Die('killed',Reason,Nickname);
                 Break
               end
             else
@@ -521,9 +517,72 @@ begin
     //          SendLn('ERROR :Nice try, '+Nickname+'.');
     //          closesocket(Socket); Socket:=0;
     //        end;
-   end
-     else
-       SendError(Target,401);
+  end
+  else
+    SendError(Command,461);
+end;
+
+procedure TUser.ExecBan(Command, S: String);
+var
+  I: Integer;
+  F: text;
+  FilePath, BanFile: String;
+  Target, Reason, BType: String;
+begin
+  if S<>'' then
+  begin
+    if Pos(' ', S) <> 0 then
+    begin
+      Target:=Copy(S, 1, Pos(' ', S)-1);
+      Reason:=Copy(S, Pos(' ', S)+1, Length(S));
+      if Reason[1] = ':' then Delete(Reason, 1, 1);
+    end
+    else
+    begin
+      Target:=Copy(S, 1, Length(S));
+      Reason:='No reason specified';
+    end;
+
+    if Command='NICKBAN' then
+    begin
+      BanFile:='banlist_nicks.txt';
+      BType:='Nickname';
+    end
+    else
+    begin
+      BanFile:='banlist_ips.txt';
+      BType:='IP';
+    end;
+    
+    FilePath := ExtractFilePath(ParamStr(0))+BanFile;
+    Assign(F,FilePath);
+    if not FileExists(FilePath) then
+      Rewrite(F);
+    Append(F);
+    WriteLn(F, Target);
+    Close(F);
+
+    for I:=0 to Length(Users)-1 do
+      if Command='NICKBAN' then
+      begin
+        if UpperCase(Users[I].Nickname) = UpperCase(Target) then
+        begin
+          Users[I].Die('banned',Reason,Nickname);
+          Break;
+        end;
+      end
+      else
+        if Command='IPBAN' then
+          if Users[I].ConnectingFrom = Target then
+          begin
+            Users[I].Die('permabanned',Reason,Nickname);
+            Break;
+          end;
+
+    SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been banned.');
+  end
+  else
+    SendError(Command,461);
 end;
 
 procedure TUser.ExecPrank(S: String);
@@ -1137,6 +1196,25 @@ begin
     Socket:=0;  // avoid infinite recursion
     Log('[IRC] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
     end;
+end;
+
+procedure TUser.Die(Action, Reason, Master: String);
+var
+  I: Integer;
+  UC, LC: String;
+begin
+  LastSenior:=Master;
+  UC:=UpperCase(Action[1])+Copy(Action,2,Length(Action));
+  LC:=LowerCase(Action[1])+Copy(Action,2,Length(Action));
+  for I:=0 to Length(Channels)-1 do
+    if InChannel[Channels[I].Number] then
+      InChannel[Channels[I].Number] := False;
+  if not Modes['i'] then
+    for I:=0 to Length(Users)-1 do
+      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+UC+' by '+Master+': '+Reason);
+  SendLn('ERROR :You have been '+LC+' by '+Master+': '+Reason);
+  EventLog(Nickname+' has been '+LC+' by '+Master+': '+Reason);
+  if (Socket <> 0) then closesocket(Socket); Socket:=0;
 end;
 
 function TUser.Registered: Boolean;

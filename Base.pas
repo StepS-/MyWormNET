@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.2.9.3';
+  APPVERSION = '1.3.0.0';
   
 var
   ServerHost: string;  // our hostname
@@ -18,9 +18,14 @@ var
   NetworkName: string;
   StartupTime: string;
 
+  IPBanlist, NickBanlist: array of Boolean;
+
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;
+
+function BannedIP(IP: String): Boolean;
+function BannedNick(Nick: String): Boolean;
 
 function IRCDateTimeNow : Int64;
 function TextDateTimeNow : string;
@@ -82,6 +87,16 @@ begin
   {$I+}
   if IOResult<>0 then ;
 end;
+
+function BannedIP(IP: String): Boolean;
+begin
+  Result:=false;
+end;
+function BannedNick(Nick: String): Boolean;
+begin
+  Result:=false;
+end;
+
 
 {$IFDEF WIN32}
 
