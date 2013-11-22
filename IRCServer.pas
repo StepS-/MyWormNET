@@ -675,8 +675,12 @@ begin
         end;
       end;
 
-      if B then SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.')
-      else SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has already been '+Result+'.')
+      if B then
+      begin
+        EventLog(Nickname+' has '+Result+' '+BType+' '+Target+'.');
+        SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' '+Target+' has been '+Result+'.')
+      end
+      else SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' '+Target+' has already been '+Result+'.')
     end
     else
       SendError(Command,461);
