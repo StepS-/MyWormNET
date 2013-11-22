@@ -289,7 +289,10 @@ begin
     closesocket(Socket);   // ignore errors
   Socket:=0;
 
-  EventLog(Nickname+' ('+ConnectingFrom+') has disconnected.');
+  if Registered then
+    EventLog(Nickname+' ('+ConnectingFrom+') has disconnected.')
+  else
+    EventLog('<Unknown> ('+ConnectingFrom+') has disconnected.');
 
   // TODO: add some sync lock or something here
   N:=-1;
@@ -351,6 +354,7 @@ begin
   else
   begin
     SendLn('ERROR :You are banned.');
+    EventLog(Nickname+' ('+ConnectingFrom+') was halted due to his nick being banned.');
     closesocket(Socket);
     Socket:=0
   end;
@@ -391,7 +395,7 @@ begin
   else
     StrOut:='Unknown error';
   end;
-  
+
   SendLn(':'+ServerHost+' '+IntToStr(ErrNo)+' '+Nickname+' '+S+' :'+StrOut);
 end;
 

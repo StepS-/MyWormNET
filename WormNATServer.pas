@@ -204,7 +204,7 @@ begin
       begin
         EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(WormNATPort)+'.');
         closesocket(AcceptSocket);
-        Sleep(1);
+        Sleep(5);
       end;
     end
     else
