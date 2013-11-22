@@ -1519,10 +1519,11 @@ begin
   GetChannels;
 
   repeat
-  begin
-      T:=SizeOf(incoming);
-      AcceptSocket := accept( m_socket, @incoming, @T );
-      if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
+    T:=SizeOf(incoming);
+    AcceptSocket := accept( m_socket, @incoming, @T );
+    if (AcceptSocket<>INVALID_SOCKET) then
+    begin
+      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
       begin
         T:=SizeOf(incoming);
         Log('[IRC] Connection established from '+inet_ntoa(incoming.sin_addr));
@@ -1531,14 +1532,20 @@ begin
         SetLength(User.InChannel,Length(Channels));
         User.Socket:=AcceptSocket;
         User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
-//      User.Modes['s']:=True;
+    //  User.Modes['s']:=True;
         SetLength(Users, Length(Users)+1);
         Users[Length(Users)-1]:=User;
         User.Resume;
       end
       else
+      begin
+        EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(IRCPort)+'.');
+        closesocket(AcceptSocket);
         Sleep(5);
-  end;
+      end;
+    end
+    else
+      Sleep(5);
   until False;
 end;
 

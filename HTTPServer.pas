@@ -340,22 +340,23 @@ begin
   service.sin_port := htons( HTTPPort );
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
-    begin
+  begin
     EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
-    end;
+  end;
   if listen( m_socket, 50 )=SOCKET_ERROR then
-    begin
+  begin
     EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
-    end;
+  end;
   EventLog('[HTTP] Listening on port '+IntToStr(HTTPPort)+'.');
 
   repeat
-  begin
-      T:=SizeOf(incoming);
-      AcceptSocket := accept( m_socket, @incoming, @T );
-      if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
+    T:=SizeOf(incoming);
+    AcceptSocket := accept( m_socket, @incoming, @T );
+    if (AcceptSocket<>INVALID_SOCKET) then
+    begin
+      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
       begin
         T:=SizeOf(incoming);
         Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
@@ -366,8 +367,14 @@ begin
         Request.Resume;
       end
       else
+      begin
+        EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(HTTPPort)+'.');
+        closesocket(AcceptSocket);
         Sleep(1);
-  end;
+      end;
+    end
+    else
+      Sleep(1);
   until False;
 end;
 

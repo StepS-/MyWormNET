@@ -167,36 +167,46 @@ begin
   repeat
     T:=SizeOf(incoming);
     AcceptSocket := accept( m_socket, @incoming, @T );
-    if (AcceptSocket<>INVALID_SOCKET) and not BannedIP(inet_ntoa(incoming.sin_addr)) then
+    if (AcceptSocket<>INVALID_SOCKET) then
+    begin
+      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
       begin
-      T:=SizeOf(incoming);
-      EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
+        T:=SizeOf(incoming);
+        EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
 
-      B:=False;
-      for I:=0 to Length(Links)-1 do
-       with Links[I] do
-        begin
-        if(ServerAddress=inet_ntoa(incoming.sin_addr))and(ServerSocket=0) then
+        B:=False;
+        for I:=0 to Length(Links)-1 do
+          with Links[I] do
           begin
-          ServerSocket:=AcceptSocket;
-          if ClientSocket<>0 then
-            Resume;
-          B:=True;
+            if(ServerAddress=inet_ntoa(incoming.sin_addr))and(ServerSocket=0) then
+            begin
+              ServerSocket:=AcceptSocket;
+              if ClientSocket<>0 then
+                Resume;
+              B:=True;
+            end;
+            if(ClientAddress=inet_ntoa(incoming.sin_addr))and(ClientSocket=0) then
+            begin
+              ClientSocket:=AcceptSocket;
+              if ServerSocket<>0 then
+                Resume;
+              B:=True;
+            end;
           end;
-        if(ClientAddress=inet_ntoa(incoming.sin_addr))and(ClientSocket=0) then
-          begin
-          ClientSocket:=AcceptSocket;
-          if ServerSocket<>0 then
-            Resume;
-          B:=True;
-          end;
-        end;
-      if not B then
+
+        if not B then
         begin
-        EventLog('[WormNAT] Error: Unexpected connection from '+inet_ntoa(incoming.sin_addr));
-        closesocket(AcceptSocket);
+          EventLog('[WormNAT] Error: Unexpected connection from '+inet_ntoa(incoming.sin_addr));
+          closesocket(AcceptSocket);
         end;
       end
+      else
+      begin
+        EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(WormNATPort)+'.');
+        closesocket(AcceptSocket);
+        Sleep(1);
+      end;
+    end
     else
       Sleep(5);
   until False;
