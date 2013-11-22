@@ -223,7 +223,7 @@ begin
             if (Command='KICK') or (Command='KILL') then
               ExecKill(S)
           else
-            if (Command='NICKBAN') or (Command='IPBAN') then
+            if (Command='PERMABAN') or (Command='REMOVEBAN') then
               ExecBan(Command,S)
           else
             if (Command='OPER') or (Command='TAKEOWN') then
@@ -535,7 +535,8 @@ end;
 
 procedure TUser.ExecBan(Command, S: String);
 var
-  I: Integer;
+  I, J: Integer;
+  B: Boolean;
   F: text;
   FilePath, BanFile: String;
   Target, Reason, BType, Result: String;
@@ -544,6 +545,7 @@ begin
   begin
     if S<>'' then
     begin
+      B:=true;
       if Pos(' ', S) <> 0 then
       begin
         Target:=Copy(S, 1, Pos(' ', S)-1);
@@ -556,49 +558,121 @@ begin
         Reason:='No reason specified';
       end;
 
-      if Command='NICKBAN' then
+      if Command='PERMABAN' then
       begin
-        BanFile:='banlist_nicks.txt';
-        BType:='Nickname';
-        Result:='banned';
-        SetLength(NickBans,Length(NickBans)+1);
-        NickBans[Length(NickBans)-1]:=Target;
-      end
-      else
-      begin
-        BanFile:='banlist_ips.txt';
-        BType:='IP';
-        Result:='permabanned';
-        SetLength(IPBans,Length(IPBans)+1);
-        IPBans[Length(NickBans)-1]:=Target;
-      end;
-
-      FilePath := ExtractFilePath(ParamStr(0))+BanFile;
-      Assign(F,FilePath);
-      if not FileExists(FilePath) then
-        Rewrite(F);
-      Append(F);
-      WriteLn(F, Target);
-      Close(F);
-
-      for I:=0 to Length(Users)-1 do
-        if Command='NICKBAN' then
+        if (Pos('.',Target) = 0) and (Pos(':',Target) = 0) then
         begin
-          if UpperCase(Users[I].Nickname) = UpperCase(Target) then
+          BanFile:='banlist_nicks.txt';
+          BType:='Nickname';
+          Result:='banned';
+          for I:=0 to Length(NickBans)-1 do
+            if UpperCase(NickBans[I]) = UpperCase(Target) then
+            begin
+              B:=false;
+              Break;
+            end;
+          if (B) then
           begin
-            Users[I].Die(Result,Reason,Nickname);
-            Break;
+            SetLength(NickBans,Length(NickBans)+1);
+            NickBans[Length(NickBans)-1]:=Target;
           end;
         end
         else
-          if Command='IPBAN' then
-            if Users[I].ConnectingFrom = Target then
+        begin
+          BanFile:='banlist_ips.txt';
+          BType:='IP';
+          Result:='permabanned';
+          for I:=0 to Length(IPBans)-1 do
+            if UpperCase(IPBans[I]) = UpperCase(Target) then
             begin
-              Users[I].Die(Result,Reason,Nickname);
+              B:=false;
               Break;
             end;
+          if (B) then
+          begin
+            SetLength(IPBans,Length(IPBans)+1);
+            IPBans[Length(IPBans)-1]:=Target;
+          end;
+        end;
 
-      SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.');
+        if B then
+        begin
+          FilePath := ExtractFilePath(ParamStr(0))+BanFile;
+          Assign(F,FilePath);
+          if not FileExists(FilePath) then
+            Rewrite(F);
+          Append(F);
+          WriteLn(F, Target);
+          Close(F);
+
+          for I:=0 to Length(Users)-1 do
+            if (Pos('.',Target) = 0) and (Pos(':',Target) = 0) then
+            begin
+              if UpperCase(Users[I].Nickname) = UpperCase(Target) then
+              begin
+                Users[I].Die(Result,Reason,Nickname);
+                Break;
+              end;
+            end
+            else
+              if UpperCase(Users[I].ConnectingFrom) = UpperCase(Target) then
+              begin
+                Users[I].Die(Result,Reason,Nickname);
+                Break;
+              end;
+        end;
+      end
+      else
+      begin
+        Result:='unbanned';
+        if (Pos('.',Target) = 0) and (Pos(':',Target) = 0) then
+        begin
+          BanFile:='banlist_nicks.txt';
+          BType:='Nickname';
+          for I:=Length(NickBans)-1 downto 0 do
+            if UpperCase(NickBans[I]) = UpperCase(Target) then
+            begin
+              for J:=I to Length(NickBans)-2 do
+                NickBans[J]:=NickBans[J+1];
+              Break;
+            end
+            else if I=0 then B:=false;
+          if B then
+            SetLength(NickBans,Length(NickBans)-1);
+        end
+        else
+        begin
+          BanFile:='banlist_ips.txt';
+          BType:='IP';
+          for I:=Length(IPBans)-1 downto 0 do
+            if UpperCase(IPBans[I]) = UpperCase(Target) then
+            begin
+              for J:=I to Length(IPBans)-2 do
+                IPBans[J]:=IPBans[J+1];
+              Break;
+            end
+            else if I=0 then B:=false;
+          if B then
+            SetLength(IPBans,Length(IPBans)-1);
+        end;
+
+        if B then
+        begin
+          FilePath := ExtractFilePath(ParamStr(0))+BanFile;
+          Assign(F,FilePath);
+          Rewrite(F);
+          if BType='Nickname' then
+            for I:=0 to Length(NickBans)-1 do
+              WriteLn(F,NickBans[I])
+          else
+            for I:=0 to Length(IPBans)-1 do
+              WriteLn(F,IPBans[I]);
+          Close(F);
+        end;
+      end;
+
+      if B then SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.')
+      else SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has already been '+Result+'.')
     end
     else
       SendError(Command,461);
