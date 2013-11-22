@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.3.1.8';
+  APPVERSION = '1.3.2.0';
   
 var
   ServerHost: string;  // our hostname
@@ -26,8 +26,8 @@ function WinSockErrorCodeStr(Code: Integer): string;
 
 procedure LoadBanlists;
 
-function BannedIP(IP: String): Boolean;
-function BannedNick(Nick: String): Boolean;
+function BannedIP(IP: string): Boolean;
+function BannedNick(Nick: string): Boolean;
 
 function IRCDateTimeNow : Int64;
 function TextDateTimeNow : string;

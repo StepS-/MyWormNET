@@ -4,12 +4,18 @@ interface
 
 function Encode64(S: string): string;
 function Decode64(S: string): string;
+                              
+function LowerFCStr(S: string): string;
+function UpperFCStr(S: string): string;
 
 function GetLine(var Source, Dest: string): Boolean;
 function StrToHex(S: string): string;
 function GetFile(FN: string): string;
 
 implementation
+
+uses
+  SysUtils;
 
 const
   Codes64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
@@ -73,6 +79,16 @@ begin
     else
       Exit;
   end;
+end;
+
+function LowerFCStr(S: string): string;
+begin
+  Result:=LowerCase(S[1])+Copy(S,2,Length(S));
+end;
+
+function UpperFCStr(S: string): string;
+begin
+  Result:=UpperCase(S[1])+Copy(S,2,Length(S));
 end;
 
 function GetLine(var Source, Dest: string): Boolean;

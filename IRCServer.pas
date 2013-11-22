@@ -28,6 +28,7 @@ type
     procedure LogIn(S: String);
     procedure SendError(S: String; ErrNo: Integer);
 
+    procedure ExecPing(S: String);
     procedure ExecNick(S: String);
     procedure ExecUser(S: String);
     procedure ExecIplookup(S: String);
@@ -170,55 +171,58 @@ begin
             Password:=S
         else
           if Command='PING' then
-            SendLn('PONG :'+ServerHost)
+            ExecPing(S)
         else
           if Command='PONG' then
         else
           if Registered then
+            if Command='LIST' then
+              ExecList(S)
+          else
+            if Command='WHO' then
+              ExecWho(S)
+          else
+            if Command='ISON' then
+              ExecIson(S)
+          else
+            if Command='JOIN' then
+              ExecJoin(S)
+          else
+            if Command='PART' then
+              ExecPart(S)
+          else
+            if Command='QUIT' then
+              ExecQuit(S)
+          else
+            if Command='MODE' then
+              ExecMode(S)
+          else
+            if Command='GAMES' then
+              ExecGames(S)
+          else
+            if Command='NAMES' then
+              ExecNames(S)
+          else
+            if Command='EXPECT' then
+              ExecExpect(S)
+          else
+            if Command='ANNOUNCE' then
+              ExecAnnounce(S)
+          else
             if Command='IPLOOKUP' then
               ExecIplookup(S)
           else
             if Command='PRANK' then
               ExecPrank(S)
           else
-            if Command='KICKALL' then
-              ExecKickall(S)
-          else
             if Command='SENDRAW' then
               ExecSendraw(S)
           else
-            if Command='ANNOUNCE' then
-              ExecAnnounce(S)
+            if Command='KICKALL' then
+              ExecKickall(S)
           else
-            if Command='ISON' then
-              ExecIson(S)
-          else
-            if Command='QUIT' then
-              ExecQuit(S)
-          else
-            if Command='JOIN' then
-              ExecJoin(S)
-          else
-            if Command='NAMES' then
-              ExecNames(S)
-          else
-            if Command='PART' then
-              ExecPart(S)
-          else
-            if Command='MODE' then
-              ExecMode(S)
-          else
-            if Command='WHO' then
-              ExecWho(S)
-          else
-            if Command='LIST' then
-              ExecList(S)
-          else
-            if Command='EXPECT' then
-              ExecExpect(S)
-          else
-            if Command='GAMES' then
-              ExecGames(S)
+            if (Command='PRIVMSG') or (Command='NOTICE') then
+              ExecMessage(Command,S)
           else
             if (Command='KICK') or (Command='KILL') then
               ExecKill(S)
@@ -228,9 +232,6 @@ begin
           else
             if (Command='OPER') or (Command='TAKEOWN') then
               ExecOper(Command,S)
-          else
-            if (Command='PRIVMSG') or (Command='NOTICE') then
-              ExecMessage(Command,S)
           else
             if Command='MUTE' then
               ExecMute(true,S)
@@ -292,7 +293,7 @@ begin
   if Registered then
     EventLog(Nickname+' ('+ConnectingFrom+') has disconnected.')
   else
-    EventLog('<Unknown> ('+ConnectingFrom+') has disconnected.');
+    EventLog('<Unknown> ('+ConnectingFrom+') has connected and then disconnected.');
 
   // TODO: add some sync lock or something here
   N:=-1;
@@ -318,15 +319,15 @@ var
 begin
   if not BannedNick(Nickname) then
   begin
-    EventLog(Nickname+' ('+ConnectingFrom+') logged in.');
-    SendLn(':'+ServerHost+' 011 '+Nickname+' :Welcome, '+Nickname+'!');
+    EventLog(Nickname+' ('+ConnectingFrom+') has logged in.');
+    SendLn(':'+ServerHost+' 001 '+Nickname+' :Welcome, '+Nickname+'!');
     SendLn(':'+ServerHost+' 011 '+Nickname+' :This is a custom WormNet IRC server emulator,');
-    SendLn(':'+ServerHost+' 011 '+Nickname+' :supporting only the base set of IRC features.');
+    SendLn(':'+ServerHost+' 011 '+Nickname+' :supporting custom set of IRC features.');
     SendLn(':'+ServerHost+' 011 '+Nickname+' :The server software was written by ');
     SendLn(':'+ServerHost+' 011 '+Nickname+' :The_CyberShadow <thecybershadow@gmail.com>');
     SendLn(':'+ServerHost+' 011 '+Nickname+' :and extended by StepS <github.com/StepS->');
     SendLn(':'+ServerHost+' 003 '+Nickname+' :This server was created '+StartupTime);
-    SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# MAXCHANNELS=20 MAXBANS=25 NICKLEN=15 TOPICLEN=120 KICKLEN=90 NETWORK='+NetworkName+' CHANMODES=b,k,l,imnpstr MODES=6 :are supported by this server');
+    SendLn(':'+ServerHost+' 005 '+Nickname+' WALLCHOPS PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# NICKLEN=15 NETWORK='+NetworkName+' CHANMODES=b,nt MODES=2 :are supported by this server');
     if WormNATPort>0 then
       SendLn(':'+ServerHost+' 011 '+Nickname+' :[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.');
     //SendLn(':'+ServerHost+' 007 '+Nickname+' :[YourIP:'+ConnectingFrom+'] Your external IP address is '+ConnectingFrom+'.');
@@ -354,7 +355,7 @@ begin
   else
   begin
     SendLn('ERROR :You are banned.');
-    EventLog(Nickname+' ('+ConnectingFrom+') was halted due to his nick being banned.');
+    EventLog(Nickname+' ('+ConnectingFrom+') has been halted due to his nick being banned.');
     closesocket(Socket);
     Socket:=0
   end;
@@ -610,7 +611,7 @@ begin
           Close(F);
 
           for I:=0 to Length(Users)-1 do
-            if (Pos('.',Target) = 0) and (Pos(':',Target) = 0) then
+            if BType='Nickname' then
             begin
               if UpperCase(Users[I].Nickname) = UpperCase(Target) then
               begin
@@ -677,8 +678,8 @@ begin
 
       if B then
       begin
-        EventLog(Nickname+' has '+Result+' '+BType+' '+Target+'.');
-        SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' '+Target+' has been '+Result+'.')
+        EventLog(Nickname+' has '+Result+' '+LowerFCStr(BType)+' "'+Target+'".');
+        SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' "'+Target+'" has been '+Result+'.')
       end
       else SendLn(':SERVER'#160'MESSAGE!root@'+ServerHost+' PRIVMSG '+Nickname+' :'+BType+' '+Target+' has already been '+Result+'.')
     end
@@ -779,7 +780,8 @@ begin
       for I:=0 to Length(Channels)-1 do
         for J:=0 to Length(Users)-1 do
           if Users[J].InChannel[I] then
-            Users[J].SendLn(':SERVER'#160'ANNOUNCEMENT!root@'+ServerHost+' NOTICE '+Channels[I].Name+' :'+S)
+            Users[J].SendLn(':SERVER'#160'ANNOUNCEMENT!root@'+ServerHost+' NOTICE '+Channels[I].Name+' :'+S);
+      EventLog(Nickname+' has made a global announcement: "'+S+'".');
     end
     else
       SendError(Command,412);
@@ -816,6 +818,15 @@ begin
       SendLn(':'+ServerHost+' 303 '+Nickname+' :'+IsonBuff);
     end;
   end;
+end;
+
+procedure TUser.ExecPing(S: String);
+const Command='PING';
+begin
+  if S<>'' then
+    SendLn(':'+ServerHost+' PONG '+ServerHost+' :'+S)
+  else
+    SendLn('PONG :'+ServerHost);
 end;
 
 procedure TUser.ExecNick(S: String);
@@ -925,7 +936,6 @@ begin
     CurChan:=Copy(S,1,Pos(',',S)-1);
     Delete(S,1,Pos(',',S));
     Channel:=ChannelByName(CurChan);
-//    EventLog(Nickname+' is attempting to join a channel '+CurChan);
     if Channel <> nil then
     begin
       CurChan:=Channel.Name;
@@ -987,10 +997,6 @@ var
 begin
     Target:=Copy(S, 1, Pos(' ', S+' ')-1);
     ModeStr:='';
-//    Delete(S, 1, Pos(':', S+':')-1);
-//    if S<>'' then
-//      SendLn(':'+ServerHost+' 472 '+Nickname+' :Sorry, you can''t set modes for anything.')
-//    else
     Channel:=ChannelByName(Target);
       if Channel <> nil then
         begin
@@ -1303,21 +1309,17 @@ begin
 end;
 
 procedure TUser.Die(Action, Reason, Master: String);
-var
-  I: Integer;
-  UC, LC: String;
+var I: Integer;
 begin
   LastSenior:=Master;
-  UC:=UpperCase(Action[1])+Copy(Action,2,Length(Action));
-  LC:=LowerCase(Action[1])+Copy(Action,2,Length(Action));
   for I:=0 to Length(Channels)-1 do
     if InChannel[Channels[I].Number] then
       InChannel[Channels[I].Number] := False;
   if not Modes['i'] then
     for I:=0 to Length(Users)-1 do
-      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+UC+' by '+Master+': '+Reason);
-  SendLn('ERROR :You have been '+LC+' by '+Master+': '+Reason);
-  EventLog(Nickname+' has been '+LC+' by '+Master+': '+Reason);
+      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+UpperFCStr(Action)+' by '+Master+': '+Reason);
+  SendLn('ERROR :You have been '+LowerFCStr(Action)+' by '+Master+': '+Reason);
+  EventLog(Nickname+' has been '+LowerFCStr(Action)+' by '+Master+': '+Reason);
   if (Socket <> 0) then closesocket(Socket); Socket:=0;
 end;
 
@@ -1420,6 +1422,7 @@ begin
   begin
     EventLog('[IRC] Could not find the Channels.ini file: default channel will be created.');
     AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx');
+    EventLog('[IRC] Channel #AnythingGoes has been added.');
   end
   else
   begin
@@ -1436,7 +1439,7 @@ begin
       
       if not AddChannel(Name,Scheme,Topic) then
         EventLog('[IRC] Channel '+Name+' has already been created: ignored.')
-      else             
+      else
         EventLog('[IRC] Channel '+Name+' has been added.');
       Inc(N);
     end;
@@ -1444,6 +1447,7 @@ begin
     begin 
       EventLog('[IRC] No channels found in the Channels.ini file: default channel will be created.');
       AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx');
+      EventLog('[IRC] Channel #AnythingGoes has been added.');
     end;
   end;
 end;
@@ -1479,7 +1483,6 @@ var
   I: Integer;
 begin
   Result := nil;
-//  EventLog('[IRC] Verifying channel '+Name+'...');
   for I:=0 to Length(Channels)-1 do
     if Name <> '' then
       if UpperCase(Channels[I].Name) = UpperCase(Name) then
