@@ -17,6 +17,7 @@ StepS' modification currently includes the following:
    - If missing Channels.ini file or its contents, a default #AnythingGoes channel will be created.
 • Banlists for IPs and nicks: to ban and unban nick or ip when the server is active, use the PERMABAN and REMOVEBAN commands on a target with an optional reason (available for ops and above)
    - Connections from banned IPs to any of the server ports will be rejected.
+   - Banned nicks are not case-sensitive
    - Banned nicks will be killed with a notification when trying to log in.
 • Users' IP addresses are no longer forced when hosting
    - The hosting address will no longer be overridden by the socket's address, allowing for WormNAT2 and custom address hosting.
