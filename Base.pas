@@ -7,7 +7,7 @@ unit Base;
 interface
 
 const
-  APPVERSION = '1.3.3.3';
+  APPVERSION = '1.3.3.4';
   
 var
   ServerHost: string;  // our hostname

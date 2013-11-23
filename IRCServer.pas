@@ -362,8 +362,12 @@ begin
 end;
 
 function TUser.SendEvent(EventNo: Integer; S: String): String;
+var EventCode: String;
 begin
-  Result:=':'+ServerHost+' '+IntToStr(EventNo)+' '+Nickname+' '+S;
+  EventCode:=IntToStr(EventNo);
+  while Length(EventCode) < 3 do
+    EventCode:='0'+EventCode;
+  Result:=':'+ServerHost+' '+EventCode+' '+Nickname+' '+S;
   SendLn(Result);
 end;
 
