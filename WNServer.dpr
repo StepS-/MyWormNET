@@ -2,20 +2,24 @@
 
 program WNServer;
 
+{$IFNDEF VER150}
+{$LEGACYIFEND ON}
+{$ENDIF}
+
 uses
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
   {$APPTYPE CONSOLE}
   Windows, WinSock,
 {$ELSE}
   cthreads, FakeWinSock,
-{$ENDIF}
+{$IFEND}
   SysUtils, Base, IniFiles, HTTPServer, IRCServer, WormNATServer, Data;
 
 var
   Config: TMemIniFile;
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
   WSA: TWSAData;
-{$ENDIF}
+{$IFEND}
 
 begin
   ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
@@ -35,9 +39,9 @@ begin
 
   StartupTime:=TextDateTimeNow;
 
-  {$IFDEF WIN32}
+  {$IF Defined(Win32) OR Defined(Win64)}
   WSAStartUp(2, WSA);
-  {$ENDIF}
+  {$IFEND}
   
   LoadBanlists;
 

@@ -4,13 +4,17 @@ unit IRCServer;
 {$MODE DELPHI}
 {$ENDIF}
 
+{$IFNDEF VER150}
+{$LEGACYIFEND ON}
+{$ENDIF}
+
 interface
 uses
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
-{$ENDIF}
+{$IFEND}
   Classes;
 
 type
@@ -97,6 +101,7 @@ uses
 
 procedure TUser.Execute;
 var
+  BufferA, SA: ansistring;
   Buffer, S, Command: string;
   R, Bytes, I, J, N: Integer;
   PingTimer: Integer;
@@ -109,11 +114,14 @@ var
 
 begin
   try
+    BufferA:='';
     Buffer:='';
     PingTimer:=0;
     Password:='';
     repeat
       repeat
+        BufferA:='';
+        SA:='';
         ReadSet.count:=1;
         ReadSet.Socket:=Socket;
         ErrorSet.count:=1;
@@ -143,15 +151,17 @@ begin
           raise Exception.Create('Software disconnect');
           end;
 
-        SetLength(S, Bytes);
-        R:=recv(Socket, S[1], Bytes, 0);
+        SetLength(SA, Bytes);
+        R:=recv(Socket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
           begin
           Log('[IRC] '+ConnectingFrom+' Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
           raise Exception.Create('Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+')');
           end;
-        SetLength(S, R);
-        Buffer := Buffer + S;
+        SetLength(SA, R);
+        BufferA := BufferA + SA;
+        Buffer := String(BufferA);
+        S := String(SA);
         PingTimer:=0;
       until False;
 
@@ -1384,18 +1394,21 @@ begin
 end;
 
 procedure TUser.SendLn(S: string);
-var TStr: String;
+var
+  TStr: String;
+  AStr: AnsiString;
 begin
   if Socket=0 then Exit;
   TStr:='[IRC] > '+S;
   if TStr <> LastStr then Log(TStr);
   LastStr:=TStr;
-  S:=S+#13#10;
-  if send(Socket, S[1], Length(S), 0)<>Length(S) then
-    begin
+  AStr:=AnsiString(S);
+  AStr:=AStr+#13#10;
+  if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
+  begin
     Socket:=0;  // avoid infinite recursion
     Log('[IRC] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
-    end;
+  end;
 end;
 
 procedure TUser.Die(Action, Reason, Master: String);
@@ -1645,21 +1658,25 @@ begin
     AcceptSocket := accept( m_socket, @incoming, @T );
     if (AcceptSocket<>INVALID_SOCKET) then
     begin
-      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
+      if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
       begin
         T:=SizeOf(incoming);
         Log('[IRC] Connection established from '+inet_ntoa(incoming.sin_addr));
 
-        User:=TUser.Create(True);
+        User:=TUser.Create(true);
         SetLength(User.InChannel,Length(Channels));
         User.SignonTime:=IRCDateTimeNow;
         User.Socket:=AcceptSocket;
-        User.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
+        User.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
         User.LastSenior:='SERVER';
     //  User.Modes['s']:=True;
         SetLength(Users, Length(Users)+1);
         Users[Length(Users)-1]:=User;
+        {$IFNDEF VER150}
+        User.Start;
+        {$ELSE}
         User.Resume;
+        {$ENDIF}
       end
       else
       begin

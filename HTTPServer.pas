@@ -1,14 +1,18 @@
 unit HTTPServer;
 // simplistic HTTP server
 
+{$IFNDEF VER150}
+{$LEGACYIFEND ON}
+{$ENDIF}
+
 interface
 uses
   SysUtils, Classes,
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
   Windows, WinSock,
 {$ELSE}
   FakeWinSock, Sockets,
-{$ENDIF}
+{$IFEND}
   IRCServer;
 
 type
@@ -60,7 +64,8 @@ end;
 
 procedure TRequest.Execute;
 var
-  Buffer, S, Str, Headers, Body: string;
+  BufferA, SA: AnsiString;
+  Buffer, S, Str, Headers, Body: String;
   I, J, N, R, Bytes: Integer;
 //User: TUser;
   Channel: TChannel;
@@ -68,27 +73,32 @@ var
 begin
   try
     Buffer:='';
+    BufferA:='';
     repeat
+      BufferA:='';
+      SA:='';
       R:=ioctlsocket(Socket, FIONREAD, Bytes);
       if R=SOCKET_ERROR then
-        begin
+      begin
         Log('[HTTP] '+ConnectingFrom+' Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         Exit;
-        end;
+      end;
       if Bytes=0 then 
-        begin
+      begin
         Sleep(10);
         Continue;
-        end;
-      SetLength(S, Bytes);
-      R:=recv(Socket, S[1], Bytes, 0);
+      end;
+      SetLength(SA, Bytes);
+      R:=recv(Socket, SA[1], Bytes, 0);
       if(R=0)or(R=SOCKET_ERROR)then
-        begin
+      begin
         Log('[HTTP] '+ConnectingFrom+' Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         Exit;
-        end;
-      SetLength(S, R);
-      Buffer := Buffer + S;
+      end;
+      SetLength(SA, R);
+      BufferA := BufferA + SA;
+      Buffer := String(BufferA);
+      S := String(SA);
     until Copy(Buffer, Length(Buffer)-3, 4)=#13#10#13#10;      // ends with an empty line
 
     GetLine(Buffer, S);
@@ -316,10 +326,12 @@ end;
 
 
 procedure TRequest.SendLn(S: string);
+var
+  AStr: AnsiString;
 begin
-  //WriteLn('> '+S);
-  S:=S+#13#10;
-  if send(Socket, S[1], Length(S), 0)<>Length(S) then
+  AStr:=AnsiString(S);
+  AStr:=AStr+#13#10;
+  if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
     Log('[HTTP] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
 end;
 
@@ -356,15 +368,19 @@ begin
     AcceptSocket := accept( m_socket, @incoming, @T );
     if (AcceptSocket<>INVALID_SOCKET) then
     begin
-      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
+      if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
       begin
         T:=SizeOf(incoming);
         Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
 
-        Request:=TRequest.Create(True);
+        Request:=TRequest.Create(true);
         Request.Socket:=AcceptSocket;
-        Request.ConnectingFrom:=inet_ntoa(incoming.sin_addr);
+        Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
+        {$IFNDEF VER150}
+        Request.Start;
+        {$ELSE}
         Request.Resume;
+        {$ENDIF}
       end
       else
       begin

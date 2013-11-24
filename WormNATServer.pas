@@ -1,13 +1,17 @@
 unit WormNATServer;
 // a proxy for WormNAT routing
 
+{$IFNDEF VER150}
+{$LEGACYIFEND ON}
+{$ENDIF}
+
 interface
 uses
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
-{$ENDIF}
+{$IFEND}
   Classes, IRCServer;
 
 type
@@ -29,14 +33,11 @@ procedure PrepareLink(Server, Client: TUser);
 
 implementation
 uses
-{$IFDEF WINDOWS}
-  Windows,
-{$ENDIF}
   Base, SysUtils;
 
 procedure TLink.Execute;
 var
-  S: string;
+  SA: AnsiString;
   R, Bytes, I, N: Integer;
   ReadSet: record
     count: u_int;
@@ -67,12 +68,12 @@ begin
         if Bytes=0 then  // software disconnect
           raise Exception.Create('Client connection error (Graceful disconnect).');
 
-        SetLength(S, Bytes);
-        R:=recv(ClientSocket, S[1], Bytes, 0);
+        SetLength(SA, Bytes);
+        R:=recv(ClientSocket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
           raise Exception.Create('Client connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
-        SetLength(S, R);
-        send(ServerSocket, S[1], Length(S), 0);
+        SetLength(SA, R);
+        send(ServerSocket, SA[1], Length(SA), 0);
       until False;
 
       // Server -> Client
@@ -93,12 +94,12 @@ begin
         if Bytes=0 then  // software disconnect
           raise Exception.Create('Server connection error (Graceful disconnect).');
 
-        SetLength(S, Bytes);
-        R:=recv(ServerSocket, S[1], Bytes, 0);
+        SetLength(SA, Bytes);
+        R:=recv(ServerSocket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
           raise Exception.Create('Server connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
-        SetLength(S, R);
-        send(ClientSocket, S[1], Length(S), 0);
+        SetLength(SA, R);
+        send(ClientSocket, SA[1], Length(SA), 0);
       until False;
     until False;
   except
@@ -169,7 +170,7 @@ begin
     AcceptSocket := accept( m_socket, @incoming, @T );
     if (AcceptSocket<>INVALID_SOCKET) then
     begin
-      if not BannedIP(inet_ntoa(incoming.sin_addr)) then
+      if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
       begin
         T:=SizeOf(incoming);
         EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
@@ -178,18 +179,26 @@ begin
         for I:=0 to Length(Links)-1 do
           with Links[I] do
           begin
-            if(ServerAddress=inet_ntoa(incoming.sin_addr))and(ServerSocket=0) then
+            if(ServerAddress=String(inet_ntoa(incoming.sin_addr)))and(ServerSocket=0) then
             begin
               ServerSocket:=AcceptSocket;
               if ClientSocket<>0 then
+                {$IFNDEF VER150}
+                Start;
+                {$ELSE}
                 Resume;
+                {$ENDIF}
               B:=True;
             end;
-            if(ClientAddress=inet_ntoa(incoming.sin_addr))and(ClientSocket=0) then
+            if(ClientAddress=String(inet_ntoa(incoming.sin_addr)))and(ClientSocket=0) then
             begin
               ClientSocket:=AcceptSocket;
               if ServerSocket<>0 then
+                {$IFNDEF VER150}
+                Start;
+                {$ELSE}
                 Resume;
+                {$ENDIF}
               B:=True;
             end;
           end;

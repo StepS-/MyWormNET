@@ -4,11 +4,14 @@ unit Base;
 {$MODE DELPHI}
 {$ENDIF}
 
-interface
+{$IFNDEF VER150}
+{$LEGACYIFEND ON}
+{$ENDIF}
 
+interface
 const
-  APPVERSION = '1.3.3.4';
-  
+  APPVERSION = '1.3.3.5';
+
 var
   ServerHost: string;  // our hostname
   IRCPort, HTTPPort, WormNATPort, VerboseLogging: Integer;
@@ -34,11 +37,11 @@ function TextDateTimeNow : string;
 
 implementation
 uses
-{$IFNDEF WIN32}
-  UnixUtils,
-{$ELSE}
+{$IF Defined(Win32) OR Defined(Win64)}
   Windows,
-{$ENDIF}
+{$ELSE}
+  UnixUtils,
+{$IFEND}
   SysUtils, IRCServer;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
@@ -164,7 +167,7 @@ begin
     end;
 end;
 
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
 
 {$INCLUDE WinSockCodes.inc}
 
@@ -185,9 +188,9 @@ begin
   Result:=StrError(Code);
 end;
 
-{$ENDIF}
+{$IFEND}
 
-{$IFDEF WIN32}
+{$IF Defined(Win32) OR Defined(Win64)}
 
 function IRCDateTimeNow : Int64;
 var
@@ -225,6 +228,6 @@ begin
   Result := DateTimeToStr(Now)+' server local time';
 end;
 
-{$ENDIF}
+{$IFEND}
 
 end.

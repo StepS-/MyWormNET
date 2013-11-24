@@ -15,7 +15,7 @@ function GetFile(FN: string): string;
 implementation
 
 uses
-  SysUtils;
+  Windows, SysUtils;
 
 const
   Codes64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
@@ -132,7 +132,11 @@ begin
     Result:=Result+Hex[Ord(S[I]) shr 4]+Hex[Ord(S[I]) and $F]+' ';
   Result:=Result+'| ';
   for I:=1 to Length(S) do
-   if S[I] in [#32..#126] then
+  {$IFNDEF VER150}
+  if CharInSet(S[I], [#32..#126]) then
+  {$ELSE}
+  if S[I] in [#32..#126] then
+  {$ENDIF}
     Result:=Result+S[I]
    else
     Result:=Result+'.';
@@ -141,12 +145,19 @@ end;
 function GetFile(FN: string): string;
 var
   F: File;
+  AStr: AnsiString;
 begin
-  Assign(F, FN);
-  Reset(F, 1);
-  SetLength(Result, FileSize(F));
-  BlockRead(f, Result[1], FileSize(F));
-  CloseFile(F);
+  if FileExists(FN) then
+  begin
+    Assign(F, FN);
+    Reset(F, 1);
+    SetLength(AStr, FileSize(F));
+    BlockRead(f, Astr[1], FileSize(F));
+    Result:=String(AStr);
+    CloseFile(F);
+  end
+  else
+    Result:='';
 end;
 
 
