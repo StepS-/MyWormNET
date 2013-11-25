@@ -1,16 +1,14 @@
 unit Base;
 
+{$I cDefines.inc}
+
 {$IFDEF FPC}
 {$MODE DELPHI}
 {$ENDIF}
 
-{$IFNDEF VER150}
-{$LEGACYIFEND ON}
-{$ENDIF}
-
 interface
 const
-  APPVERSION = '1.3.3.5';
+  APPVERSION = '1.3.3.6';
 
 var
   ServerHost: string;  // our hostname
@@ -37,11 +35,11 @@ function TextDateTimeNow : string;
 
 implementation
 uses
-{$IF Defined(Win32) OR Defined(Win64)}
+{$IFDEF OS_MSWIN}
   Windows,
 {$ELSE}
   UnixUtils,
-{$IFEND}
+{$ENDIF}
   SysUtils, IRCServer;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
@@ -167,7 +165,7 @@ begin
     end;
 end;
 
-{$IF Defined(Win32) OR Defined(Win64)}
+{$IFDEF OS_MSWIN}
 
 {$INCLUDE WinSockCodes.inc}
 
@@ -188,17 +186,14 @@ begin
   Result:=StrError(Code);
 end;
 
-{$IFEND}
-
-{$IF Defined(Win32) OR Defined(Win64)}
+{$ENDIF}
 
 function IRCDateTimeNow : Int64;
-var
-  Timezone: TTimeZoneInformation;
 begin
-  GetTimeZoneInformation(Timezone);
-  Result := Round(Now * SecsPerDay) + (Timezone.Bias * 60) - 2209176000;
+  Result := Round(Now * SecsPerDay) - 2209176000;
 end;
+
+{$IFDEF OS_MSWIN}
 
 function TextDateTimeNow : string;
 var
@@ -218,16 +213,11 @@ end;
 
 {$ELSE}
 
-function IRCDateTimeNow : Int64;
-begin
-  Result := Round(Now * SecsPerDay) - 2209176000;
-end;
-
 function TextDateTimeNow : string;
 begin
   Result := DateTimeToStr(Now)+' server local time';
 end;
 
-{$IFEND}
+{$ENDIF}
 
 end.

@@ -1,18 +1,16 @@
 unit HTTPServer;
 // simplistic HTTP server
 
-{$IFNDEF VER150}
-{$LEGACYIFEND ON}
-{$ENDIF}
+{$I cDefines.inc}
 
 interface
 uses
   SysUtils, Classes,
-{$IF Defined(Win32) OR Defined(Win64)}
+{$IFDEF OS_MSWIN}
   Windows, WinSock,
 {$ELSE}
   FakeWinSock, Sockets,
-{$IFEND}
+{$ENDIF}
   IRCServer;
 
 type
@@ -41,9 +39,6 @@ procedure StartHTTPServer;
 
 implementation
 uses
-{$IFDEF WINDOWS}
-  Windows,
-{$ENDIF}
   Base, Data, DateUtils;
 
 procedure CleanUpGames;
@@ -376,7 +371,7 @@ begin
         Request:=TRequest.Create(true);
         Request.Socket:=AcceptSocket;
         Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-        {$IFNDEF VER150}
+        {$IFDEF DELPHI2010_UP}
         Request.Start;
         {$ELSE}
         Request.Resume;

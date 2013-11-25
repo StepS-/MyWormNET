@@ -1,17 +1,15 @@
 unit WormNATServer;
 // a proxy for WormNAT routing
 
-{$IFNDEF VER150}
-{$LEGACYIFEND ON}
-{$ENDIF}
+{$I cDefines.inc}
 
 interface
 uses
-{$IF Defined(Win32) OR Defined(Win64)}
+{$IFDEF OS_MSWIN}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
-{$IFEND}
+{$ENDIF}
   Classes, IRCServer;
 
 type
@@ -183,7 +181,7 @@ begin
             begin
               ServerSocket:=AcceptSocket;
               if ClientSocket<>0 then
-                {$IFNDEF VER150}
+                {$IFDEF DELPHI2010_UP}
                 Start;
                 {$ELSE}
                 Resume;
@@ -194,7 +192,7 @@ begin
             begin
               ClientSocket:=AcceptSocket;
               if ServerSocket<>0 then
-                {$IFNDEF VER150}
+                {$IFDEF DELPHI2010_UP}
                 Start;
                 {$ELSE}
                 Resume;

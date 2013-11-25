@@ -1,20 +1,18 @@
 unit IRCServer;
 
+{$I cDefines.inc}
+
 {$IFDEF FPC}
 {$MODE DELPHI}
 {$ENDIF}
 
-{$IFNDEF VER150}
-{$LEGACYIFEND ON}
-{$ENDIF}
-
 interface
 uses
-{$IF Defined(Win32) OR Defined(Win64)}
+{$IFDEF OS_MSWIN)}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
-{$IFEND}
+{$ENDIF}
   Classes;
 
 type
@@ -1672,7 +1670,7 @@ begin
     //  User.Modes['s']:=True;
         SetLength(Users, Length(Users)+1);
         Users[Length(Users)-1]:=User;
-        {$IFNDEF VER150}
+        {$IFDEF DELPHI2010_UP}
         User.Start;
         {$ELSE}
         User.Resume;
