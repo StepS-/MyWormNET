@@ -19,6 +19,8 @@ StepS' modification currently includes the following:
    - Connections from banned IPs to any of the server ports will be rejected.
    - Banned nicks are not case-sensitive
    - Banned nicks will be killed with a notification when trying to log in.
+• Support for x64 and various different Delphi compilers (from Delphi 7 to XE5 at least)
+• Support for Unicode compiler
 • Users' IP addresses are no longer forced when hosting
    - The hosting address will no longer be overridden by the socket's address, allowing for WormNAT2 and custom address hosting.
 • Changed the Game.asp content to allow The Wheat Snooper host games
