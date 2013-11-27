@@ -8,7 +8,7 @@ unit Base;
 
 interface
 const
-  APPVERSION = '1.3.3.6';
+  APPVERSION = '1.3.3.7';
 
 var
   ServerHost: string;  // our hostname
@@ -20,6 +20,8 @@ var
   StartupTime: string;
 
   IPBans, NickBans: array of String;
+
+{$I locale.inc}
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
@@ -46,8 +48,8 @@ procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 var
   F: text;
 begin
-  if Copy(S, 1, 1)<>'-' then
-    S:='['+TimeToStr(Now)+'] '+S;
+//  if Copy(S, 1, 1)<>'-' then
+  S:='['+TimeToStr(Now)+'] '+S;
 
   // logging to disk will work only if the file WNServer.log exists
   {$I-}
@@ -173,7 +175,7 @@ function WinSockErrorCodeStr(Code: Integer): string;
 var
   I: Integer;
 begin
-  Result:='Error #'+IntToStr(Code);
+  Result:=L_ERROR+' #'+IntToStr(Code);
   for I:=1 to High(WinSockErrors) do
     if (WinSockErrors[I].Code=Code)or(WinSockErrors[I].Code=Code+10000) then
       Result:=WinSockErrors[I].Text;
@@ -215,7 +217,7 @@ end;
 
 function TextDateTimeNow : string;
 begin
-  Result := DateTimeToStr(Now)+' server local time';
+  Result := DateTimeToStr(Now)+' '+L_SRVLOCTIME;
 end;
 
 {$ENDIF}

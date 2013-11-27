@@ -48,7 +48,7 @@ begin
   for I:=Length(Games)-1 downto 0 do
     if MinutesBetween(Games[I].Created, Now)>4 then
       begin
-      EventLog(Games[I].HosterNickname+'''s game "'+Games[I].Name+'" has closed due to time limit.');
+      EventLog(Format(L_GAME_CLOSED_TIMEOUT, [Games[I].HosterNickname, Games[I].Name]));
       for J:=I to Length(Games)-2 do
         Games[J]:=Games[J+1];
       SetLength(Games, Length(Games)-1);
@@ -75,7 +75,7 @@ begin
       R:=ioctlsocket(Socket, FIONREAD, Bytes);
       if R=SOCKET_ERROR then
       begin
-        Log('[HTTP] '+ConnectingFrom+' Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+        Log('[HTTP] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         Exit;
       end;
       if Bytes=0 then 
@@ -87,7 +87,7 @@ begin
       R:=recv(Socket, SA[1], Bytes, 0);
       if(R=0)or(R=SOCKET_ERROR)then
       begin
-        Log('[HTTP] '+ConnectingFrom+' Connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+        Log('[HTTP] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         Exit;
       end;
       SetLength(SA, R);
@@ -167,7 +167,7 @@ begin
         for I:=0 to Length(Games)-1 do
           if Games[I].HostedFrom = ConnectingFrom then
           begin
-            EventLog(Games[I].HosterNickname+'''s game "'+Games[I].Name+'" has closed to prevent flood from IP '+ConnectingFrom);
+            EventLog(Format(L_GAME_CLOSED_ANTIFLOOD, [Games[I].HosterNickname, Games[I].Name, ConnectingFrom]));
             for J:=I to Length(Games)-2 do
               Games[J]:=Games[J+1];
             SetLength(Games, Length(Games)-1);
@@ -198,7 +198,7 @@ begin
             SetLength(Games, Length(Games)+1);
             Games[Length(Games)-1]:=Game;
 
-            EventLog(Game.HosterNickname+' has created a game ("'+Game.Name+'") with address '+Game.HosterAddress+' from IP '+Game.HostedFrom);
+            EventLog(Format(L_GAME_CREATED_INFO, [Game.HosterNickname, Game.Name, Game.HosterAddress, Game.HostedFrom]));
 
             Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
             Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Chan+'">here</a>.'#10'</body>'#10'</html>';
@@ -206,12 +206,12 @@ begin
           end
           else
           begin
-            EventLog(Game.HosterNickname+' has attempted to create a game ("'+Game.Name+'") with address '+Game.HosterAddress+' on non-gaming channel '+Channel.Name+' from IP '+Game.HostedFrom);
+            EventLog(Format(L_GAME_FAIL_NONGAMING, [Game.HosterNickname, Game.Name, Game.HosterAddress, Channel.Name, Game.HostedFrom]));
             Body:='<NOTHING>';
           end
         else
           begin
-          EventLog(Game.HosterNickname+' has attempted to create a game ("'+Game.Name+'") with address '+Game.HosterAddress+' on a nonexistent channel '+Game.Chan+' from IP '+Game.HostedFrom);
+          EventLog(Format(L_GAME_FAIL_NONEXISTENT_CHAN, [Game.HosterNickname, Game.Name, Game.HosterAddress, Game.Chan, Game.HostedFrom]));
           Body:='<NOTHING>';
           end;
         end
@@ -232,20 +232,20 @@ begin
             end
             else
             begin
-              EventLog(ConnectingFrom+' has attempted to close '+Games[I].HosterNickname+'''s game (ID '+Parameters.Values['GameID']+') which was hosted from IP '+Games[I].HostedFrom);
+              EventLog(Format(L_GAME_FAIL_SABOTAGE, [ConnectingFrom, Games[I].HosterNickname, Parameters.Values['GameID'], Games[I].HostedFrom]));
               Break;
             end;
         if N=-1 then
           begin
           //raise Exception.Create('No such game');
-          EventLog(ConnectingFrom+' has attempted to close a non-existant game (ID '+Parameters.Values['GameID']+')');
+          //EventLog(Format(L_GAME_FAIL_NONEXISTENT_GAME, [ConnectingFrom, Parameters.Values['GameID']]));
           end
         else
           begin
         {  for I:=0 to Length(Users)-1 do
            if Users[I].InChannel then
               Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');}
-          EventLog(Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');
+          EventLog(Format(L_GAME_CLOSED_GRACEFULLY, [Game.HosterNickname, Game.Name]));
           end;
         end
       else
@@ -290,7 +290,7 @@ begin
         FileName:=FileName+'index.html';
       if FileExists('wwwroot'+PathDelim+FileName) then
         begin
-        Log('[HTTP] '+ConnectingFrom+' Sending file '+FileName);
+        Log('[HTTP] '+ConnectingFrom+' '+L_HTTP_FILE_SENDING+' '+FileName);
         S:='application/octet-stream';
         for I:=1 to High(MimeTypes) do
           if '.'+MimeTypes[I].Extension=ExtractFileExt(FileName) then
@@ -309,7 +309,7 @@ begin
   except
     on E: Exception do
       try
-        Log('[HTTP] Error with '+ConnectingFrom+' : '+E.Message);
+        Log('[HTTP] '+L_ERROR_WITH+' '+ConnectingFrom+' : '+E.Message);
         S:=Headers+'Error: : '+E.Message+#13#10#13#10+'Error: '+E.Message;
         SendLn(S);
       except
@@ -327,7 +327,7 @@ begin
   AStr:=AnsiString(S);
   AStr:=AStr+#13#10;
   if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
-    Log('[HTTP] > Failed ('+WinSockErrorCodeStr(WSAGetLastError)+')');
+    Log('[HTTP] > '+L_FAILED+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
 end;
 
 // ***************************************************************
@@ -348,15 +348,15 @@ begin
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
   begin
-    EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
   end;
   if listen( m_socket, 50 )=SOCKET_ERROR then
   begin
-    EventLog('[HTTP] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
   end;
-  EventLog('[HTTP] Listening on port '+IntToStr(HTTPPort)+'.');
+  EventLog('[HTTP] '+L_LISTENING+' '+IntToStr(HTTPPort)+'.');
 
   repeat
     T:=SizeOf(incoming);
@@ -366,12 +366,12 @@ begin
       if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
       begin
         T:=SizeOf(incoming);
-        Log('[HTTP] Connection established from '+inet_ntoa(incoming.sin_addr));
+        Log('[HTTP] '+L_CONNECTION_ESTABLISHED+' '+inet_ntoa(incoming.sin_addr));
 
         Request:=TRequest.Create(true);
         Request.Socket:=AcceptSocket;
         Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-        {$IFDEF DELPHI2010_UP}
+        {$IFNDEF DELPHI2009_DOWN}
         Request.Start;
         {$ELSE}
         Request.Resume;
@@ -379,7 +379,7 @@ begin
       end
       else
       begin
-        EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(HTTPPort)+'.');
+        EventLog(Format(L_REQUEST_REJECTED, [inet_ntoa(incoming.sin_addr), IntToStr(HTTPPort)]));
         closesocket(AcceptSocket);
         Sleep(1);
       end;

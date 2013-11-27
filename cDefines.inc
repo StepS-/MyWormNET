@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                                                                              }
 {   File name:        cDefines.inc                                             }
-{   File updated:     2013/11/25                                               }
+{   File updated:     2013/11/26                                               }
 {                                                                              }
 {   Library:          Fundamentals 4.00                                        }
 {   Home page:        http://fundementals.sourceforge.net                      }
@@ -53,15 +53,27 @@
 {     DELPHI2010_UP   - Delphi 2010 or later.                                  }
 {     DELPHIXE_UP     - Delphi XE or later.                                    }
 {     DELPHIXE2_UP    - Delphi XE2 or later.                                   }
-{     DELPHIXE3_UP     - Delphi XE3 or later.                                    }
+{     DELPHIXE3_UP    - Delphi XE3 or later.                                   }
 {     DELPHIXE4_UP    - Delphi XE4 or later.                                   }
-{     DELPHIXE5_UP     - Delphi XE5 or later.                                    }
+{     DELPHIXE5_UP    - Delphi XE5 or later.                                   }
 {                                                                              }
+{     DELPHI2_DOWN    - Delphi 2 or earlier.                                   }
 {     DELPHI3_DOWN    - Delphi 3 or earlier.                                   }
 {     DELPHI4_DOWN    - Delphi 4 or earlier.                                   }
 {     DELPHI5_DOWN    - Delphi 5 or earlier.                                   }
 {     DELPHI6_DOWN    - Delphi 6 or earlier.                                   }
 {     DELPHI7_DOWN    - Delphi 7 or earlier.                                   }
+{     DELPHI8_DOWN    - Delphi 8 or earlier.                                   }
+{     DELPHI2005_DOWN - Delphi 2005 or earlier.                                }
+{     DELPHI2006_DOWN - Delphi 2006 or earlier.                                }
+{     DELPHI2007_DOWN - Delphi 2007 or earlier.                                }
+{     DELPHI2009_DOWN - Delphi 2009 or earlier.                                }
+{     DELPHI2010_DOWN - Delphi 2010 or earlier.                                }
+{     DELPHIXE_DOWN   - Delphi XE or earlier.                                  }
+{     DELPHIXE2_DOWN  - Delphi XE2 or earlier.                                 }
+{     DELPHIXE3_DOWN  - Delphi XE3 or earlier.                                 }
+{     DELPHIXE4_DOWN  - Delphi XE4 or earlier.                                 }
+{     DELPHIXE5_DOWN  - Delphi XE5 or earlier.                                 }
 {                                                                              }
 {   KYLIX             - Kylix compiler.                                        }
 {   BCB               - Borland C++ Builder compiler.                          }
@@ -83,7 +95,7 @@
 {   SupportAssert              - Compiler supports Assert statement.           }
 {   SupportOverload            - Compiler supports method overloading.         }
 {   SupportUTF8String          - Compiler supports UTF8String type.            }
-{   SupportUCS4String          - Cimpiler supports UCS4String type.            }
+{   SupportUCS4String          - Compiler supports UCS4String type.            }
 {   SupportInline              - Compiler supports inline functions.           }
 {   SupportForIn               - Compiler supports for-in loop.                }
 {   SupportGenerics            - Compiler supports generics.                   }
@@ -144,11 +156,23 @@
 {$IFDEF VER80}
   {$DEFINE DELPHI}
   {$DEFINE DELPHI1}
+  {$DEFINE DELPHI2_DOWN}
   {$DEFINE DELPHI3_DOWN}
   {$DEFINE DELPHI4_DOWN}
   {$DEFINE DELPHI5_DOWN}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -159,11 +183,23 @@
 {$IFDEF VER90}
   {$DEFINE DELPHI}
   {$DEFINE DELPHI2}
+  {$DEFINE DELPHI2_DOWN}
   {$DEFINE DELPHI3_DOWN}
   {$DEFINE DELPHI4_DOWN}
   {$DEFINE DELPHI5_DOWN}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 {$IFDEF VER93}
   {$DEFINE BCB}
@@ -185,6 +221,17 @@
   {$DEFINE DELPHI5_DOWN}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 {$IFDEF VER110}
   {$DEFINE BCB}
@@ -205,6 +252,17 @@
   {$DEFINE DELPHI5_DOWN}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 {$IFDEF VER125}
   {$DEFINE BCB}
@@ -225,6 +283,17 @@
   {$DEFINE DELPHI5_DOWN}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 {$IFDEF VER135}
   {$DEFINE BCB}
@@ -245,6 +314,17 @@
   {$DEFINE DELPHI6_UP}
   {$DEFINE DELPHI6_DOWN}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
   {$IFDEF LINUX}
     {$DEFINE KYLIX}
   {$ENDIF}
@@ -264,6 +344,17 @@
   {$DEFINE DELPHI6_UP}
   {$DEFINE DELPHI7_UP}
   {$DEFINE DELPHI7_DOWN}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
   {$IFDEF LINUX}
     {$DEFINE KYLIX}
   {$ENDIF}
@@ -284,6 +375,17 @@
   {$DEFINE DELPHI6_UP}
   {$DEFINE DELPHI7_UP}
   {$DEFINE DELPHI8_UP}
+  {$DEFINE DELPHI8_DOWN}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -301,6 +403,16 @@
   {$DEFINE DELPHI7_UP}
   {$DEFINE DELPHI8_UP}
   {$DEFINE DELPHI2005_UP}
+  {$DEFINE DELPHI2005_DOWN}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -322,6 +434,15 @@
   {$DEFINE DELPHI8_UP}
   {$DEFINE DELPHI2005_UP}
   {$DEFINE DELPHI2006_UP}
+  {$DEFINE DELPHI2006_DOWN}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 {$ENDIF}
 
@@ -341,6 +462,14 @@
   {$DEFINE DELPHI2005_UP}
   {$DEFINE DELPHI2006_UP}
   {$DEFINE DELPHI2007_UP}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -361,6 +490,14 @@
   {$DEFINE DELPHI2005_UP}
   {$DEFINE DELPHI2006_UP}
   {$DEFINE DELPHI2007_UP}
+  {$DEFINE DELPHI2007_DOWN}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -381,6 +518,13 @@
   {$DEFINE DELPHI2006_UP}
   {$DEFINE DELPHI2007_UP}
   {$DEFINE DELPHI2009_UP}
+  {$DEFINE DELPHI2009_DOWN}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -402,6 +546,12 @@
   {$DEFINE DELPHI2007_UP}
   {$DEFINE DELPHI2009_UP}
   {$DEFINE DELPHI2010_UP}
+  {$DEFINE DELPHI2010_DOWN}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -423,6 +573,11 @@
   {$DEFINE DELPHI2009_UP}
   {$DEFINE DELPHI2010_UP}
   {$DEFINE DELPHIXE_UP}
+  {$DEFINE DELPHIXE_DOWN}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -446,6 +601,10 @@
   {$DEFINE DELPHI2010_UP}
   {$DEFINE DELPHIXE_UP}
   {$DEFINE DELPHIXE2_UP}
+  {$DEFINE DELPHIXE2_DOWN}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -469,6 +628,9 @@
   {$DEFINE DELPHIXE_UP}
   {$DEFINE DELPHIXE2_UP}
   {$DEFINE DELPHIXE3_UP}
+  {$DEFINE DELPHIXE3_DOWN}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -493,7 +655,8 @@
   {$DEFINE DELPHIXE2_UP}
   {$DEFINE DELPHIXE3_UP}
   {$DEFINE DELPHIXE4_UP}
-  {$DEFINE DELPHIXE5_UP}
+  {$DEFINE DELPHIXE4_DOWN}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 
@@ -519,6 +682,7 @@
   {$DEFINE DELPHIXE3_UP}
   {$DEFINE DELPHIXE4_UP}
   {$DEFINE DELPHIXE5_UP}
+  {$DEFINE DELPHIXE5_DOWN}
 {$ENDIF}
 
 

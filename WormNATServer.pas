@@ -44,7 +44,7 @@ var
   TimeVal: TTimeVal;
 begin
   try
-    Log('[WormNAT] Initializing link between '+ClientNickname+' ('+ClientAddress+') -> '+ServerNickname+' ('+ServerAddress+').');
+    Log('[WormNAT] '+L_WORMNAT_START_LINK+' '+ClientNickname+' ('+ClientAddress+') -> '+ServerNickname+' ('+ServerAddress+').');
     repeat
       // Client -> Server
       repeat
@@ -54,22 +54,22 @@ begin
         TimeVal.tv_usec:=10000;  // 10 ms
         R:=select(ClientSocket+1, @ReadSet, nil, nil, @TimeVal);
         if R=SOCKET_ERROR then
-          raise Exception.Create('Client select() error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_CLIENT_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if (ReadSet.count=0)or(R=0) then
           Break;         // nothing to read
 
         R:=ioctlsocket(ClientSocket, FIONREAD, Bytes);
         if R=SOCKET_ERROR then
-          raise Exception.Create('Client connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if Bytes=0 then  // software disconnect
-          raise Exception.Create('Client connection error (Graceful disconnect).');
+          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' (Graceful disconnect).');
 
         SetLength(SA, Bytes);
         R:=recv(ClientSocket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
-          raise Exception.Create('Client connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         SetLength(SA, R);
         send(ServerSocket, SA[1], Length(SA), 0);
       until False;
@@ -80,29 +80,29 @@ begin
         ReadSet.Socket:=ServerSocket;
         R:=select(0, @ReadSet, nil, nil, @TimeVal);
         if R=SOCKET_ERROR then
-          raise Exception.Create('Server select() error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_SERVER_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if (ReadSet.count=0)or(R=0) then
           Break;         // nothing to read
 
         R:=ioctlsocket(ServerSocket, FIONREAD, Bytes);
         if R=SOCKET_ERROR then
-          raise Exception.Create('Server connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if Bytes=0 then  // software disconnect
-          raise Exception.Create('Server connection error (Graceful disconnect).');
+          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' (Graceful disconnect).');
 
         SetLength(SA, Bytes);
         R:=recv(ServerSocket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
-          raise Exception.Create('Server connection error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         SetLength(SA, R);
         send(ClientSocket, SA[1], Length(SA), 0);
       until False;
     until False;
   except
     on E: Exception do
-      EventLog('Error in link with '+ClientNickname+': '+E.Message);
+      EventLog(L_WORMNAT_LINK_ERROR+' '+ClientNickname+': '+E.Message);
     end;
   closesocket(ServerSocket);
   closesocket(ClientSocket);
@@ -153,15 +153,15 @@ begin
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
     begin
-    EventLog('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[WormNAT] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
   if listen( m_socket, 1 )=SOCKET_ERROR then
     begin
-    EventLog('[WormNAT] bind error ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[WormNAT] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
     Exit;
     end;
-  EventLog('[WormNAT] Listening on port '+IntToStr(WormNATPort)+'.');
+  EventLog('[WormNAT] '+L_LISTENING+' '+IntToStr(WormNATPort)+'.');
 
   repeat
     T:=SizeOf(incoming);
@@ -171,7 +171,7 @@ begin
       if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
       begin
         T:=SizeOf(incoming);
-        EventLog('[WormNAT] Connection established from '+inet_ntoa(incoming.sin_addr));
+        EventLog('[WormNAT] '+L_CONNECTION_ESTABLISHED+' '+inet_ntoa(incoming.sin_addr));
 
         B:=False;
         for I:=0 to Length(Links)-1 do
@@ -181,7 +181,7 @@ begin
             begin
               ServerSocket:=AcceptSocket;
               if ClientSocket<>0 then
-                {$IFDEF DELPHI2010_UP}
+                {$IFNDEF DELPHI2009_DOWN}
                 Start;
                 {$ELSE}
                 Resume;
@@ -192,7 +192,7 @@ begin
             begin
               ClientSocket:=AcceptSocket;
               if ServerSocket<>0 then
-                {$IFDEF DELPHI2010_UP}
+                {$IFNDEF DELPHI2009_DOWN}
                 Start;
                 {$ELSE}
                 Resume;
@@ -203,13 +203,13 @@ begin
 
         if not B then
         begin
-          EventLog('[WormNAT] Error: Unexpected connection from '+inet_ntoa(incoming.sin_addr));
+          EventLog('[WormNAT] '+L_ERROR+': '+L_WORMNAT_UNEXPECTED+' '+inet_ntoa(incoming.sin_addr));
           closesocket(AcceptSocket);
         end;
       end
       else
       begin
-        EventLog('Rejected request from banned IP '+inet_ntoa(incoming.sin_addr)+' to port '+IntToStr(WormNATPort)+'.');
+        EventLog(Format(L_REQUEST_REJECTED, [inet_ntoa(incoming.sin_addr), IntToStr(WormNATPort)]));
         closesocket(AcceptSocket);
         Sleep(5);
       end;
