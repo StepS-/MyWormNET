@@ -3,7 +3,7 @@ unit Base;
 {$I cDefines.inc}
 
 {$IFDEF FPC}
-{$MODE DELPHI}
+{$modeswitch DELPHI}
 {$ENDIF}
 
 interface
@@ -40,7 +40,7 @@ uses
 {$IFDEF OS_MSWIN}
   Windows,
 {$ELSE}
-  UnixUtils,
+  errors,
 {$ENDIF}
   SysUtils, IRCServer;
 
@@ -70,7 +70,7 @@ begin
       if IOResult<>0 then ;
 
       // echo to IRC OPERs
-      LogToOper(S);
+ //     LogToOper(S);
     end;
 end;
 
@@ -217,7 +217,7 @@ end;
 
 function TextDateTimeNow : string;
 begin
-  Result := DateTimeToStr(Now)+' '+L_SRVLOCTIME;
+  Result := DateTimeToStr(Now)+' server local time';
 end;
 
 {$ENDIF}

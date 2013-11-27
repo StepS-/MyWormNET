@@ -3,7 +3,7 @@ unit IRCServer;
 {$I cDefines.inc}
 
 {$IFDEF FPC}
-{$MODE DELPHI}
+{$modeswitch DELPHI}
 {$ENDIF}
 
 interface
@@ -101,7 +101,12 @@ function NickInUse(Nick: string): Boolean;
 
 implementation
 uses
-  Base, Data, SysUtils, IniFiles, HTTPServer, WormNATServer;
+  {$IFDEF FPC}
+  INIFiles,
+  {$ELSE}
+  IniFiles,
+  {$ENDIF}
+  Base, Data, SysUtils, HTTPServer, WormNATServer;
 
 procedure TUser.Execute;
 var
@@ -820,7 +825,6 @@ end;
 procedure TUser.ExecPrank(S: String);
 const Command='PRANK';
 var
-  I: Integer;
   Description, Target: String;
   User: TUser;
 begin
@@ -920,7 +924,6 @@ end;
 procedure TUser.ExecIson(S: String);
 const Command='ISON';
 var
-  I: Integer;
   IsonBuff, Target: String;
   User: TUser;
 begin

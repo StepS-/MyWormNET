@@ -134,7 +134,7 @@ begin
     Result:=Result+Hex[Ord(S[I]) shr 4]+Hex[Ord(S[I]) and $F]+' ';
   Result:=Result+'| ';
   for I:=1 to Length(S) do
-  {$IFNDEF DELPHI2007_DOWN}
+  {$IFDEF DELPHI2009_UP}
   if CharInSet(S[I], [#32..#126]) then
   {$ELSE}
   if S[I] in [#32..#126] then

@@ -9,7 +9,7 @@ uses
 {$IFDEF OS_MSWIN}
   Windows, WinSock,
 {$ELSE}
-  FakeWinSock, Sockets,
+  Sockets, FakeWinSock,
 {$ENDIF}
   IRCServer;
 
