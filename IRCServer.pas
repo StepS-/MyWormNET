@@ -101,12 +101,7 @@ function NickInUse(Nick: string): Boolean;
 
 implementation
 uses
-  {$IFDEF FPC}
-  INIFiles,
-  {$ELSE}
-  IniFiles,
-  {$ENDIF}
-  Base, Data, SysUtils, HTTPServer, WormNATServer;
+  Base, Data, SysUtils, IniFiles, HTTPServer, WormNATServer;
 
 procedure TUser.Execute;
 var
@@ -560,7 +555,7 @@ begin
             then
               begin
                 User.Die('killed',Reason,Nickname);
-                EventLog(Format(L_IRC_ACTION_KILL, [Nickname, User.Nickname+': '+Reason]));
+                EventLog(Format(L_IRC_ACTION_KILL, [Nickname, User.Nickname, Reason]));
               end
             else
               SendError(484,Target);
@@ -792,7 +787,7 @@ begin
 
       if B then
       begin
-        EventLog(Format(LResult, [Nickname, LBType+' "'+Target+'": '+Reason]));
+        EventLog(Format(LResult, [Nickname, LBType+' "'+Target+'"', Reason]));
         ServerMessage(UpperFCStr(BType)+' "'+Target+'" has been '+Result+'.')
       end
       else
@@ -851,7 +846,7 @@ begin
           begin
             User.LastSenior:=Nickname;
             User.SendLn('ERROR :'+Description);
-            EventLog(Format(L_IRC_ACTION_PRANK, [Nickname, User.Nickname+': '+Description]));
+            EventLog(Format(L_IRC_ACTION_PRANK, [Nickname, User.Nickname, Description]));
           end
         else
           SendError(484,Target);

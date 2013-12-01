@@ -8,90 +8,91 @@
   resources were bound to the produced executable.
 */
 
-#define Base_L_GAME_CREATED_INFO 65280
-#define Base_L_WORMNAT_START_LINK 65281
-#define Base_L_WORMNAT_LINK_ERROR 65282
-#define Base_L_WORMNAT_UNEXPECTED 65283
-#define Base_L_IRC_ACTION_UNHIDE 65296
-#define Base_L_IRC_ACTION_ANNOUNCE 65297
-#define Base_L_IRC_ACTION_MODE 65298
-#define Base_L_IRC_ACTION_NICK 65299
-#define Base_L_IRC_LOGGED_IN 65300
-#define Base_L_IRC_HALT_BANNED_NICK 65301
-#define Base_L_IRC_DISCONNECTED 65302
-#define Base_L_IRC_DISCONNECTED_UNKNOWN 65303
-#define Base_L_IRC_WTF 65304
-#define Base_L_HTTP_FILE_SENDING 65305
-#define Base_L_GAME_FAIL_NONGAMING 65306
-#define Base_L_GAME_FAIL_SABOTAGE 65307
-#define Base_L_GAME_FAIL_NONEXISTENT_CHAN 65308
-#define Base_L_GAME_CLOSED_ANTIFLOOD 65309
-#define Base_L_GAME_CLOSED_GRACEFULLY 65310
-#define Base_L_GAME_CLOSED_TIMEOUT 65311
-#define Base_L_IRC_CHANNEL_EMPTY 65312
-#define Base_L_IRC_CHANNEL_NOT_FOUND 65313
-#define Base_L_IRC_EXPECT 65314
-#define Base_L_IRC_JOIN 65315
-#define Base_L_IRC_PART 65316
-#define Base_L_IRC_TYPE_NICKNAME 65317
-#define Base_L_IRC_TYPE_IP 65318
-#define Base_L_IRC_ACTION_FAILBAN 65319
-#define Base_L_IRC_ACTION_BAN 65320
-#define Base_L_IRC_ACTION_UNBAN 65321
-#define Base_L_IRC_ACTION_PRANK 65322
-#define Base_L_IRC_ACTION_KICKALL 65323
-#define Base_L_IRC_ACTION_KILL 65324
-#define Base_L_IRC_ACTION_MUTE 65325
-#define Base_L_IRC_ACTION_UNMUTE 65326
-#define Base_L_IRC_ACTION_HIDE 65327
-#define Base_L_CLIENT_SELECT_ERROR 65328
-#define Base_L_CLIENT_CONNECTION_ERROR 65329
-#define Base_L_SERVER_SELECT_ERROR 65330
-#define Base_L_SERVER_CONNECTION_ERROR 65331
-#define Base_L_BIND_ERROR 65332
-#define Base_L_FAILED 65333
-#define Base_L_CLOSING_LINK 65334
-#define Base_L_REQUEST_REJECTED 65335
-#define Base_L_CONNECTION_ERROR 65336
-#define Base_L_CONNECTION_ESTABLISHED 65337
-#define Base_L_LISTENING 65338
-#define Base_L_IRC_ADMIN_LOGIN 65339
-#define Base_L_IRC_ADMIN_OPER 65340
-#define Base_L_IRC_ADMIN_OWNER 65341
-#define Base_L_IRC_CHANNEL_ADDED 65342
-#define Base_L_IRC_CHANNEL_ALREADY 65343
-#define System_RTLConsts_SWindowsServer2008R2 65344
-#define System_RTLConsts_SWindows2000 65345
-#define System_RTLConsts_SWindowsXP 65346
-#define System_RTLConsts_SWindowsServer2003 65347
-#define System_RTLConsts_SWindowsServer2003R2 65348
-#define System_RTLConsts_SWindowsServer2012 65349
-#define System_RTLConsts_SWindows8 65350
-#define System_RTLConsts_sObserverUnsupported 65351
-#define System_RTLConsts_sObserverMultipleSingleCast 65352
-#define System_RTLConsts_sObserverNoInterface 65353
-#define System_RTLConsts_sObserverNoSinglecastFound 65354
-#define System_RTLConsts_sObserverNoMulticastFound 65355
-#define Base_L_START 65356
-#define Base_L_ERROR 65357
-#define Base_L_ERROR_WITH 65358
-#define Base_L_SELECT_ERROR 65359
+#define Base_L_GAME_CLOSED_TIMEOUT 65280
+#define Base_L_GAME_CREATED_INFO 65281
+#define Base_L_WORMNAT_START_LINK 65282
+#define Base_L_WORMNAT_LINK_ERROR 65283
+#define Base_L_WORMNAT_UNEXPECTED 65284
+#define Base_L_IRC_ACTION_HIDE 65296
+#define Base_L_IRC_ACTION_UNHIDE 65297
+#define Base_L_IRC_ACTION_ANNOUNCE 65298
+#define Base_L_IRC_ACTION_MODE 65299
+#define Base_L_IRC_ACTION_NICK 65300
+#define Base_L_IRC_LOGGED_IN 65301
+#define Base_L_IRC_HALT_BANNED_NICK 65302
+#define Base_L_IRC_DISCONNECTED 65303
+#define Base_L_IRC_DISCONNECTED_UNKNOWN 65304
+#define Base_L_IRC_WTF 65305
+#define Base_L_HTTP_FILE_SENDING 65306
+#define Base_L_GAME_FAIL_NONGAMING 65307
+#define Base_L_GAME_FAIL_SABOTAGE 65308
+#define Base_L_GAME_FAIL_NONEXISTENT_CHAN 65309
+#define Base_L_GAME_CLOSED_ANTIFLOOD 65310
+#define Base_L_GAME_CLOSED_GRACEFULLY 65311
+#define Base_L_IRC_CHANNEL_ALREADY 65312
+#define Base_L_IRC_CHANNEL_EMPTY 65313
+#define Base_L_IRC_CHANNEL_NOT_FOUND 65314
+#define Base_L_IRC_EXPECT 65315
+#define Base_L_IRC_JOIN 65316
+#define Base_L_IRC_PART 65317
+#define Base_L_IRC_TYPE_NICKNAME 65318
+#define Base_L_IRC_TYPE_IP 65319
+#define Base_L_IRC_ACTION_FAILBAN 65320
+#define Base_L_IRC_ACTION_BAN 65321
+#define Base_L_IRC_ACTION_UNBAN 65322
+#define Base_L_IRC_ACTION_PRANK 65323
+#define Base_L_IRC_ACTION_KICKALL 65324
+#define Base_L_IRC_ACTION_KILL 65325
+#define Base_L_IRC_ACTION_MUTE 65326
+#define Base_L_IRC_ACTION_UNMUTE 65327
+#define Base_L_SELECT_ERROR 65328
+#define Base_L_CLIENT_SELECT_ERROR 65329
+#define Base_L_CLIENT_CONNECTION_ERROR 65330
+#define Base_L_SERVER_SELECT_ERROR 65331
+#define Base_L_SERVER_CONNECTION_ERROR 65332
+#define Base_L_BIND_ERROR 65333
+#define Base_L_FAILED 65334
+#define Base_L_CLOSING_LINK 65335
+#define Base_L_REQUEST_REJECTED 65336
+#define Base_L_CONNECTION_ERROR 65337
+#define Base_L_CONNECTION_ESTABLISHED 65338
+#define Base_L_LISTENING 65339
+#define Base_L_IRC_ADMIN_LOGIN 65340
+#define Base_L_IRC_ADMIN_OPER 65341
+#define Base_L_IRC_ADMIN_OWNER 65342
+#define Base_L_IRC_CHANNEL_ADDED 65343
+#define System_RTLConsts_SWindows7 65344
+#define System_RTLConsts_SWindowsServer2008R2 65345
+#define System_RTLConsts_SWindows2000 65346
+#define System_RTLConsts_SWindowsXP 65347
+#define System_RTLConsts_SWindowsServer2003 65348
+#define System_RTLConsts_SWindowsServer2003R2 65349
+#define System_RTLConsts_SWindowsServer2012 65350
+#define System_RTLConsts_SWindows8 65351
+#define System_RTLConsts_sObserverUnsupported 65352
+#define System_RTLConsts_sObserverMultipleSingleCast 65353
+#define System_RTLConsts_sObserverNoInterface 65354
+#define System_RTLConsts_sObserverNoSinglecastFound 65355
+#define System_RTLConsts_sObserverNoMulticastFound 65356
+#define Base_L_START 65357
+#define Base_L_ERROR 65358
+#define Base_L_ERROR_WITH 65359
 #define System_RTLConsts_sTimespanElementTooLong 65360
 #define System_RTLConsts_SArgumentOutOfRange 65361
 #define System_RTLConsts_SGenericItemNotFound 65362
 #define System_RTLConsts_SGenericDuplicateItem 65363
 #define System_RTLConsts_SInsufficientRtti 65364
 #define System_RTLConsts_SParameterCountMismatch 65365
-#define System_RTLConsts_SNonPublicType 65366
-#define System_RTLConsts_SByRefArgMismatch 65367
-#define System_RTLConsts_SVersionStr 65368
-#define System_RTLConsts_SSPVersionStr 65369
-#define System_RTLConsts_SVersion32 65370
-#define System_RTLConsts_SVersion64 65371
-#define System_RTLConsts_SWindows 65372
-#define System_RTLConsts_SWindowsVista 65373
-#define System_RTLConsts_SWindowsServer2008 65374
-#define System_RTLConsts_SWindows7 65375
+#define System_RTLConsts_SParameterCountExceeded 65366
+#define System_RTLConsts_SNonPublicType 65367
+#define System_RTLConsts_SByRefArgMismatch 65368
+#define System_RTLConsts_SVersionStr 65369
+#define System_RTLConsts_SSPVersionStr 65370
+#define System_RTLConsts_SVersion32 65371
+#define System_RTLConsts_SVersion64 65372
+#define System_RTLConsts_SWindows 65373
+#define System_RTLConsts_SWindowsVista 65374
+#define System_RTLConsts_SWindowsServer2008 65375
 #define System_RTLConsts_SThreadError 65376
 #define System_RTLConsts_SThreadExternalTerminate 65377
 #define System_RTLConsts_SThreadExternalWait 65378
@@ -254,58 +255,60 @@
 #define System_SysConst_SInvalidInput 65535
 STRINGTABLE
 BEGIN
-	Base_L_GAME_CREATED_INFO,	L"%s \x0441\x043E\x0437\x0434\x0430\x043B \x0438\x0433\x0440\x0443 (""%s"") \x0441 \x0430\x0434\x0440\x0435\x0441\x043E\x043C %s \x0441 IP %s"
-	Base_L_WORMNAT_START_LINK,	L"\x0418\x043D\x0438\x0446\x0438\x0430\x043B\x0438\x0437\x0438\x0440\x0443\x0435\x0442\x0441\x044F \x0441\x0432\x044F\x0437\x044C \x043C\x0435\x0436\x0434\x0443"
-	Base_L_WORMNAT_LINK_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x0441\x0432\x044F\x0437\x0438 \x043C\x0435\x0436\x0434\x0443"
-	Base_L_WORMNAT_UNEXPECTED,	L"\x041D\x0435\x043E\x0436\x0438\x0434\x0430\x043D\x043D\x043E\x0435 \x043F\x043E\x0434\x043A\x043B\x044E\x0447\x0435\x043D\x0438\x0435 \x043E\x0442"
-	Base_L_IRC_ACTION_UNHIDE,	L"%s \x0441\x0434\x0435\x043B\x0430\x043B %s \x0441\x043D\x043E\x0432\x0430 \x0432\x0438\x0434\x0438\x043C\x044B\x043C."
-	Base_L_IRC_ACTION_ANNOUNCE,	L"%s \x0441\x0434\x0435\x043B\x0430\x043B \x0433\x043B\x043E\x0431\x0430\x043B\x044C\x043D\x043E\x0435 \x043E\x0431\x044A\x044F\x0432\x043B\x0435\x043D\x0438\x0435: ""%s""."
-	Base_L_IRC_ACTION_MODE,	L"%s \x0437\x0430\x0434\x0430\x043B \x0440\x0435\x0436\x0438\x043C %s \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044E %s."
-	Base_L_IRC_ACTION_NICK,	L"%s \x043F\x043E\x043F\x044B\x0442\x0430\x043B\x0441\x044F \x0441\x043C\x0435\x043D\x0438\x0442\x044C \x0441\x0432\x043E\x0439 \x043D\x0438\x043A \x043D\x0430 ""%s""."
-	Base_L_IRC_LOGGED_IN,	L"%s \x0432\x043E\x0448\x0451\x043B \x043D\x0430 \x0441\x0435\x0440\x0432\x0435\x0440."
-	Base_L_IRC_HALT_BANNED_NICK,	L"%s \x0432\x043E\x0448\x0451\x043B \x0438 \x0431\x044B\x043B \x043D\x0438\x0437\x0432\x0435\x0440\x0433\x043D\x0443\x0442 \x0432 \x0441\x0432\x044F\x0437\x0438 \x0441 \x0431\x0430\x043D\x043E\x043C."
-	Base_L_IRC_DISCONNECTED,	L"%s \x043E\x0442\x0441\x043E\x0435\x0434\x0438\x043D\x0438\x043B\x0441\x044F."
-	Base_L_IRC_DISCONNECTED_UNKNOWN,	L"%s \x043F\x043E\x0434\x0441\x043E\x0435\x0434\x0438\x043D\x0438\x043B\x0441\x044F \x0438 \x0437\x0430\x0442\x0435\x043C \x043E\x0442\x0441\x043E\x0435\x0434\x0438\x043D\x0438\x043B\x0441\x044F."
-	Base_L_IRC_WTF,	L"WTF \x043D\x0435 \x043C\x043E\x0433\x0443 \x043D\x0430\x0439\x0442\x0438 \x0441\x0435\x0431\x044F!"
-	Base_L_HTTP_FILE_SENDING,	L"\x0418\x0434\x0451\x0442 \x043F\x0435\x0440\x0435\x0434\x0430\x0447\x0430 \x0444\x0430\x0439\x043B\x0430"
-	Base_L_GAME_FAIL_NONGAMING,	L"%s \x043F\x043E\x043F\x044B\x0442\x0430\x043B\x0441\x044F \x0441\x043E\x0437\x0434\x0430\x0442\x044C \x0438\x0433\x0440\x0443 %s \x0441 \x0430\x0434\x0440\x0435\x0441\x043E\x043C %s \x043D\x0430 \x043D\x0435\x0438\x0433\x0440\x043E\x0432\x043E\x043C \x043A\x0430\x043D\x0430\x043B\x0435 %s \x0441 IP %s"
-	Base_L_GAME_FAIL_SABOTAGE,	L"%s \x043F\x043E\x043F\x044B\x0442\x0430\x043B\x0441\x044F \x0437\x0430\x043A\x0440\x044B\x0442\x044C \x0438\x0433\x0440\x0443 \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s (ID %s), \x0441\x043E\x0437\x0434\x0430\x043D\x043D\x0443\x044E \x0441 IP %s"
-	Base_L_GAME_FAIL_NONEXISTENT_CHAN,	L"%s \x043F\x043E\x043F\x044B\x0442\x0430\x043B\x0441\x044F \x0441\x043E\x0437\x0434\x0430\x0442\x044C \x0438\x0433\x0440\x0443 %s \x0441 \x0430\x0434\x0440\x0435\x0441\x043E\x043C %s \x043D\x0430 \x043D\x0435\x0441\x0443\x0449\x0435\x0441\x0442\x0432\x0443\x044E\x0449\x0435\x043C \x043A\x0430\x043D\x0430\x043B\x0435 %s \x0441 IP %s"
-	Base_L_GAME_CLOSED_ANTIFLOOD,	L"\x0418\x0433\x0440\x0430 \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s ""%s"" \x0431\x044B\x043B\x0430 \x0437\x0430\x043A\x0440\x044B\x0442\x0430 \x043A\x0430\x043A \x0434\x0443\x0431\x043B\x044C \x0441 IP %s"
-	Base_L_GAME_CLOSED_GRACEFULLY,	L"\x0418\x0433\x0440\x0430 \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s ""%s"" \x0431\x044B\x043B\x0430 \x0437\x0430\x043A\x0440\x044B\x0442\x0430."
-	Base_L_GAME_CLOSED_TIMEOUT,	L"\x0418\x0433\x0440\x0430 \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s ""%s"" \x0431\x044B\x043B\x0430 \x0437\x0430\x043A\x0440\x044B\x0442\x0430 \x043F\x043E \x0438\x0441\x0442\x0435\x0447\x0435\x043D\x0438\x0438 \x043B\x0438\x043C\x0438\x0442\x0430 \x0432\x0440\x0435\x043C\x0435\x043D\x0438."
-	Base_L_IRC_CHANNEL_EMPTY,	L"\x041D\x0435 \x043D\x0430\x0439\x0434\x0435\x043D\x043E \x043D\x0438 \x043E\x0434\x043D\x043E\x0433\x043E \x043A\x0430\x043D\x0430\x043B\x0430 \x0432 \x0444\x0430\x0439\x043B\x0435 Channels.ini: \x0431\x0443\x0434\x0435\x0442 \x0441\x043E\x0437\x0434\x0430\x043D \x0441\x0442\x0430\x043D\x0434\x0430\x0440\x0442\x043D\x044B\x0439 \x043A\x0430\x043D\x0430\x043B."
-	Base_L_IRC_CHANNEL_NOT_FOUND,	L"\x041D\x0435\x0432\x043E\x0437\x043C\x043E\x0436\x043D\x043E \x043D\x0430\x0439\x0442\x0438 \x0444\x0430\x0439\x043B Channels.ini: \x0431\x0443\x0434\x0435\x0442 \x0441\x043E\x0437\x0434\x0430\x043D \x0441\x0442\x0430\x043D\x0434\x0430\x0440\x0442\x043D\x044B\x0439 \x043A\x0430\x043D\x0430\x043B."
-	Base_L_IRC_EXPECT,	L"\x041F\x043E\x043B\x0443\x0447\x0435\x043D\x0430 \x043A\x043E\x043C\x0430\x043D\x0434\x0430 EXPECT \x043E\x0442 %s \x0434\x043B\x044F %s"
-	Base_L_IRC_JOIN,	L"%s \x0437\x0430\x0448\x0451\x043B \x043D\x0430 %s."
-	Base_L_IRC_PART,	L"%s \x043F\x043E\x043A\x0438\x043D\x0443\x043B %s."
-	Base_L_IRC_TYPE_NICKNAME,	L"\x043D\x0438\x043A"
+	Base_L_GAME_CLOSED_TIMEOUT,	L"%s's Spiel ""%s"" wurde wegen Zeitlimit geschlossen."
+	Base_L_GAME_CREATED_INFO,	L"%s hat ein Spiel er\x00F6ffnet (""%s"") mit der Adresse %s von der IP %s"
+	Base_L_WORMNAT_START_LINK,	L"Initialisiere Verbindung zwischen"
+	Base_L_WORMNAT_LINK_ERROR,	L"Fehler in der Verbindung mit"
+	Base_L_WORMNAT_UNEXPECTED,	L"unvorhergesehene Verbindung von"
+	Base_L_IRC_ACTION_HIDE,	L"%s hat %s unsichtbar gemacht."
+	Base_L_IRC_ACTION_UNHIDE,	L"%s hat %s wieder sichtbar gemacht."
+	Base_L_IRC_ACTION_ANNOUNCE,	L"%s hat eine allgemeine Ank\x00FCndigung gemacht: ""%s""."
+	Base_L_IRC_ACTION_MODE,	L"%s hat den Modus %s auf %s gesetzt."
+	Base_L_IRC_ACTION_NICK,	L"%s hat versucht seinen Nicknamen zu \x00E4ndern in ""%s""."
+	Base_L_IRC_LOGGED_IN,	L"%s hat sich eingeloggt."
+	Base_L_IRC_HALT_BANNED_NICK,	L"%s wurde angehalten, da dieser Nick gebannt wurde."
+	Base_L_IRC_DISCONNECTED,	L"%s wurde getrennt."
+	Base_L_IRC_DISCONNECTED_UNKNOWN,	L"%s hat sich verbunden und wurde dann getrennt."
+	Base_L_IRC_WTF,	L"WTF kann mich selbst nicht finden!"
+	Base_L_HTTP_FILE_SENDING,	L"Sende Datei"
+	Base_L_GAME_FAIL_NONGAMING,	L"%s hat versucht ein Spiel zu erstellen %s mit der Adresse %s auf einem nicht Spielekanal %s von der IP %s"
+	Base_L_GAME_FAIL_SABOTAGE,	L"%s hat versucht ein Spiel zu schliessen %s's Spiel (ID %s) welches von der IP %s gehostet wurde"
+	Base_L_GAME_FAIL_NONEXISTENT_CHAN,	L"%s hat versucht ein Spiel zu erstellen %s mit der Adresse %s auf einem nicht existierendem Kanal %s von der IP %s"
+	Base_L_GAME_CLOSED_ANTIFLOOD,	L"%s's Spiel ""%s"" wurde geschlossen um Flooding der IP %s zu unterbinden"
+	Base_L_GAME_CLOSED_GRACEFULLY,	L"%s's Spiel ""%s"" wurde geschlossen."
+	Base_L_IRC_CHANNEL_ALREADY,	L"Kanal %s wurde bereits erstellt: ignoriert."
+	Base_L_IRC_CHANNEL_EMPTY,	L"Keine Kan\x00E4le in der Datei Channels.ini gefunden: Standardkanal wird erstellt."
+	Base_L_IRC_CHANNEL_NOT_FOUND,	L"Konnte die Datei Channels.ini nicht finden: Standardkanal wird erstellt."
+	Base_L_IRC_EXPECT,	L"EXPECT Befehl von %s f\x00FCr %s empfangen"
+	Base_L_IRC_JOIN,	L"%s ist beigetreten %s."
+	Base_L_IRC_PART,	L"%s ist gegangen %s."
+	Base_L_IRC_TYPE_NICKNAME,	L"Nickname"
 	Base_L_IRC_TYPE_IP,	L"IP"
-	Base_L_IRC_ACTION_FAILBAN,	L"%s \x043F\x043E\x043F\x044B\x0442\x0430\x043B\x0441\x044F \x0437\x0430\x0431\x0430\x043D\x0438\x0442\x044C \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s \x0431\x0435\x0437 \x043D\x0435\x043E\x0431\x0445\x043E\x0434\x0438\x043C\x044B\x0445 \x043F\x0440\x0438\x0432\x0438\x043B\x0435\x0433\x0438\x0439."
-	Base_L_IRC_ACTION_BAN,	L"%s \x0437\x0430\x0431\x0430\x043D\x0438\x043B %s, \x043F\x0440\x0438\x0447\x0438\x043D\x0430: %s"
-	Base_L_IRC_ACTION_UNBAN,	L"%s \x0440\x0430\x0437\x0431\x0430\x043D\x0438\x043B %s, \x043F\x0440\x0438\x0447\x0438\x043D\x0430: %s"
-	Base_L_IRC_ACTION_PRANK,	L"%s \x043F\x043E\x0434\x0448\x0443\x0442\x0438\x043B \x043D\x0430\x0434 %s \x0441 \x0442\x0435\x043A\x0441\x0442\x043E\x043C: %s"
-	Base_L_IRC_ACTION_KICKALL,	L"%s \x0432\x044B\x043A\x0438\x043D\x0443\x043B \x0432\x0441\x0435\x0445 \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x0435\x0439 \x0441 \x0441\x0435\x0440\x0432\x0435\x0440\x0430."
-	Base_L_IRC_ACTION_KILL,	L"%s \x0432\x044B\x043A\x0438\x043D\x0443\x043B \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s, \x043F\x0440\x0438\x0447\x0438\x043D\x0430: %s"
-	Base_L_IRC_ACTION_MUTE,	L"%s \x043B\x0438\x0448\x0438\x043B \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s \x0432\x043E\x0437\x043C\x043E\x0436\x043D\x043E\x0441\x0442\x0438 \x0433\x043E\x0432\x043E\x0440\x0438\x0442\x044C."
-	Base_L_IRC_ACTION_UNMUTE,	L"%s \x0432\x0435\x0440\x043D\x0443\x043B \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044E %s \x0432\x043E\x0437\x043C\x043E\x0436\x043D\x043E\x0441\x0442\x044C \x0433\x043E\x0432\x043E\x0440\x0438\x0442\x044C."
-	Base_L_IRC_ACTION_HIDE,	L"%s \x0441\x0434\x0435\x043B\x0430\x043B \x043F\x043E\x043B\x044C\x0437\x043E\x0432\x0430\x0442\x0435\x043B\x044F %s \x043D\x0435\x0432\x0438\x0434\x0438\x043C\x044B\x043C."
-	Base_L_CLIENT_SELECT_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 select() \x043A\x043B\x0438\x0435\x043D\x0442\x0430"
-	Base_L_CLIENT_CONNECTION_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x043F\x043E\x0434\x043A\x043B\x044E\x0447\x0435\x043D\x0438\x044F \x043A\x043B\x0438\x0435\x043D\x0442\x0430"
-	Base_L_SERVER_SELECT_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 select() \x0441\x0435\x0440\x0432\x0435\x0440\x0430"
-	Base_L_SERVER_CONNECTION_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x043F\x043E\x0434\x043A\x043B\x044E\x0447\x0435\x043D\x0438\x044F \x0441\x0435\x0440\x0432\x0435\x0440\x0430"
-	Base_L_BIND_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x043E\x0442\x043A\x0440\x044B\x0442\x0438\x044F \x043F\x043E\x0440\x0442\x0430"
-	Base_L_FAILED,	L"\x041E\x0448\x0438\x0431\x043A\x0430"
-	Base_L_CLOSING_LINK,	L"\x0417\x0430\x043A\x0440\x044B\x0432\x0430\x0435\x0442\x0441\x044F \x0441\x0432\x044F\x0437\x044C \x0441"
-	Base_L_REQUEST_REJECTED,	L"\x0417\x0430\x043F\x0440\x043E\x0441 \x0441 \x0437\x0430\x0431\x0430\x043D\x0435\x043D\x043D\x043E\x0433\x043E IP %s \x043D\x0430 \x043F\x043E\x0440\x0442 %s \x0431\x044B\x043B \x043E\x0442\x043A\x043B\x043E\x043D\x0451\x043D."
-	Base_L_CONNECTION_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x0441\x043E\x0435\x0434\x0438\x043D\x0435\x043D\x0438\x044F"
-	Base_L_CONNECTION_ESTABLISHED,	L"\x0423\x0441\x0442\x0430\x043D\x043E\x0432\x043B\x0435\x043D\x043E \x0441\x043E\x0435\x0434\x0438\x043D\x0435\x043D\x0438\x0435 \x0441"
-	Base_L_LISTENING,	L"\x0420\x0430\x0431\x043E\x0442\x0430\x0435\x0442 \x043D\x0430 \x043F\x043E\x0440\x0442\x0443"
-	Base_L_IRC_ADMIN_LOGIN,	L"%s \x0437\x0430\x0440\x0435\x0433\x0438\x0441\x0442\x0440\x0438\x0440\x043E\x0432\x0430\x043B\x0441\x044F \x043A\x0430\x043A %s."
-	Base_L_IRC_ADMIN_OPER,	L"\x043E\x043F\x0435\x0440\x0430\x0442\x043E\x0440"
-	Base_L_IRC_ADMIN_OWNER,	L"\x0432\x043B\x0430\x0434\x0435\x043B\x0435\x0446"
-	Base_L_IRC_CHANNEL_ADDED,	L"\x041A\x0430\x043D\x0430\x043B %s \x0431\x044B\x043B \x0434\x043E\x0431\x0430\x0432\x043B\x0435\x043D."
-	Base_L_IRC_CHANNEL_ALREADY,	L"\x041A\x0430\x043D\x0430\x043B %s \x0443\x0436\x0435 \x0431\x044B\x043B \x0434\x043E\x0431\x0430\x0432\x043B\x0435\x043D: \x043F\x0440\x043E\x0438\x0433\x043D\x043E\x0440\x0438\x0440\x043E\x0432\x0430\x043D\x043E."
+	Base_L_IRC_ACTION_FAILBAN,	L"%s hat versucht %s ohne Rechte zu bannen."
+	Base_L_IRC_ACTION_BAN,	L"%s hat %s gebannt, Grund: %s"
+	Base_L_IRC_ACTION_UNBAN,	L"%s hat %s's Bann aufgehoben, Grund: %s"
+	Base_L_IRC_ACTION_PRANK,	L"%s hat %s einen Streich gespielt, Beschreibung: %s"
+	Base_L_IRC_ACTION_KICKALL,	L"%s hat jeden vom Server geworfen."
+	Base_L_IRC_ACTION_KILL,	L"%s hat %s rausgeworfen, Grund: %s"
+	Base_L_IRC_ACTION_MUTE,	L"%s hat %s stummgeschalten."
+	Base_L_IRC_ACTION_UNMUTE,	L"%s hat %s nicht mehr Stummgeschalten."
+	Base_L_SELECT_ERROR,	L"select() Fehler"
+	Base_L_CLIENT_SELECT_ERROR,	L"Klientselect() Fehler"
+	Base_L_CLIENT_CONNECTION_ERROR,	L"Klientverbindung Fehler"
+	Base_L_SERVER_SELECT_ERROR,	L"Serverselect() Fehler"
+	Base_L_SERVER_CONNECTION_ERROR,	L"Serververbindung Fehler"
+	Base_L_BIND_ERROR,	L"Verbindungsfehler"
+	Base_L_FAILED,	L"Fehlgeschlagen"
+	Base_L_CLOSING_LINK,	L"Schliesse Verbindung zu"
+	Base_L_REQUEST_REJECTED,	L"Anfrage der gebannten IP abgelehnt %s zu Port %s."
+	Base_L_CONNECTION_ERROR,	L"Verbindungsfehler"
+	Base_L_CONNECTION_ESTABLISHED,	L"Verbindung erfolgreich von"
+	Base_L_LISTENING,	L"Lausche auf Port"
+	Base_L_IRC_ADMIN_LOGIN,	L"%s hat sich als ein %s registriert."
+	Base_L_IRC_ADMIN_OPER,	L"Anwender"
+	Base_L_IRC_ADMIN_OWNER,	L"Besitzer"
+	Base_L_IRC_CHANNEL_ADDED,	L"Kanal %s wurde hinzugef\x00FCgt."
+	System_RTLConsts_SWindows7,	L"Windows 7"
 	System_RTLConsts_SWindowsServer2008R2,	L"Windows Server 2008 R2"
 	System_RTLConsts_SWindows2000,	L"Windows 2000"
 	System_RTLConsts_SWindowsXP,	L"Windows XP"
@@ -318,16 +321,16 @@ BEGIN
 	System_RTLConsts_sObserverNoInterface,	L"The object does not implement the observer interface"
 	System_RTLConsts_sObserverNoSinglecastFound,	L"No single cast observer with ID %d was added to the observer collection"
 	System_RTLConsts_sObserverNoMulticastFound,	L"No multi cast observer with ID %d was added to the observer collection"
-	Base_L_START,	L"MyWormNET %s \x0437\x0430\x043F\x0443\x0441\x043A\x0430\x0435\x0442\x0441\x044F."
-	Base_L_ERROR,	L"\x041E\x0448\x0438\x0431\x043A\x0430"
-	Base_L_ERROR_WITH,	L"\x041E\x0448\x0438\x0431\x043A\x0430 \x0441"
-	Base_L_SELECT_ERROR,	L"\x043E\x0448\x0438\x0431\x043A\x0430 select()"
+	Base_L_START,	L"Starte MyWormNET Version %s."
+	Base_L_ERROR,	L"Fehler"
+	Base_L_ERROR_WITH,	L"Fehler mit"
 	System_RTLConsts_sTimespanElementTooLong,	L"Timespan element too long"
 	System_RTLConsts_SArgumentOutOfRange,	L"Argument out of range"
 	System_RTLConsts_SGenericItemNotFound,	L"Item not found"
 	System_RTLConsts_SGenericDuplicateItem,	L"Duplicates not allowed"
 	System_RTLConsts_SInsufficientRtti,	L"Insufficient RTTI available to support this operation"
 	System_RTLConsts_SParameterCountMismatch,	L"Parameter count mismatch"
+	System_RTLConsts_SParameterCountExceeded,	L"Parameter count exceeded"
 	System_RTLConsts_SNonPublicType,	L"Type '%s' is not declared in the interface section of a unit"
 	System_RTLConsts_SByRefArgMismatch,	L"VAR and OUT arguments must match parameter type exactly"
 	System_RTLConsts_SVersionStr,	L"%s (Version %d.%d, Build %d, %5:s)"
@@ -337,7 +340,6 @@ BEGIN
 	System_RTLConsts_SWindows,	L"Windows"
 	System_RTLConsts_SWindowsVista,	L"Windows Vista"
 	System_RTLConsts_SWindowsServer2008,	L"Windows Server 2008"
-	System_RTLConsts_SWindows7,	L"Windows 7"
 	System_RTLConsts_SThreadError,	L"Thread Error: %s (%d)"
 	System_RTLConsts_SThreadExternalTerminate,	L"Cannot terminate an externally created thread"
 	System_RTLConsts_SThreadExternalWait,	L"Cannot wait for an externally created thread"

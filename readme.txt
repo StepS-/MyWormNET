@@ -22,6 +22,7 @@ StepS' modification currently includes the following:
 • Localization support: translate MyWormNET into any language thanks to the dedicated resource strings.
    - Russian localization by StepS
    - Polish localization by PeCeT_full
+   - German (Austria) localization by Gabberarmy
 • Support for x64 and various different Delphi compilers (from Delphi 7 to XE5 at least)
 • Support for Unicode compiler
 • Users' IP addresses are no longer forced when hosting
