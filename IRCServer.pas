@@ -20,8 +20,12 @@ type
     ConnectingFrom: string;
     Nickname, Username, Hostname, Servername, Realname: string;
     LastSenior: string;
+    AwayMsg, QuitMsg: string;
+    FloodPoints: Integer;
     SignonTime, LastBanTime: Int64;
     Socket: TSocket;
+    Quit, Away: Boolean;
+    LastMessageTime: TDateTime;
     InChannel: array of Boolean;
     Modes: array[char] of Boolean;
 
@@ -49,12 +53,18 @@ type
     procedure ExecKill(S: String);
     procedure ExecWhois(S: String);
     procedure ExecMotd(S: String);
+    procedure ExecSeen(S: String);
+    procedure ExecAway(S: String);
+    procedure ExecForcegameid(S: String);
     procedure ExecBan(Command, S: String);
     procedure ExecOper(Command, S: String);
     procedure ExecMessage(Command, S: String);
     procedure ExecMute(Mute: Boolean; S: String);
 
+    procedure ExecuteCommand(S: String);
+
     procedure Die(Action, Reason, Master: String);
+    function ContextCommand(S: String): Boolean;
     function Registered: Boolean;
     function ChangeMode(Side, Mode: Char; Master: String): Boolean;
      
@@ -77,6 +87,11 @@ type
     Nick, IP: String;
     end;
 
+  TSeen=record
+    Nick, QuitMsg: String;
+    LastSeen: TDateTime;
+    end;
+
 const
   IRCPrefModes='qaohv';
   IRCPrefixes='~&@%+';
@@ -87,12 +102,14 @@ const
 var
   Supers: array of TSuper;
   Users: array of TUser;
+  Seens: array of TSeen;
   Channels: array of TChannel;
   LastStr: string;
 
 procedure StartIRCServer;
 procedure GetChannels;
 procedure LogToOper(S: string);
+procedure AddSeen(Nick, QuitMsg: String);
 function AddChannel(Name, Scheme, Topic: String): Boolean;
 function UserByIP(IP: String): TUser;
 function UserByName(Name: String): TUser;
@@ -101,7 +118,7 @@ function NickInUse(Nick: string): Boolean;
 
 implementation
 uses
-  Base, Data, SysUtils, IniFiles, HTTPServer, WormNATServer;
+  Base, Data, DateUtils, SysUtils, IniFiles, HTTPServer, WormNATServer;
 
 procedure TUser.Execute;
 var
@@ -114,18 +131,15 @@ var
     Socket: TSocket;
     end;
   TimeVal: TTimeVal;
-  Password: string;
 
 begin
   try
-    BufferA:='';
     Buffer:='';
+    BufferA:='';
     PingTimer:=0;
-    Password:='';
     repeat
       repeat
-        BufferA:='';
-        SA:='';
+        BufferA:=ansistring(Buffer);
         ReadSet.count:=1;
         ReadSet.Socket:=Socket;
         ErrorSet.count:=1;
@@ -134,34 +148,34 @@ begin
         TimeVal.tv_usec:=10000;
         R:=select(Socket+1, @ReadSet, nil, @ErrorSet, @TimeVal);
         if (R=SOCKET_ERROR) or (ErrorSet.count>0) then
-          begin
+        begin
           Log('[IRC] '+ConnectingFrom+' '+L_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
           raise Exception.Create(L_CONNECTION_ERROR+'.');
-          end;
+        end;
 
         if (ReadSet.count=0)or(R=0) then
           Break;  // nothing to read
 
         R:=ioctlsocket(Socket, FIONREAD, Bytes);
         if R=SOCKET_ERROR then
-          begin
+        begin
           Log('[IRC] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
           raise Exception.Create(L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
-          end;
+        end;
 
         if Bytes=0 then  // software disconnect
-          begin
+        begin
           Log('[IRC] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' (Graceful disconnect).');
-          raise Exception.Create('Software disconnect');
-          end;
+          raise Exception.Create('Connection reset by peer');
+        end;
 
         SetLength(SA, Bytes);
         R:=recv(Socket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
-          begin
+        begin
           Log('[IRC] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
           raise Exception.Create(L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
-          end;
+        end;
         SetLength(SA, R);
         BufferA := BufferA + SA;
         Buffer := String(BufferA);
@@ -175,102 +189,7 @@ begin
           Log('[IRC] < :'+Nickname+'!'+Username+'@'+StealthIP+' '+S)
         else
           Log('[IRC] < :'+ConnectingFrom+' '+S);
-
-        Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
-        Delete(S, 1, Length(Command)+1);
-
-          if Command='CAP' then
-        else
-          if Command='NICK' then
-            ExecNick(S)
-        else
-          if Command='USER' then
-            ExecUser(S)
-        else
-          if Command='PASS' then
-            Password:=S
-        else
-          if Command='PING' then
-            ExecPing(S)
-        else
-          if Command='PONG' then
-        else
-          if Registered then
-            if Command='LIST' then
-              ExecList(S)
-          else
-            if Command='WHO' then
-              ExecWho(S)
-          else
-            if Command='ISON' then
-              ExecIson(S)
-          else
-            if Command='JOIN' then
-              ExecJoin(S)
-          else
-            if Command='PART' then
-              ExecPart(S)
-          else
-            if Command='QUIT' then
-              ExecQuit(S)
-          else
-            if Command='MODE' then
-              ExecMode(S)
-          else
-            if Command='GAMES' then
-              ExecGames(S)
-          else
-            if Command='NAMES' then
-              ExecNames(S)
-          else
-            if Command='MOTD' then
-              ExecMotd(S)
-          else
-            if Command='EXPECT' then
-              ExecExpect(S)
-          else
-            if Command='ANNOUNCE' then
-              ExecAnnounce(S)
-          else
-            if Command='PRANK' then
-              ExecPrank(S)
-          else
-            if Command='SENDRAW' then
-              ExecSendraw(S)
-          else
-            if Command='KICKALL' then
-              ExecKickall(S)
-          else
-            if (Command='WHOIS')or(Command='IPLOOKUP') then
-              ExecWhois(S)
-          else
-            if (Command='PRIVMSG') or (Command='NOTICE') then
-              ExecMessage(Command,S)
-          else
-            if (Command='KICK') or (Command='KILL') then
-              ExecKill(S)
-          else
-            if (Command='PERMABAN') or (Command='REMOVEBAN') then
-              ExecBan(Command,S)
-          else
-            if (Command='OPER') or (Command='TAKEOWN') then
-              ExecOper(Command,S)
-          else
-            if Command='MUTE' then
-              ExecMute(true,S)
-          else
-            if Command='UNMUTE' then
-              ExecMute(false,S)
-          else
-            if Command='TIME' then
-              SendEvent(391, ServerHost+' :'+TextDateTimeNow)
-          else
-            if Command='AWAY' then
-          else
-            SendError(421,Command)
-        else
-          if (Command<>'') then
-            SendError(451,Command);
+        ExecuteCommand(S);
       end;
 
       Inc(PingTimer);
@@ -284,6 +203,8 @@ begin
               for J:=0 to Length(Users)-1 do
                 if Users[J].InChannel[Channels[I].Number] then
                   Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Ping timeout');
+        if Registered then
+          AddSeen(Nickname,'Ping timeout');
         if (Socket <> 0) then closesocket(Socket); Socket:=0;
         Break;
       end;
@@ -294,16 +215,19 @@ begin
   except
     on E: Exception do
       begin
-        if not Modes['i'] then
-          for I:=0 to Length(Channels)-1 do
-            if InChannel[Channels[I].Number] then
-              for J:=0 to Length(Users)-1 do
-                if Users[J].InChannel[Channels[I].Number] then
-                try
-                  Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+E.Message);
-                except
-                end;
-      Log('[IRC] '+L_ERROR_WITH+' '+ConnectingFrom+' : '+E.Message);
+        if not Quit then
+        begin
+          if not Modes['i'] then
+            for I:=0 to Length(Channels)-1 do
+              if InChannel[Channels[I].Number] then
+                for J:=0 to Length(Users)-1 do
+                  if Users[J].InChannel[Channels[I].Number] then
+                    Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+E.Message);
+          QuitMsg:=E.Message;
+          if Registered then
+            AddSeen(Nickname,E.Message);
+          Log('[IRC] '+L_ERROR_WITH+' '+ConnectingFrom+' : '+E.Message);
+        end;
       end;
     end;
 
@@ -332,7 +256,118 @@ begin
   FreeOnTerminate:=True;
 end;
 
-  
+procedure TUser.ExecuteCommand(S: string);
+var Command: string;
+begin
+  Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
+  Delete(S, 1, Length(Command)+1);
+
+    if Command='CAP' then
+  else
+    if Command='NICK' then
+      ExecNick(S)
+  else
+    if Command='USER' then
+      ExecUser(S)
+  else
+    if Command='PASS' then
+    //Password:=S
+  else
+    if Command='PING' then
+      ExecPing(S)
+  else
+    if Command='PONG' then
+  else
+    if Registered then
+      if Command='LIST' then
+        ExecList(S)
+    else
+      if Command='WHO' then
+        ExecWho(S)
+    else
+      if Command='ISON' then
+        ExecIson(S)
+    else
+      if Command='JOIN' then
+        ExecJoin(S)
+    else
+      if Command='PART' then
+        ExecPart(S)
+    else
+      if Command='QUIT' then
+        ExecQuit(S)
+    else
+      if Command='AWAY' then
+        ExecAway(S)
+    else
+      if Command='MODE' then
+        ExecMode(S)
+    else
+      if Command='GAMES' then
+        ExecGames(S)
+    else
+      if Command='NAMES' then
+        ExecNames(S)
+    else
+      if Command='SEEN' then
+        ExecSeen(S)
+    else
+      if Command='AWAY' then
+        ExecAway(S)
+    else
+      if Command='MOTD' then
+        ExecMotd(S)
+    else
+      if Command='EXPECT' then
+        ExecExpect(S)
+    else
+      if Command='ANNOUNCE' then
+        ExecAnnounce(S)
+    else
+      if Command='PRANK' then
+        ExecPrank(S)
+    else
+      if Command='SENDRAW' then
+        ExecSendraw(S)
+    else
+      if Command='KICKALL' then
+        ExecKickall(S)
+    else
+      if Command='FORCEGAMEID' then
+        ExecForcegameid(S)
+    else
+      if (Command='WHOIS')or(Command='IPLOOKUP') then
+        ExecWhois(S)
+    else
+      if (Command='PRIVMSG') or (Command='NOTICE') then
+        ExecMessage(Command,S)
+    else
+      if (Command='KICK') or (Command='KILL') then
+        ExecKill(S)
+    else
+      if (Command='PERMABAN') or (Command='REMOVEBAN') then
+        ExecBan(Command,S)
+    else
+      if (Command='OPER') or (Command='TAKEOWN') then
+        ExecOper(Command,S)
+    else
+      if Command='MUTE' then
+        ExecMute(true,S)
+    else
+      if Command='UNMUTE' then
+        ExecMute(false,S)
+    else
+      if Command='TIME' then
+        SendEvent(391, ServerHost+' :'+TextDateTimeNow)
+    else
+      if Command='AWAY' then
+    else
+      SendError(421,Command)
+  else
+    if (Command<>'') then
+      SendError(451,Command);
+end;
+
 procedure TUser.LogIn(S: String);
 var
   I, N, M: Integer;
@@ -363,7 +398,7 @@ begin
       end;
     SendEvent(251, ':There are '+IntToStr(Length(Users)-M)+' users and '+IntToStr(M)+' invisible on this server.');
     SendEvent(252, IntToStr(N)+' :IRC Operators online');
-    SendEvent(254, Nickname+' '+IntToStr(Length(Channels))+' :channels on this server');
+    SendEvent(254, IntToStr(Length(Channels))+' :channels formed');
     ExecMotd(S);
   end
   else
@@ -608,7 +643,7 @@ begin
       or (Modes['q'])
     then
       SendEvent(338, User.Nickname+' '+User.ConnectingFrom+' :Actual IP');
-    SendEvent(317, User.Nickname+' 0 '+IntToStr(User.SignonTime)+' :seconds idle, signon time');
+    SendEvent(317, User.Nickname+' '+IntToStr(SecondsBetween(Now,User.LastMessageTime))+' '+IntToStr(User.SignonTime)+' :seconds idle, signon time');
 
   end;
   SendEvent(318, S+' :End of /WHOIS list.');
@@ -625,6 +660,90 @@ begin
     if(S<>'')or(Buf<>'') then
       SendEvent(372, ':- '+Buf);
   SendEvent(376, ':End of /MOTD command.');
+end;
+
+procedure TUser.ExecSeen(S: String);
+const Command='SEEN';
+var
+  I: Integer;
+  TimeDiff, DaysAgo, HoursAgo, MinsAgo, SecsAgo: Integer;
+  LongAgo: String;
+  User: TUser;
+begin
+  S:=Copy(S, 1, Pos(' ',S+' ')-1);
+  if S<>'' then
+  begin
+    User:=UserByName(S);
+    if User = nil then
+    begin
+      if Length(Seens) < 1 then
+        ServerMessage('Sorry, but there was no '+S+' around.')
+      else
+        for I:=0 to Length(Seens)-1 do
+          if TextMatch(S,Seens[I].Nick) then
+          begin
+            LongAgo:='';
+            TimeDiff:=SecondsBetween(Now,Seens[I].LastSeen);
+            DaysAgo:=TimeDiff div SecsPerDay;
+            if DaysAgo > 0 then LongAgo:=LongAgo+IntToStr(DaysAgo)+' days ';
+            HoursAgo:=(TimeDiff div 3600) mod 24;
+            if HoursAgo > 0 then LongAgo:=LongAgo+IntToStr(HoursAgo)+' hours ';
+            MinsAgo:=(TimeDiff div 60) mod 60;
+            if MinsAgo > 0 then LongAgo:=LongAgo+IntToStr(MinsAgo)+' mins ';
+            LongAgo:=LongAgo+IntToStr(TimeDiff mod 60)+' secs ';
+
+            ServerMessage(Seens[I].Nick+' was last seen '+LongAgo+'ago, quit with a message: '+Seens[I].QuitMsg);
+            Break;
+          end
+          else if I=Length(Seens)-1 then
+            ServerMessage('Sorry, but there was no '+S+' around.');
+    end
+    else
+      ServerMessage(User.Nickname+' is online right now!');
+  end
+  else
+    SendError(461,Command);
+end;
+
+procedure TUser.ExecAway(S: String);
+const Command='AWAY';
+begin
+  S:=Copy(S,1,Pos(' ',S+' ')-1);
+  if Pos(':',S) = 1 then Delete(S, 1, 1);
+  S:=Copy(S, 1, 512);
+  if (S='') and (Away) then
+  begin
+    Away:=false;
+    SendEvent(305,':You are no longer marked as being away');
+    EventLog(Nickname+' has returned from an away state.');
+  end
+  else
+    if (S<>'') and not (Away) then
+    begin
+      Away:=true;
+      AwayMsg:=S;
+      SendEvent(306, ':You have been marked as being away');
+      EventLog(Nickname+' is now away with a message: '+AwayMsg);
+    end;
+end;
+
+procedure TUser.ExecForcegameid(S: string);
+const Command='FORCEGAMEID';
+begin
+  S:=Copy(S,1,Pos(' ',S+' ')-1);
+  if (Modes['o']) or (Modes['a']) or (Modes['q']) then
+  begin
+    if S<>'' then
+    begin
+      GameCounter:=StrToInt(S);
+      EventLog(Nickname+' has forced the GameCounter to '+S+'.');
+      ServerMessage('Ok. Game counter is now: '+IntToStr(GameCounter));
+    end
+    else
+      SendError(461,Command);
+  end
+  else
+    SendError(481, Command);
 end;
 
 procedure TUser.ExecBan(Command, S: String);
@@ -664,13 +783,13 @@ begin
           LBType:=L_IRC_TYPE_NICKNAME;
           Result:='banned';
           for I:=0 to Length(NickBans)-1 do
-            if UpperCase(NickBans[I]) = UpperCase(Target) then
+            if TextMatch(NickBans[I],Target) then
             begin
               B:=false;
               Break;
             end;
           for I:=0 to Length(Supers)-1 do
-            if UpperCase(NickBans[I]) = UpperCase(Supers[I].Nick) then
+            if TextMatch(NickBans[I],Supers[I].Nick) then
             begin
               B := false;
               P := false;
@@ -688,13 +807,13 @@ begin
           LBType:=L_IRC_TYPE_IP;
           Result:='permabanned';
           for I:=0 to Length(IPBans)-1 do
-            if UpperCase(IPBans[I]) = UpperCase(Target) then
+            if TextMatch(IPBans[I],Target) then
             begin
               B:=false;
               Break;
             end;
           for I:=0 to Length(Supers)-1 do
-            if UpperCase(IPBans[I]) = UpperCase(Supers[I].IP) then
+            if TextMatch(IPBans[I],Supers[I].IP) then
             begin
               B := false;
               P := false;
@@ -719,18 +838,15 @@ begin
           for I:=0 to Length(Users)-1 do
             if BType='nickname' then
             begin
-              if UpperCase(Users[I].Nickname) = UpperCase(Target) then
+              if TextMatch(Users[I].Nickname,Target) then
               begin
                 Users[I].Die(Result,Reason,Nickname);
                 Break;
               end;
             end
             else
-              if UpperCase(Users[I].ConnectingFrom) = UpperCase(Target) then
-              begin
+              if TextMatch(Users[I].ConnectingFrom,Target) then
                 Users[I].Die(Result,Reason,Nickname);
-                Break;
-              end;
         end;
       end
       else
@@ -743,7 +859,7 @@ begin
           BType:='nickname';
           LBType:=L_IRC_TYPE_NICKNAME;
           for I:=Length(NickBans)-1 downto 0 do
-            if UpperCase(NickBans[I]) = UpperCase(Target) then
+            if TextMatch(NickBans[I],Target) then
             begin
               for J:=I to Length(NickBans)-2 do
                 NickBans[J]:=NickBans[J+1];
@@ -759,7 +875,7 @@ begin
           BType:='IP';
           LBType:=L_IRC_TYPE_IP;
           for I:=Length(IPBans)-1 downto 0 do
-            if UpperCase(IPBans[I]) = UpperCase(Target) then
+            if TextMatch(IPBans[I],Target) then
             begin
               for J:=I to Length(IPBans)-2 do
                 IPBans[J]:=IPBans[J+1];
@@ -866,11 +982,15 @@ begin
     for I:=0 to Length(Users)-1 do
       if Users[I].Modes['q'] = false then
       begin
+        Users[I].QuitMsg:='Massive killing started by '+Nickname;
         if not Users[I].Modes['i'] then
           for J:=0 to Length(Users)-1 do
-            Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :Massive killing started by '+Nickname);
+            Users[J].SendLn(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :'+Users[I].QuitMsg);
+        Users[I].Quit:=true;
         Users[I].LastSenior:=Nickname;
-        Users[I].SendLn('ERROR :Massive killing started by '+Nickname);
+        if Users[I].Registered then
+          AddSeen(Users[I].Nickname,Users[I].QuitMsg);
+        Users[I].SendLn('ERROR :'+Users[I].QuitMsg);
         if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
       end;
     EventLog(Format(L_IRC_ACTION_KICKALL, [Nickname]));
@@ -1017,17 +1137,30 @@ end;
 
 procedure TUser.ExecQuit(S: String);
 const Command='QUIT';
-var I, J: Integer;
+var
+  I, J: Integer;
 begin
 // :CyberShadow!cybershado@38F7DF98.502358C0.F6DD7E74.IP QUIT :Input/output error
-  if not (Modes['i']) then
-    for I:=0 to Length(Channels)-1 do
-      if InChannel[Channels[I].Number] then
-      begin
-        for J:=0 to Length(Users)-1 do
-          if Users[J].InChannel[Channels[I].Number] then
-            Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+Copy(S, 2, 1000));
-      end;
+  if not Quit then
+  begin
+    QuitMsg:=S;
+    if Pos(':',QuitMsg) = 1 then
+      Delete(QuitMsg, 1, 1);
+    QuitMsg:=Copy(QuitMsg, 1, 160);
+    if (QuitMsg='') or (QuitMsg=' ') then QuitMsg:='Quit';
+    if not (Modes['i']) then
+      for I:=0 to Length(Channels)-1 do
+        if InChannel[Channels[I].Number] then
+        begin
+          for J:=0 to Length(Users)-1 do
+            if Users[J].InChannel[Channels[I].Number] then
+              Users[J].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);
+        end;
+    Quit:=true;
+    if Registered then
+      AddSeen(Nickname,QuitMsg);
+    if (Socket <> 0) then closesocket(Socket); Socket:=0;
+  end;
 end;
 
 procedure TUser.ExecNames(S: String);
@@ -1072,27 +1205,31 @@ begin
     Channel:=ChannelByName(CurChan);
     if Channel <> nil then
     begin
-      CurChan:=Channel.Name;
       N:=Channel.Number;
-      EventLog(Format(L_IRC_JOIN, [Nickname, CurChan]));
-      InChannel[N]:=True;
-      //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
-      if not Modes['i'] then
-        for I:=0 to Length(Users)-1 do
-        begin
-          if Users[I].InChannel[N] then
+      if not InChannel[N] then
+      begin
+        Quit:=false;
+        CurChan:=Channel.Name;
+        EventLog(Format(L_IRC_JOIN, [Nickname, CurChan]));
+        InChannel[N]:=True;
+        //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
+        if not Modes['i'] then
+          for I:=0 to Length(Users)-1 do
           begin
-            Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
-            for K:=1 to Length(IRCPrefModes) do
-              if Modes[IRCPrefModes[K]] then
-                Users[I].SendLn(':'+ServerHost+' MODE '+CurChan+' +'+IRCPrefModes[K]+' '+Nickname);
-          end;
-        end
-      else
-        SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
-      SendEvent(332, Channel.Name+' :'+Channel.Topic);
-      SendEvent(333, Channel.Name+' '+ServerHost+' '+IntToStr(Channel.CreationTime));
-      ExecNames(CurChan);
+            if Users[I].InChannel[N] then
+            begin
+              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
+              for K:=1 to Length(IRCPrefModes) do
+                if Modes[IRCPrefModes[K]] then
+                  Users[I].SendLn(':'+ServerHost+' MODE '+CurChan+' +'+IRCPrefModes[K]+' '+Nickname);
+            end;
+          end
+        else
+          SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
+        SendEvent(332, Channel.Name+' :'+Channel.Topic);
+        SendEvent(333, Channel.Name+' '+ServerHost+' '+IntToStr(Channel.CreationTime));
+        ExecNames(CurChan);
+      end;
     end
     else
       SendError(403,CurChan);
@@ -1113,12 +1250,13 @@ begin
       S:=Channel.Name;
       N:=Channel.Number;
       EventLog(Format(L_IRC_PART, [Nickname, S]));
-      if Modes['i'] then
-        SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
-      else
-        for I:=0 to Length(Users)-1 do
-          if Users[I].InChannel[N] then
-            Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S);
+      if not Quit then
+        if Modes['i'] then
+          SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
+        else
+          for I:=0 to Length(Users)-1 do
+            if Users[I].InChannel[N] then
+              Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S);
       InChannel[N]:=False;
     end;
 end;
@@ -1232,47 +1370,113 @@ end;
 
 procedure TUser.ExecMessage(Command, S: String);
 var
-  I, K, N: Integer;
-  Target, Msg: String;
+  I, K, N, Timelapse: Integer;
+  Target, Msg, Subcommand, Substr: String;
   User: TUser;
   Channel: TChannel;
 begin
-  if Modes['b'] then
-    ServerMessage('Sorry, but you are muted by '+LastSenior+' and thus cannot talk.')
+  Target:=Copy(S, 1, Pos(' ', S+' ')-1);
+  Target:=Copy(Target, 1, 20);
+  Delete(S, 1, Pos(':', S+':')-1);
+  Msg:=S;
+  if Pos(':', Msg)=1 then Delete(Msg, 1, 1);
+  if Length(Msg) > 512 then
+  begin
+    Die('killed','Message too long','server');
+    EventLog(Nickname+' has been killed due to exceeding the maximum message length. Here''s part of his message: "'+Copy(Msg,1,512)+'".');
+  end
   else
   begin
-    Target:=Copy(S, 1, Pos(' ', S+' ')-1);
-    Delete(S, 1, Pos(':', S+':')-1);
-    Channel:=ChannelByName(Target);
-    Msg:=S;
-    if Pos(':', Msg)=1 then Delete(Msg, 1, 1);
-    if Channel <> nil then
+    while (Pos(' ',Msg)=1) or (Pos(#160,Msg)=1) do
+      Delete(Msg,1,1);
+    Timelapse:=MillisecondsBetween(Now, LastMessageTime);
+    if Timelapse > FloodPoints then
+      FloodPoints:=0
+    else
+      FloodPoints:=FloodPoints-Timelapse;
+    LastMessageTime:=Now;
+    FloodPoints:=FloodPoints+2000+Length(Msg)*4;
+    if FloodPoints > 6000 then
     begin
-      Target:=Channel.Name;
-      N:=Channel.Number;
-      EventLog('['+Target+'] <'+Nickname+'> '+Copy(Msg, 1, 1000));
-      for I:=0 to Length(Users)-1 do
-        if Users[I].InChannel[N] and (Users[I]<>Self)then
-          Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' '+S);
+      Die('killed','Message flood','server');
+      EventLog(Nickname+' has been killed due to message flood. Last message: "'+Msg+'".');
     end
     else
     begin
-      User:=nil;
-      for K:=1 to Length(IRCPrefixes) do
-        if Pos(IRCPrefixes[K],Target) <> 0 then
-          Delete(Target,Pos(IRCPrefixes[K],Target),1);
-      User:=UserByName(Target);
-      if User=nil then
-        SendError(401,Target)
-      else
+      if Msg <> '' then
       begin
-        Target := User.Nickname;
-        EventLog('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Copy(Msg, 1, 1000));
-        LogToOper('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Copy(Msg, 1, 1000));
-        User.SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' '+S);
-      end;
+        if not ContextCommand(Msg) then
+        begin
+          if Modes['b'] then
+            ServerMessage('Sorry, but you are muted by '+LastSenior+' and thus cannot talk.')
+          else
+          begin
+            Channel:=ChannelByName(Target);
+            if Channel <> nil then
+            begin
+              Target:=Channel.Name;
+              N:=Channel.Number;
+
+              Substr:=Msg;
+
+              if Pos('!',Substr) = 1 then
+              begin
+                Subcommand:=Copy(Substr, 2, Pos(' ',Substr+' ')-1);
+                Delete(Substr, 1, Pos(' ',Substr+' '));
+
+                if (TextMatch(Subcommand,'host')) or (TextMatch(Subcommand,'phost')) then
+                begin
+                  EventLog('[COMMAND] <'+Nickname+'> '+Msg);
+                  ServerMessage('Sorry, but there is no HostingBuddy on this server. HostingBuddy is a proprietary bot owned by CyberShadow which is not available for use on unofficial WormNET servers. Try hosting yourself or install WormNAT2 if you can''t: http://worms2d.info/WormNAT2')
+                end
+                else
+                  if TextMatch(Subcommand,'seen') then
+                  begin
+                    EventLog('[COMMAND] <'+Nickname+'> '+Msg);
+                    ExecSeen(Substr);
+                  end
+                else
+                begin
+                  EventLog('['+Target+'] <'+Nickname+'> '+Msg);
+                  for I:=0 to Length(Users)-1 do
+                    if Users[I].InChannel[N] and (Users[I]<>Self)then
+                      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg);
+                end;
+              end
+              else
+              begin
+                EventLog('['+Target+'] <'+Nickname+'> '+Msg);
+                for I:=0 to Length(Users)-1 do
+                  if Users[I].InChannel[N] and (Users[I]<>Self)then
+                    Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg);
+              end;
+            end
+            else
+            begin
+              User:=nil;
+              for K:=1 to Length(IRCPrefixes) do
+                if Pos(IRCPrefixes[K],Target) <> 0 then
+                  Delete(Target,Pos(IRCPrefixes[K],Target),1);
+              User:=UserByName(Target);
+              if User=nil then
+                SendError(401,Target)
+              else
+              begin
+                Target := User.Nickname;
+                if User.Away then
+                  SendEvent(301,Target+' :'+User.AwayMsg);
+                EventLog('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Msg);
+                LogToOper('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+Msg);
+                User.SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg);
+              end;
+            end;
+        //  Sleep(1000); // throttle
+          end;
+        end;
+      end
+      else
+        SendError(412,Command);
     end;
-    Sleep(1000); // throttle
   end;
 end;
 
@@ -1325,6 +1529,7 @@ const Command='WHO';
 var
   I, K: Integer;
   Pref, Target, ChanStr: String;
+  Presence: char;
   Channel: TChannel;
 begin
   //:wormnet1.team17.com 352 DoctorWho #AnythingGoes Username no.address.for.you wormnet1.team17.com TiCPU H :0 TiCpu
@@ -1333,7 +1538,12 @@ begin
   Channel:=ChannelByName(S);
   for I:=0 to Length(Users)-1 do
   begin
+    if Users[I].Away then
+      Presence:='G'
+    else
+      Presence:='H';
     Pref:='';
+
     for K:=1 to Length(IRCPrefModes) do
       if Users[I].Modes[IRCPrefModes[K]] then
       begin
@@ -1368,10 +1578,10 @@ begin
       begin
         if not (Users[I].Modes['i']) then
           if Users[I].Nickname <> '' then
-            SendEvent(352, ChanStr+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' H'+Pref+' :0 '+Users[I].Realname);
+            SendEvent(352, ChanStr+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+Users[I].Realname);
       end
       else
-        SendEvent(352, ChanStr+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' H'+Pref+' :0 '+Realname);
+        SendEvent(352, ChanStr+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+Realname);
       if (S<>'') and (S=Users[I].Nickname) then Break;
     end
     else if Users[I].InChannel[Channel.Number] then
@@ -1381,9 +1591,9 @@ begin
       else
       if not (Users[I].Modes['i']) then
         if Users[I].Nickname <> Nickname then
-          SendEvent(352, Channel.Name+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' H'+Pref+' :0 '+Users[I].Realname)
+          SendEvent(352, Channel.Name+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' '+Presence+Pref+' :0 '+Users[I].Realname)
         else
-          SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' H'+Pref+' :0 '+Realname);
+          SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' '+Presence+Pref+' :0 '+Realname);
       end;
   end;
   if S='' then
@@ -1414,18 +1624,16 @@ var
   I: Integer;
   User: TUser;
 begin
+  S:=Copy(S, 1, Pos(' ',S+' ')-1);
   Log(Format(L_IRC_EXPECT, [ConnectingFrom, S]));
-  User:=nil;
-  for I:=0 to Length(Users)-1 do
-  if Users[I].Nickname=S then
-    User:=Users[I];
-    if User=nil then
-      SendError(401,S)
-    else
-    begin
-      SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from '+StealthIP);
-      PrepareLink(Self, User);
-    end;
+  User:=UserByName(S);
+  if User=nil then
+    SendError(401,S)
+  else
+  begin
+    SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from his IP');
+    PrepareLink(Self, User);
+  end;
 end;
 
 procedure TUser.ExecGames(S: String);
@@ -1464,22 +1672,45 @@ begin
 end;
 
 procedure TUser.Die(Action, Reason, Master: String);
-var I: Integer;
+var
+  I: Integer;
 begin
   LastSenior:=Master;
+  QuitMsg:=UpperFCStr(Action)+' by '+Master+': '+Reason;
   for I:=0 to Length(Channels)-1 do
     if InChannel[Channels[I].Number] then
       InChannel[Channels[I].Number] := False;
   if not Modes['i'] then
     for I:=0 to Length(Users)-1 do
-      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+UpperFCStr(Action)+' by '+Master+': '+Reason);
+      Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);
   SendLn('ERROR :You have been '+LowerFCStr(Action)+' by '+Master+': '+Reason);
+  if Registered then
+    AddSeen(Nickname,QuitMsg);
   if (Socket <> 0) then closesocket(Socket); Socket:=0;
+end;
+
+function TUser.ContextCommand(S: String): Boolean;
+var Command: string;
+begin
+  Result:=false;
+  if Pos('$',S) = 1 then
+  begin
+    Result:=true;
+    Delete(S,1,1);
+    Command:=Copy(S, 1, Pos(' ', S+' ')-1);
+    if not ((TextMatch(Command,'PRIVMSG')) or (TextMatch(Command,'NOTICE'))) then
+    begin
+      EventLog('[COMMAND] <'+Nickname+'> $'+S);
+      ExecuteCommand(S);
+    end
+    else
+      EventLog('[IGNORED] <'+Nickname+'> $'+S);
+  end
 end;
 
 function TUser.Registered: Boolean;
 begin
-  if Nickname='' then
+  if (Nickname='') or (Username='') then
     Result:=false
   else
     Result:=true;
@@ -1648,6 +1879,26 @@ begin
   end;
 end;
 
+procedure AddSeen(Nick, QuitMsg: String);
+var I: Integer;
+begin
+  if Length(Seens) < 1 then SetLength(Seens,1);
+  for I:=0 to Length(Seens)-1 do
+    if TextMatch(Nick,Seens[I].Nick) then
+    begin
+      Seens[I].LastSeen:=Now;
+      Seens[I].QuitMsg:=QuitMsg;
+      Break;
+    end
+    else if I=Length(Seens)-1 then
+    begin
+      SetLength(Seens,Length(Seens)+1);
+      Seens[Length(Seens)-1].Nick:=Nick;
+      Seens[Length(Seens)-1].LastSeen:=Now;
+      Seens[Length(Seens)-1].QuitMsg:=QuitMsg;
+    end;
+end;
+
 function AddChannel(Name, Scheme, Topic: String): Boolean;
 var
   I, L: Integer;
@@ -1683,7 +1934,7 @@ begin
   Result := nil;
   for I:=0 to Length(Users)-1 do
     if IP <> '' then
-      if UpperCase(Users[I].ConnectingFrom) = UpperCase(IP) then
+      if TextMatch(Users[I].ConnectingFrom,IP) then
       begin
         Result := Users[I];
         Break;
@@ -1697,7 +1948,7 @@ begin
   Result := nil;
   for I:=0 to Length(Users)-1 do
     if Name <> '' then
-      if UpperCase(Users[I].Nickname) = UpperCase(Name) then
+      if TextMatch(Users[I].Nickname,Name) then
       begin
         Result := Users[I];
         Break;
@@ -1711,7 +1962,7 @@ begin
   Result := nil;
   for I:=0 to Length(Channels)-1 do
     if Name <> '' then
-      if UpperCase(Channels[I].Name) = UpperCase(Name) then
+      if TextMatch(Channels[I].Name,Name) then
       begin
         Result := Channels[I];
         Break;
@@ -1723,7 +1974,7 @@ var I: Integer;
 begin
   Result := False;
   for I:=0 to Length(Users)-1 do
-    if UpperCase(Users[I].Nickname)=UpperCase(Nick) then
+    if TextMatch(Users[I].Nickname,Nick) then
       Result := True;
 end;
 
@@ -1770,7 +2021,11 @@ begin
         User.SignonTime:=IRCDateTimeNow;
         User.Socket:=AcceptSocket;
         User.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-        User.LastSenior:='SERVER';
+        User.LastSenior:='server';
+        User.FloodPoints:=0;
+        User.Quit:=false;
+        User.Away:=false;
+        User.LastMessageTime:=Now;
     //  User.Modes['s']:=True;
         SetLength(Users, Length(Users)+1);
         Users[Length(Users)-1]:=User;

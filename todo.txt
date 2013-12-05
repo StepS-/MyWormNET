@@ -1,3 +1,2 @@
- - more basic commands support like AWAY etc.
- - HTTP improvements
- - anti-flood protection
+ - handmade localization system with external ini files: resource-based is bound to executables and lacks proper unicode support, as well as ease of translation.
+

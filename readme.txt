@@ -8,13 +8,11 @@ Made by CyberShadow: https://github.com/CyberShadow/MyWormNET/
 
 StepS' modification currently includes the following:
 
-• Hiding IP addresses for everyone except self, mask configurable with the ini file
-   - Default is "no.address.for.you"
-• WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
-   - A sample news.txt file is provided
 • New multi-channel support with channel schemes and topics: can be set with the Channels.ini file, section names must be numbered
    - Section names go as follows: [1], [2], [3], ...
    - If missing Channels.ini file or its contents, a default #AnythingGoes channel will be created.
+• Message anti-flood
+   - Points-based, works depending on message size and send rate, rate cooldown is 2 seconds
 • Banlists for IPs and nicks: to ban and unban nick or ip when the server is active, use the PERMABAN and REMOVEBAN commands on a target with an optional reason (available for ops and above)
    - Connections from banned IPs to any of the server ports will be rejected.
    - Banned nicks are not case-sensitive.
@@ -23,15 +21,25 @@ StepS' modification currently includes the following:
    - Russian localization by StepS
    - Polish localization by PeCeT_full
    - German (Austria) localization by Gabberarmy
+• WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
+   - A sample news.txt file is provided
+• Hiding IP addresses for everyone except self, mask configurable with the ini file
+   - Default is "no.address.for.you"
 • Support for x64 and various different Delphi compilers (from Delphi 7 to XE5 at least)
 • Support for Unicode compiler
+• Support for the SEEN command, also available with !seen
+   - Will retrieve the seen status from quit of a given user with time since the server start
+   - Not visible to others when used as !seen
+• A notification will be thrown when attempting to use the !host or !phost commands
 • Users' IP addresses are no longer forced when hosting
    - The hosting address will no longer be overridden by the socket's address, allowing for WormNAT2 and custom address hosting.
 • Changed the Game.asp content to allow The Wheat Snooper host games
    - Wheat Snooper looks for the "Object moved" substring and then for some stupid reason fetches the GameList URL from there. Without it, it refuses to host.
 • Now the verbose console logging is off by default
-   - You may enable it again by setting it to 1 in the ini file
+   - You may enable it again by setting it to "true" in the ini file
    - Disk logging to WNServer.log will still stay verbose unless that file is deleted
+• Can type commands beginning with $, allowing to use server commands from W:A
+   - Such commands are not visible to anyone after being sent
 • Fixed the passworded games' padlock icons and locale typecodes
    - Properly show if the game is open or not, as well as the country locale code if the flag is not in 0-48 range
 • Game list can no longer be flooded with the hosts from the same IP
@@ -45,6 +53,7 @@ StepS' modification currently includes the following:
 • LogToOper is now disabled by default
    - Set yourself to mode +L to enable logging (available for ops and above)
 • Support for the ISON command
+• Support for the AWAY command
 • Finalized the WHO command
    - Now properly gets an one-user or one-channel list, as well as 'o' list
 • Support for the WHOIS command
@@ -74,6 +83,7 @@ StepS' modification currently includes the following:
    - Owner (superadmin) is mode +q, Admin is mode +a, etc.
    - All commands except sendraw are available to normal ops, so most users will find this useless unless they want more defined privileges (as in, ops can act upon ops, unlike admins)
    - Use TAKEOWN with the same operator password to make yourself a server owner.
+• Change the game ID counter with the FORCEGAMEID command (available for ops and above)
 • Empty Username will now be adjusted
 • Missing sharps in IRC channel names will now be adjusted
 • Empty nicknames can no longer initiate the login procedure

@@ -25,8 +25,9 @@ type
 
   TGame=record
     Created: TDateTime;
-    Name, Password, Loc, PassNeeded, Chan, LType: string;
+    Name, Password, Loc, Chan, LType: string;
     HosterNickname, HosterAddress, HostedFrom: string;
+    PassNeeded: char;
     Scheme: string;
     GameID: Integer;
     end;
@@ -70,8 +71,7 @@ begin
     Buffer:='';
     BufferA:='';
     repeat
-      BufferA:='';
-      SA:='';
+      BufferA:=ansistring(Buffer);
       R:=ioctlsocket(Socket, FIONREAD, Bytes);
       if R=SOCKET_ERROR then
       begin
@@ -94,7 +94,7 @@ begin
       BufferA := BufferA + SA;
       Buffer := String(BufferA);
       S := String(SA);
-    until Copy(Buffer, Length(Buffer)-3, 4)=#13#10#13#10;      // ends with an empty line
+    until Copy(BufferA, Length(BufferA)-3, 4)=#13#10#13#10;      // ends with an empty line
 
     GetLine(Buffer, S);
     Log('[HTTP] '+ConnectingFrom+' '+S);
@@ -130,9 +130,8 @@ begin
     //while GetLine(Buffer, S) do
     //  WriteLn('> ' + S);
 
-    Headers:='HTTP/1.0 200 OK'#13#10;
+    Headers:='HTTP/1.1 200 OK'#13#10;
     Headers:=Headers+'X-Powered-By: MyWormNET'#13#10;
-//    Headers:=Headers+'Connection: close'#13#10;
 //    Headers:=Headers+'X-Test: BlaBla'#13#10;
     Body:='';
     if FileName='Login.asp' then
@@ -262,13 +261,13 @@ begin
     if FileName='GameList.asp' then
       begin
       CleanUpGames;
-      Body:=Body+'<GAMELISTSTART>'#10;
+      Body:=Body+'<GAMELISTSTART>'#13#10;
       Str:=Parameters.Values['Channel'];
       for I:=0 to Length(Games)-1 do
         with Games[I] do
-          if Str=Chan then
-            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
-      Body:=Body+'<GAMELISTEND>'#10;
+          if UpperCase(Str)=UpperCase(Chan) then
+            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#13#10;
+      Body:=Body+'<GAMELISTEND>'#13#10;
       end
     else
     if FileName='UpdatePlayerInfo.asp' then

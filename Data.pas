@@ -10,9 +10,12 @@ function Decode64(S: string): string;
 function LowerFCStr(S: string): string;
 function UpperFCStr(S: string): string;
 
+function TextMatch(S1, S2: string): Boolean;
+
 function GetLine(var Source, Dest: string): Boolean;
 function StrToHex(S: string): string;
 function GetFile(FN: string): string;
+function TextToFile(S, FN: string): Boolean;
 
 implementation
 
@@ -93,6 +96,13 @@ begin
   Result:=UpperCase(S[1])+Copy(S,2,Length(S));
 end;
 
+function TextMatch(S1, S2: string): Boolean;
+begin
+  Result:=false;
+  if UpperCase(S1) = UpperCase(S2) then
+    Result:=true;
+end;
+
 function GetLine(var Source, Dest: string): Boolean;
 var
   P, P1, P2: Integer;
@@ -154,7 +164,7 @@ begin
     Assign(F, FN);
     Reset(F, 1);
     SetLength(AStr, FileSize(F));
-    BlockRead(f, Astr[1], FileSize(F));
+    BlockRead(F, AStr[1], FileSize(F));
     Result:=String(AStr);
     CloseFile(F);
   end
@@ -162,5 +172,17 @@ begin
     Result:='';
 end;
 
+function TextToFile(S, FN: string): boolean;
+var
+  F: text;
+begin
+  {$I-}
+  Assign(F, FN);
+  Append(F);
+  WriteLn(F, S);
+  Close(f);
+  {$I+}
+  if IOResult<>0 then ;
+end;
 
 end.

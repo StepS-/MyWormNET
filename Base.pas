@@ -8,16 +8,17 @@ unit Base;
 
 interface
 const
-  APPVERSION = '1.3.3.7';
+  APPVERSION = '1.3.5.0';
 
 var
   ServerHost: string;  // our hostname
-  IRCPort, HTTPPort, WormNATPort, VerboseLogging: Integer;
+  IRCPort, HTTPPort, WormNATPort: Integer;
   IRCOperPassword: string;
   IRCChannel: string;
   StealthIP: string;
   NetworkName: string;
   StartupTime: string;
+  VerboseLogging: string;
 
   IPBans, NickBans: array of String;
 
@@ -28,6 +29,7 @@ procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;
 
 procedure LoadBanlists;
+procedure LoadParams;
 
 function BannedIP(IP: string): Boolean;
 function BannedNick(Nick: string): Boolean;
@@ -42,7 +44,30 @@ uses
 {$ELSE}
   errors,
 {$ENDIF}
-  SysUtils, IRCServer;
+  IniFiles, SysUtils, IRCServer, Data;
+
+procedure LoadParams;
+var
+  Config: TMemIniFile;
+begin
+  Config := TMemIniFile.Create(ExtractFilePath(ParamStr(0))+'WNServer.ini');
+  ServerHost      :=Config.ReadString ('WormNet','ServerHost',     'localhost');
+  IRCPort         :=Config.ReadInteger('WormNet','IRCPort',               6667);
+  HTTPPort        :=Config.ReadInteger('WormNet','HTTPPort',                80);
+  WormNATPort     :=Config.ReadInteger('WormNet','WormNATPort',          17018);
+  VerboseLogging  :=Config.ReadString ('WormNet','VerboseLogging',      'false');
+  IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
+  StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
+  NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
+
+  ServerHost:=Copy(ServerHost,1,Pos(' ',ServerHost+' ')-1);
+  IRCOperPassword:=Copy(IRCOperPassword,1,Pos(' ',IRCOperPassword+' ')-1);
+  while Pos(' ',StealthIP) <> 0 do
+    StealthIP[Pos(' ',StealthIP)]:=#160;
+  while Pos(' ',NetworkName) <> 0 do
+    NetworkName[Pos(' ',NetworkName)]:=#160;
+
+end;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 var
@@ -52,15 +77,9 @@ begin
   S:='['+TimeToStr(Now)+'] '+S;
 
   // logging to disk will work only if the file WNServer.log exists
-  {$I-}
-  Assign(F, ExtractFilePath(ParamStr(0))+'WNServer.log');
-  Append(F);
-  WriteLn(F, S);
-  Close(f);
-  {$I+}
-  if IOResult<>0 then ;
+  TextToFile(S, ExtractFilePath(ParamStr(0))+'WNServer.log');
 
-  if (VerboseLogging > 0) or (Important) then
+  if (VerboseLogging = 'true') or (Important) then
     if not DiskOnly then
     begin
       // logging to console, if it's enabled
@@ -68,15 +87,10 @@ begin
       WriteLn(S);
       {$I+}
       if IOResult<>0 then ;
-
-      // echo to IRC OPERs
- //     LogToOper(S);
     end;
 end;
 
 procedure EventLog(S: string; DiskOnly: Boolean=false);
-var
-  F: text;
 begin
   Log(S,DiskOnly,true);
 
@@ -84,13 +98,9 @@ begin
     S:='['+DateTimeToStr(Now)+'] '+S;
 
   // logging to disk will work only if the file EventLog.log exists
-  {$I-}
-  Assign(F, ExtractFilePath(ParamStr(0))+'EventLog.log');
-  Append(F);
-  WriteLn(F, S);
-  Close(f);
-  {$I+}
-  if IOResult<>0 then ;
+  TextToFile(S, ExtractFilePath(ParamStr(0))+'EventLog.log');
+  // echo to IRC OPERs
+  LogToOper(S);
 end;
 
 procedure LoadBanlists;
@@ -103,9 +113,9 @@ begin
   if not FileExists(FilePath) then
   begin
     Rewrite(F);
-    WriteLn(F, 'fuck');
+    WriteLn(F, 'HostingBuddy');
     SetLength(NickBans,1);
-    NickBans[0]:='fuck';
+    NickBans[0]:='HostingBuddy';
     Close(F);
   end
   else
@@ -124,9 +134,9 @@ begin
   if not FileExists(FilePath) then
   begin
     Rewrite(F);
-    WriteLn(F, '0.0.0.0');
+    WriteLn(F, '1.1.1.1');
     SetLength(IPBans,1);
-    IPBans[0]:='0.0.0.0';
+    IPBans[0]:='1.1.1.1';
     Close(F);
   end
   else
