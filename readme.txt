@@ -67,8 +67,10 @@ StepS' modification currently includes the following:
    - No more channel notices when a game is hosted or closed
 • LogToOper is now disabled by default
    - Set yourself to mode +L to enable logging (available for ops and above)
-• Support for the ISON command
+• Support for the ISON command       
+• Support for the TOPIC command which can now be called anytime
 • Support for the LUSERS command which can now be called anytime
+   - Now also includes max user count, unknown connections and a total number of connections
 • Support for the AWAY command
 • Finalized the WHO command
    - Now properly gets an one-user or one-channel list, as well as 'o' list
