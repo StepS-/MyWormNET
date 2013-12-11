@@ -28,11 +28,11 @@ resourcestring
   L_IRC_TYPE_NICKNAME = 'nickname';
   L_IRC_TYPE_IP = 'IP';
   L_IRC_ACTION_FAILBAN = '%s has attempted to ban %s without privileges.';
-  L_IRC_ACTION_BAN = '%s has banned %s';
-  L_IRC_ACTION_UNBAN = '%s has unbanned %s';
-  L_IRC_ACTION_PRANK = '%s has pranked %s';
+  L_IRC_ACTION_BAN = '%s has banned %s, reason: %s';
+  L_IRC_ACTION_UNBAN = '%s has unbanned %s, reason: %s';
+  L_IRC_ACTION_PRANK = '%s has pranked %s, description: %s';
   L_IRC_ACTION_KICKALL = '%s has killed everyone on the server.';
-  L_IRC_ACTION_KILL = '%s has killed %s';
+  L_IRC_ACTION_KILL = '%s has killed %s, reason: %s';
   L_IRC_ACTION_MUTE = '%s has muted %s.';
   L_IRC_ACTION_UNMUTE = '%s has unmuted %s.';
   L_IRC_ACTION_HIDE = '%s has made %s invisible.';

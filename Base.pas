@@ -8,17 +8,21 @@ unit Base;
 
 interface
 const
-  APPVERSION = '1.3.5.0';
+  APPVERSION = '1.3.6.0';
 
 var
   ServerHost: string;  // our hostname
   IRCPort, HTTPPort, WormNATPort: Integer;
+  AuthSecret, AuthChallenge, AuthAnswer: string;
   IRCOperPassword: string;
   IRCChannel: string;
   StealthIP: string;
   NetworkName: string;
-  StartupTime: string;
-  VerboseLogging: string;
+  StartupTime, CreationTime: string;
+  VerboseLogging, ForceAuthping: Boolean;
+
+  MaxIRCUsers: Integer=0;
+  IRCConnections: Int64=0;
 
   IPBans, NickBans: array of String;
 
@@ -30,12 +34,13 @@ function WinSockErrorCodeStr(Code: Integer): string;
 
 procedure LoadBanlists;
 procedure LoadParams;
+procedure LoadAuthping;
 
 function BannedIP(IP: string): Boolean;
 function BannedNick(Nick: string): Boolean;
 
-function IRCDateTimeNow : Int64;
-function TextDateTimeNow : string;
+function IRCDateTime(T: TDateTime) : Int64;
+function TextDateTime(T: TDateTime) : string;
 
 implementation
 uses
@@ -55,10 +60,12 @@ begin
   IRCPort         :=Config.ReadInteger('WormNet','IRCPort',               6667);
   HTTPPort        :=Config.ReadInteger('WormNet','HTTPPort',                80);
   WormNATPort     :=Config.ReadInteger('WormNet','WormNATPort',          17018);
-  VerboseLogging  :=Config.ReadString ('WormNet','VerboseLogging',      'false');
   IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
   StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
   NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
+
+  VerboseLogging  :=Config.ReadBool   ('Debug','VerboseConsoleLogging', false);
+  ForceAuthping   :=Config.ReadBool   ('Debug','ForceAuthping',         false);
 
   ServerHost:=Copy(ServerHost,1,Pos(' ',ServerHost+' ')-1);
   IRCOperPassword:=Copy(IRCOperPassword,1,Pos(' ',IRCOperPassword+' ')-1);
@@ -67,6 +74,11 @@ begin
   while Pos(' ',NetworkName) <> 0 do
     NetworkName[Pos(' ',NetworkName)]:=#160;
 
+  if ForceAuthping then
+    LoadAuthping;
+
+  StartupTime:=TextDateTime(Now);
+  CreationTime:=TextDateTime(FileDateToDateTime(FileAge(ExtractFileName(ParamStr(0)))));
 end;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
@@ -79,7 +91,7 @@ begin
   // logging to disk will work only if the file WNServer.log exists
   TextToFile(S, ExtractFilePath(ParamStr(0))+'WNServer.log');
 
-  if (VerboseLogging = 'true') or (Important) then
+  if VerboseLogging or Important then
     if not DiskOnly then
     begin
       // logging to console, if it's enabled
@@ -94,13 +106,14 @@ procedure EventLog(S: string; DiskOnly: Boolean=false);
 begin
   Log(S,DiskOnly,true);
 
+  // echo to IRC OPERs
+  LogToOper(S);
+
   if Copy(S, 1, 1)<>'-' then
     S:='['+DateTimeToStr(Now)+'] '+S;
 
   // logging to disk will work only if the file EventLog.log exists
   TextToFile(S, ExtractFilePath(ParamStr(0))+'EventLog.log');
-  // echo to IRC OPERs
-  LogToOper(S);
 end;
 
 procedure LoadBanlists;
@@ -113,9 +126,9 @@ begin
   if not FileExists(FilePath) then
   begin
     Rewrite(F);
-    WriteLn(F, 'HostingBuddy');
+    WriteLn(F, 'fuck');
     SetLength(NickBans,1);
-    NickBans[0]:='HostingBuddy';
+    NickBans[0]:='fuck';
     Close(F);
   end
   else
@@ -149,6 +162,21 @@ begin
     end;
     Close(F);
   end;
+end;
+
+procedure LoadAuthping;
+var Buf: String;
+begin
+  if not FileExists('authping.txt') then
+  begin
+    TextToFile('wormnet.team17.com$1', 'authping.txt', true);
+    TextToFile('0123456789ABCDEF0123456789ABCDEF01234567', 'authping.txt');
+    TextToFile('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'authping.txt');
+  end;
+  Buf:=GetFile('authping.txt')+#10;
+  GetLine(Buf,AuthSecret);
+  GetLine(Buf,AuthChallenge);
+  GetLine(Buf,AuthAnswer);
 end;
 
 function BannedIP(IP: String): Boolean;
@@ -200,14 +228,16 @@ end;
 
 {$ENDIF}
 
-function IRCDateTimeNow : Int64;
+{$I stuff.inc}
+
+function IRCDateTime(T: TDateTime) : Int64;
 begin
-  Result := Round(Now * SecsPerDay) - 2209176000;
+  Result := Round(T * SecsPerDay) - 2209176000;
 end;
 
 {$IFDEF OS_MSWIN}
 
-function TextDateTimeNow : string;
+function TextDateTime(T: TDateTime) : string;
 var
   Timezone: TTimeZoneInformation;
   Side: Char;
@@ -220,14 +250,16 @@ begin
   StrOffset := Copy(StrOffset,1,Length(StrOffset)-3);
   if UTCOffset>0 then Side:='-'
   else Side:='+';
-  Result := DateTimeToStr(Now)+' UTC'+Side+StrOffset;
+  EnglishDates;
+  Result := FormatDateTime('dddd mmmm d yyyy',T)+' -- '+TimeToStr(T)+' UTC'+Side+StrOffset;
 end;
 
 {$ELSE}
 
-function TextDateTimeNow : string;
+function TextDateTime(T: TDateTime) : string;
 begin
-  Result := DateTimeToStr(Now)+' server local time';
+  EnglishDates;
+  Result := FormatDateTime('dddd mmmm d yyyy',T)+' -- '+TimeToStr(T)+' server local time';
 end;
 
 {$ENDIF}

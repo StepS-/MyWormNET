@@ -20,12 +20,10 @@ var
 
 begin
   ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
-  //Log('------------------ '+DateTimeToStr(Now)+' ------------------');
   EventLog('------------------ '+DateTimeToStr(Now)+' ------------------',true);
   EventLog(Format(L_START, [APPVERSION]));
 
   LoadParams;
-  StartupTime:=TextDateTimeNow;
 
   {$IFDEF OS_MSWIN}
   WSAStartUp(2, WSA);

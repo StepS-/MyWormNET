@@ -20,7 +20,7 @@ type
     FileName: string;
     Parameters: TStringList;
     procedure Execute; override;
-    procedure SendLn(S: string);
+    procedure SendLn(S: string; Logging: Boolean=true);
     end;
 
   TGame=record
@@ -34,9 +34,10 @@ type
 
 var
   Games: array of TGame;
-  GameCounter: Integer=0;
+  GameCounter: Int64=1000000;
 
 procedure StartHTTPServer;
+function AspPhp(S, PageName: string): Boolean;
 
 implementation
 uses
@@ -61,8 +62,9 @@ end;
 procedure TRequest.Execute;
 var
   BufferA, SA: AnsiString;
-  Buffer, S, Str, Headers, Body: String;
+  Buffer, S, Str, CmdParam, Headers, Body: String;
   I, J, N, R, Bytes: Integer;
+  ExternalFile: Boolean;
 //User: TUser;
   Channel: TChannel;
   Game: TGame;
@@ -102,20 +104,25 @@ begin
       raise Exception.Create('Only GET requests are supported');
     Delete(S, 1, 4);
     S:=Copy(S, 1, Pos(' ', S+' ')-1);
-    if LowerCase(Copy(S, 1, 7))='http://' then
-      begin
+    S:=EncodeURI(S);
+    if TextMatch(Copy(S, 1, 7),'http://') then
+    begin
       Delete(S, 1, 7);
       Delete(S, 1, Pos('/', S)-1);
-      end;
+    end;
     if Copy(S, 1, 2)='//' then   // workaround to some dumb bug
-      begin
+    begin
       Delete(S, 1, 2);
       Delete(S, 1, Pos('/', S));
-      end; 
+    end;
     while Copy(S, 1, 1)='/' do
       Delete(S, 1, 1);
     if Copy(S, 1, 15)='wormageddonweb/' then
       Delete(S, 1, 15);
+    if Copy(S, 1, 7)='wwpweb/' then
+      Delete(S, 1, 7);
+    if Copy(S, 1, 7)='wwpnet/' then
+      Delete(S, 1, 7);
     FileName:=Copy(S, 1, Pos('?', S+'?')-1);
     Delete(S, 1, Pos('?', S));
     S:=S+'&';
@@ -127,29 +134,63 @@ begin
       Delete(S, 1, Pos('&', S));
     end;
 
+    S:=EncodeURI(S);
+
     //while GetLine(Buffer, S) do
     //  WriteLn('> ' + S);
 
     Headers:='HTTP/1.1 200 OK'#13#10;
+    Headers:=Headers+'Server: MyWormNET/'+APPVERSION+#13#10;
     Headers:=Headers+'X-Powered-By: MyWormNET'#13#10;
+    Headers:=Headers+'Pragma: no-cache'#13#10;
+    Headers:=Headers+'Vary: Accept-Encoding'#13#10;
 //    Headers:=Headers+'X-Test: BlaBla'#13#10;
     Body:='';
-    if FileName='Login.asp' then
+    if TextMatch(FileName,'Login.asp') then
     begin
-      if ConnectingFrom='127.0.0.1' then
-        Body:='<CONNECT 127.0.0.1>'
+      if (ConnectingFrom='127.0.0.1') or (Pos('192.168.',ConnectingFrom) = 1) or (Pos('10.',ConnectingFrom) = 1) then
+        Body:='<CONNECT '+ConnectingFrom+'>'
       else
         Body:='<CONNECT '+ServerHost+'>';
       Body:=Body+#13#10'<MOTD>'+GetFile('news.txt')+#13#10'</MOTD>';
     end
     else
-    if FileName='Rankings.asp' then
+    if TextMatch(FileName,'Login.php') then
+      Body:='<CONNECT '+ServerHost+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=Username IRCPASS=>'
+    else
+    if TextMatch(FileName,'UpdatePlayerInfo.asp') then
+      Body:='<NOTHING>'#10
+    else
+    if TextMatch(FileName,'UpdatePlayerInfo.php') then
+      Body:='<CONNECT '+ServerHost+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=Username IRCPASS=>'
+    else
+    if AspPhp(FileName,'Rankings') then
       Body:='<CENTER>Sorry, this server doesn''t support rankings.</CENTER>'
     else
-    if FileName='ProcessGameResult.asp' then
-      Body:='<NOTHING>'
+    if AspPhp(FileName,'ProcessGameResult') then
+      Body:='<NOTHING>'#10
     else
-    if FileName='RequestChannelScheme.asp' then
+    if AspPhp(FileName,'WelcomeLoginForm') then
+    begin
+  //    Body:='<CHECK tw4C0Nf29amp29HSP/S83BJ8UOjWNvxoCX8FssT8P4a8HztIqci5j/NHZ84JCXZzNXpMyfK/rcA3K00=>'#10;
+      Body:='<CHECK AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=>'#10;
+      Body:=Body+'<WEBADDRESS /wwpweb/>'#10;
+      Body:=Body+'<EXTENSION .php>'#10;
+      Body:=Body+'<FONT Size=1 Colour=0>                               Welcome to '+NetworkName+'<BR></FONT>'#10;
+      Body:=Body+'<br><br><FONT Size=0 Colour=0>                                 You can use any username / password to log in<BR></FONT>'#10;
+      Body:=Body+'<FONT Size=3 Colour=3>                                                               Your IP address is detected as: '+ConnectingFrom+'<BR></FONT>'#10;
+      Body:=Body+'<br>'#10;
+      Body:=Body+'<a href="/wwpweb/SelectServer.php"><FONT Size=0>                                                                        Login<BR></FONT>'#10;
+      Body:=Body+'<br></a>'#10;
+    end
+    else
+    if AspPhp(FileName,'SelectServer') or AspPhp(FileName,'LoginForm') then
+      Body:='<SHOWLOGIN>'#10
+    else
+    if AspPhp(FileName,'RequestAuth') then
+      Body:='<ANSWER '+AuthAnswer+'>'#10
+    else
+    if AspPhp(FileName,'RequestChannelScheme') then
     begin
       Str:='#'+Parameters.Values['Channel'];
       Channel:=ChannelByName(Str);
@@ -160,8 +201,10 @@ begin
     end
     else
     // Cmd=Create&Name=ßCyberShadow-MD&HostIP=cybershadow.no-ip.org&Nick=CyberShadow-MD&Pwd=123&Chan=AnythingGoes&Loc=40&Type=0 HTTP/1.0
-    if FileName='Game.asp' then
-      if Parameters.Values['Cmd']='Create' then
+    if AspPhp(FileName,'Game') then
+    begin
+      CmdParam:=Parameters.Values['Cmd'];
+      if TextMatch(CmdParam,'Create') then
         begin
         for I:=0 to Length(Games)-1 do
           if Games[I].HostedFrom = ConnectingFrom then
@@ -173,15 +216,15 @@ begin
             Break;
           end;
 
-        Game.Name:=Parameters.Values['Name'];
+        Game.Name:=DecodeURI(Parameters.Values['Name']);
         if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
-          Game.Password:=Parameters.Values['Pwd'];
+        Game.Password:=Parameters.Values['Pwd'];
         if (Game.Password <> '') then Game.PassNeeded:='1'
         else Game.PassNeeded:='0';
         Game.LType:=Parameters.Values['Type'];
-        Game.Chan:=Parameters.Values['Chan'];
+        Game.Chan:=DecodeURI(Parameters.Values['Chan']);
         Game.Loc:=Parameters.Values['Loc'];
-        Game.HosterNickname:=Parameters.Values['Nick'];
+        Game.HosterNickname:=DecodeURI(Parameters.Values['Nick']);
         Game.HosterAddress:=Parameters.Values['HostIP'];
         Game.HostedFrom:=ConnectingFrom;
         Str:='#'+Game.Chan;
@@ -206,16 +249,16 @@ begin
           else
           begin
             EventLog(Format(L_GAME_FAIL_NONGAMING, [Game.HosterNickname, Game.Name, Game.HosterAddress, Channel.Name, Game.HostedFrom]));
-            Body:='<NOTHING>';
+            Body:='<NOTHING>'#10;
           end
         else
           begin
           EventLog(Format(L_GAME_FAIL_NONEXISTENT_CHAN, [Game.HosterNickname, Game.Name, Game.HosterAddress, Game.Chan, Game.HostedFrom]));
-          Body:='<NOTHING>';
+          Body:='<NOTHING>'#10;
           end;
         end
       else
-      if Parameters.Values['Cmd']='Close' then
+      if (TextMatch(CmdParam,'Close')) or (TextMatch(CmdParam,'Delete')) then
       begin
         N:=-1;
         for I:=0 to Length(Games)-1 do
@@ -248,7 +291,7 @@ begin
           end;
         end
       else
-        Body:='<NOTHING>'
+        Body:='<NOTHING>'#10
       {
       if Parameters.Values['Cmd']='Failed' then        // ?
         begin
@@ -257,21 +300,19 @@ begin
       else
         raise Exception.Create('Unknown game command - '+Parameters.Values['Cmd'])
       }
+    end
     else
-    if FileName='GameList.asp' then
+    if AspPhp(FileName,'GameList')then
       begin
       CleanUpGames;
-      Body:=Body+'<GAMELISTSTART>'#13#10;
+      Body:=Body+'<GAMELISTSTART>'#10;
       Str:=Parameters.Values['Channel'];
       for I:=0 to Length(Games)-1 do
         with Games[I] do
-          if UpperCase(Str)=UpperCase(Chan) then
-            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#13#10;
-      Body:=Body+'<GAMELISTEND>'#13#10;
+          if TextMatch(Str,Chan) then
+            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
+      Body:=Body+'<GAMELISTEND>'#10;
       end
-    else
-    if FileName='UpdatePlayerInfo.asp' then
-      // ignore
     else
       begin
       for I:=Length(FileName) downto 1 do
@@ -279,28 +320,31 @@ begin
           FileName[I]:=PathDelim
         else
         if FileName[I]='%' then
-          begin
+        begin
           FileName[I]:=Chr(StrToInt('$'+Copy(FileName, I+1, 2)));
           Delete(FileName, I+1, 2);
-          end;
+        end;
       if Pos('..', FileName)+Pos(PathDelim+PathDelim, FileName)<>0 then
         raise Exception.Create('hmm hmm hmm');
-      if(FileName='')or(FileName[Length(FileName)]=PathDelim)then
+      if (FileName='') or (FileName[Length(FileName)]=PathDelim) then
         FileName:=FileName+'index.html';
       if FileExists('wwwroot'+PathDelim+FileName) then
-        begin
+      begin
         Log('[HTTP] '+ConnectingFrom+' '+L_HTTP_FILE_SENDING+' '+FileName);
         S:='application/octet-stream';
         for I:=1 to High(MimeTypes) do
           if '.'+MimeTypes[I].Extension=ExtractFileExt(FileName) then
             S:=MimeTypes[I].MimeType;
+        ExternalFile:=true;
         Headers:=Headers+'Content-Type: '+S+#13#10;
         Body:=GetFile('wwwroot'+PathDelim+FileName);
-        end
+      end
       else
         raise Exception.Create('"File" not found - '+FileName);
       end;
 
+    if not ExternalFile then
+      Headers:=Headers+'Content-Type: text/html'#13#10;
     Headers:=Headers+'Content-Length: '+IntToStr(Length(Body))+#13#10;
     S:=Headers+#13#10+Body;
     SendLn(S);
@@ -319,7 +363,7 @@ begin
 end;
 
 
-procedure TRequest.SendLn(S: string);
+procedure TRequest.SendLn(S: string; Logging: Boolean=true);
 var
   AStr: AnsiString;
 begin
@@ -397,5 +441,11 @@ begin
     CreateThread(nil, 0, @MainProc, nil, 0, ThreadID);
 end;
 
+function AspPhp(S, PageName: String): Boolean;
+begin
+  Result:=false;
+  if TextMatch(S, PageName+'.asp') or TextMatch (S, PageName+'.php') then
+    Result:=true;
+end;
 
 end.

@@ -17,27 +17,42 @@ StepS' modification currently includes the following:
    - Connections from banned IPs to any of the server ports will be rejected.
    - Banned nicks are not case-sensitive.
    - Banned nicks will be killed with a notification when trying to log in.
-• Localization support: translate MyWormNET into any language thanks to the dedicated resource strings.
+• Localization support: translate MyWormNET into any language thanks to the dedicated resource strings
    - Russian localization by StepS
    - Polish localization by PeCeT_full
    - German (Austria) localization by Gabberarmy
+• WWP support
+   - Partial: game list needs to be encrypted in order to be viewable by WWP clients.
+   - Support for both ASP and PHP pages, WWP default is currently PHP
 • WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
    - A sample news.txt file is provided
 • Hiding IP addresses for everyone except self, mask configurable with the ini file
    - Default is "no.address.for.you"
 • Support for x64 and various different Delphi compilers (from Delphi 7 to XE5 at least)
 • Support for Unicode compiler
+• Support for the INFO command
+   - Now the credits are moved to there and can be accessed anytime, not only during log in
+   - Also shows creation time and when went online
 • Support for the SEEN command, also available with !seen
    - Will retrieve the seen status from quit of a given user with time since the server start
-   - Not visible to others when used as !seen
+   - Will not be swallowed by the server unlike !host and !phost
+• WWP "debug mode" for the AUTHPING/AUTHPONG commands
+   - NOTE: NOT FOR NORMAL USAGE. Will turn the IRC server into a test server that will only send AUTHPINGs, then accept and memorize AUTHPONG's and then disconnect the client
+   - NOTE: the best practice is to change the HTTP/IRC ports for this mode if also running another (normal) copy of the server (WWP supports arbitrary IRC ports, HTTP port can be set in ServerList.htm)
+   - Can be enabled by setting "ForceAuthpong" to 1 in the ini file
+   - Edit authping.txt with the Secret, Challenge and Answer strings, each on a new line
+   - The Answer (last string) will be encrypted by WWP when connecting to a test server and then saved to authpong.txt
+   - After the WWP client's connection to a test server, the AUTHPONG command will be waiting for you in the authpong.txt file
+   - Please see http://tus-wa.com/?topic=22731 to exactly know what to do: the operation may be not so simple and all of the steps have to be followed carefully
 • A notification will be thrown when attempting to use the !host or !phost commands
 • Users' IP addresses are no longer forced when hosting
    - The hosting address will no longer be overridden by the socket's address, allowing for WormNAT2 and custom address hosting.
 • Changed the Game.asp content to allow The Wheat Snooper host games
    - Wheat Snooper looks for the "Object moved" substring and then for some stupid reason fetches the GameList URL from there. Without it, it refuses to host.
 • Now the verbose console logging is off by default
-   - You may enable it again by setting it to "true" in the ini file
+   - You may enable it again by setting it to 1 in the ini file
    - Disk logging to WNServer.log will still stay verbose unless that file is deleted
+• Now the user messages will use a converted W:A codepage for logs
 • Can type commands beginning with $, allowing to use server commands from W:A
    - Such commands are not visible to anyone after being sent
 • Fixed the passworded games' padlock icons and locale typecodes
@@ -53,6 +68,7 @@ StepS' modification currently includes the following:
 • LogToOper is now disabled by default
    - Set yourself to mode +L to enable logging (available for ops and above)
 • Support for the ISON command
+• Support for the LUSERS command which can now be called anytime
 • Support for the AWAY command
 • Finalized the WHO command
    - Now properly gets an one-user or one-channel list, as well as 'o' list
@@ -60,6 +76,7 @@ StepS' modification currently includes the following:
    - Reveals IP of a WHOIS'd user to operators and above, making the IPLOOKUP command obsolete (it's still left as an alias, though).
    - When WHOIS'ing themselves, users can also see their own IP.
 • Support for the MOTD command which can now be called anytime
+• Hosting with special characters (pre-converted to URI) in titles and nicknames is now supported
 • Ability to kill users from the server by using the KICK or KILL command with an optional reason (available for ops and above)
 • Ability to kill every non-owner from the server by using the KICKALL command (available for owners)
 • Ability to prank users by using the PRANK command (available for ops and above)
@@ -83,8 +100,12 @@ StepS' modification currently includes the following:
    - Owner (superadmin) is mode +q, Admin is mode +a, etc.
    - All commands except sendraw are available to normal ops, so most users will find this useless unless they want more defined privileges (as in, ops can act upon ops, unlike admins)
    - Use TAKEOWN with the same operator password to make yourself a server owner.
+• Invalid nicks such as "server", "HostingBuddy", "admin" and alike won't be able to connect to the server now
+• Default starting Game ID is now 1000000, to prevent issues caused by a W:A bug when switching between UK WormNET server and an external one. Should be fixed in a future W:A update.
 • Change the game ID counter with the FORCEGAMEID command (available for ops and above)
 • Empty Username will now be adjusted
+• Optimized verbose logging to reduce disk space waste
+• Broadcasting to users is now done more properly
 • Missing sharps in IRC channel names will now be adjusted
 • Empty nicknames can no longer initiate the login procedure
 • Minor improvements and fixes
