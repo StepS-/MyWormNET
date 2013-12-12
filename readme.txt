@@ -22,8 +22,9 @@ StepS' modification currently includes the following:
    - Polish localization by PeCeT_full
    - German (Austria) localization by Gabberarmy
 • WWP support
-   - Partial: game list needs to be encrypted in order to be viewable by WWP clients.
+   - Partial: game list needs to be encrypted in order to be viewable by WWP clients
    - Support for both ASP and PHP pages, WWP default is currently PHP
+   - Both W:A and WWP people can join and chat
 • WormNET news can now be set using the news.txt file and will be automatically adjusted by <MOTD> tags
    - A sample news.txt file is provided
 • Hiding IP addresses for everyone except self, mask configurable with the ini file
@@ -39,7 +40,7 @@ StepS' modification currently includes the following:
 • WWP "debug mode" for the AUTHPING/AUTHPONG commands
    - NOTE: NOT FOR NORMAL USAGE. Will turn the IRC server into a test server that will only send AUTHPINGs, then accept and memorize AUTHPONG's and then disconnect the client
    - NOTE: the best practice is to change the HTTP/IRC ports for this mode if also running another (normal) copy of the server (WWP supports arbitrary IRC ports, HTTP port can be set in ServerList.htm)
-   - Can be enabled by setting "ForceAuthpong" to 1 in the ini file
+   - Can be enabled by setting "ForceAuthping" to 1 in the ini file
    - Edit authping.txt with the Secret, Challenge and Answer strings, each on a new line
    - The Answer (last string) will be encrypted by WWP when connecting to a test server and then saved to authpong.txt
    - After the WWP client's connection to a test server, the AUTHPONG command will be waiting for you in the authpong.txt file
