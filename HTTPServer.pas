@@ -34,7 +34,7 @@ type
 
 var
   Games: array of TGame;
-  GameCounter: Int64=1000000;
+  GameCounter: Integer=1000000;
 
 procedure StartHTTPServer;
 function AspPhp(S, PageName: string): Boolean;
@@ -62,7 +62,8 @@ end;
 procedure TRequest.Execute;
 var
   BufferA, SA: AnsiString;
-  Buffer, S, Str, CmdParam, Headers, Body: String;
+  Buffer, S, Str, CmdParam, IParam, Target: String;
+  Headers, UserAgent, ClientVersion, Body: String;
   I, J, N, R, Bytes: Integer;
   ExternalFile: Boolean;
 //User: TUser;
@@ -80,7 +81,7 @@ begin
         Log('[HTTP] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         Exit;
       end;
-      if Bytes=0 then 
+      if Bytes=0 then
       begin
         Sleep(10);
         Continue;
@@ -117,12 +118,6 @@ begin
     end;
     while Copy(S, 1, 1)='/' do
       Delete(S, 1, 1);
-    if Copy(S, 1, 15)='wormageddonweb/' then
-      Delete(S, 1, 15);
-    if Copy(S, 1, 7)='wwpweb/' then
-      Delete(S, 1, 7);
-    if Copy(S, 1, 7)='wwpnet/' then
-      Delete(S, 1, 7);
     FileName:=Copy(S, 1, Pos('?', S+'?')-1);
     Delete(S, 1, Pos('?', S));
     S:=S+'&';
@@ -134,54 +129,81 @@ begin
       Delete(S, 1, Pos('&', S));
     end;
 
-    S:=EncodeURI(S);
+    if (ConnectingFrom='127.0.0.1') or (Pos('192.168.',ConnectingFrom) = 1) or (Pos('10.',ConnectingFrom) = 1) then
+      Target:=ConnectingFrom
+    else
+      Target:=ServerHost;
 
-    //while GetLine(Buffer, S) do
-    //  WriteLn('> ' + S);
+    UserAgent:='Unknown';
+    ClientVersion:='0.0';
+    while GetLine(Buffer,S) do
+      if Pos('User-Agent: ',S) = 1 then
+      begin
+        Delete(S, 1, 12);
+        UserAgent:=Copy(S, 1, Length(S));
+        S:=UserAgent;
+        if Pos('T17Client',UserAgent) = 1 then
+        begin
+          Delete(S, 1, 10);
+          if S <> '' then
+            ClientVersion:=Copy(S, 1, Pos(' ',S+' ')-1)
+          else
+            ClientVersion:='1.0';
+        end;
+        Break;
+      end;
 
     Headers:='HTTP/1.1 200 OK'#13#10;
     Headers:=Headers+'Server: MyWormNET/'+APPVERSION+#13#10;
     Headers:=Headers+'X-Powered-By: MyWormNET'#13#10;
-    Headers:=Headers+'Pragma: no-cache'#13#10;
-    Headers:=Headers+'Vary: Accept-Encoding'#13#10;
-//    Headers:=Headers+'X-Test: BlaBla'#13#10;
+//  Headers:=Headers+'Pragma: no-cache'#13#10;
+//  Headers:=Headers+'Vary: Accept-Encoding'#13#10;
+//  Headers:=Headers+'X-Test: BlaBla'#13#10;
     Body:='';
-    if TextMatch(FileName,'Login.asp') then
+    if AspPhp(FileName,'Login') or AspPhp(FileName,'Connect')then
     begin
-      if (ConnectingFrom='127.0.0.1') or (Pos('192.168.',ConnectingFrom) = 1) or (Pos('10.',ConnectingFrom) = 1) then
-        Body:='<CONNECT '+ConnectingFrom+'>'
+      if VersionThisNewer(ClientVersion,'3.6.29.29') then
+      begin
+        Body:='<CONNECT '+Target+'>';
+        Body:=Body+#13#10'<MOTD>'+GetFile('news.txt')+#13#10'</MOTD>'#10;
+      end
       else
-        Body:='<CONNECT '+ServerHost+'>';
-      Body:=Body+#13#10'<MOTD>'+GetFile('news.txt')+#13#10'</MOTD>';
+        if ClientVersion = '2.0' then
+          Body:='<CONNECT '+Target+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=WWP IRCPASS='+IRCPassword+'>'
+      else
+        Body:='<CONNECT '+Target+'>'#10;
     end
     else
-    if TextMatch(FileName,'Login.php') then
-      Body:='<CONNECT '+ServerHost+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=Username IRCPASS=>'
-    else
-    if TextMatch(FileName,'UpdatePlayerInfo.asp') then
-      Body:='<NOTHING>'#10
-    else
-    if TextMatch(FileName,'UpdatePlayerInfo.php') then
-      Body:='<CONNECT '+ServerHost+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=Username IRCPASS=>'
-    else
-    if AspPhp(FileName,'Rankings') then
-      Body:='<CENTER>Sorry, this server doesn''t support rankings.</CENTER>'
-    else
-    if AspPhp(FileName,'ProcessGameResult') then
-      Body:='<NOTHING>'#10
+    if AspPhp(FileName,'UpdatePlayerInfo') then
+      if ClientVersion = '2.0' then
+        Body:='<CONNECT '+Target+' IRCPORT='+IntToStr(IRCPort)+' IRCUSER=WWP IRCPASS='+IRCPassword+'>'
+      else
+        Body:='<NOTHING>'#10
     else
     if AspPhp(FileName,'WelcomeLoginForm') then
     begin
-  //    Body:='<CHECK tw4C0Nf29amp29HSP/S83BJ8UOjWNvxoCX8FssT8P4a8HztIqci5j/NHZ84JCXZzNXpMyfK/rcA3K00=>'#10;
-      Body:='<CHECK AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=>'#10;
-      Body:=Body+'<WEBADDRESS /wwpweb/>'#10;
-      Body:=Body+'<EXTENSION .php>'#10;
-      Body:=Body+'<FONT Size=1 Colour=0>                               Welcome to '+NetworkName+'<BR></FONT>'#10;
-      Body:=Body+'<br><br><FONT Size=0 Colour=0>                                 You can use any username / password to log in<BR></FONT>'#10;
-      Body:=Body+'<FONT Size=3 Colour=3>                                                               Your IP address is detected as: '+ConnectingFrom+'<BR></FONT>'#10;
-      Body:=Body+'<br>'#10;
-      Body:=Body+'<a href="/wwpweb/SelectServer.php"><FONT Size=0>                                                                        Login<BR></FONT>'#10;
-      Body:=Body+'<br></a>'#10;
+      if ClientVersion = '2.0' then
+      begin
+        Body:='<CHECK AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=>'#10;
+        Body:=Body+'<WEBADDRESS /wwpweb/>'#10;
+        Body:=Body+'<EXTENSION .php>'#10;
+        Body:=Body+'<FONT Size=1 Colour=0>                           Welcome to '+NetworkName+'<BR></FONT>'#10;
+        Body:=Body+'<br><br><FONT Size=0 Colour=0>                                 You can use any username / password to log in<BR></FONT>'#10;
+        Body:=Body+'<FONT Size=3 Colour=3>                                                               Your IP address is detected as: '+ConnectingFrom+'<BR></FONT>'#10;
+        Body:=Body+'<br>'#10;
+        Body:=Body+'<a href="/wwpweb/LoginForm.php"><FONT Size=0>                                                                        Login<BR></FONT>'#10;
+        Body:=Body+'<br></a>'#10;
+      end
+      else
+      if VersionThisNewer(ClientVersion,'3.6.29.10') then
+      begin
+        Body:=Body+'<CENTER><FONT SIZE=3 COLOR="White">Welcome to '+NetworkName+'</FONT></CENTER><BR><BR><BR>'#10;
+        Body:=Body+'<CENTER><FONT SIZE=2 COLOR=0>You can use any username / password to log in</FONT></CENTER><BR>'#10;
+        Body:=Body+'<CENTER><FONT SIZE=1 COLOR="Silver">Your IP address is detected as: '+ConnectingFrom+'</FONT></CENTER><BR><BR>'#10;
+        Body:=Body+'<CENTER><FONT SIZE=2><A HREF="/wwpweb/LoginForm.php">Login</A></FONT></CENTER>'#10;
+      end
+      else
+        Body:='<FONT SIZE=2><A HREF="/wormageddonweb/LoginForm.asp">Login</A></FONT>'#10;
     end
     else
     if AspPhp(FileName,'SelectServer') or AspPhp(FileName,'LoginForm') then
@@ -217,10 +239,21 @@ begin
           end;
 
         Game.Name:=DecodeURI(Parameters.Values['Name']);
+        if ClientVersion = '2.0' then Game.Name:='[WWP]'#160+Game.Name
+        else if Pos('[WWP]',Game.Name) = 1 then Delete(Game.Name,1,6);
         if Length(Game.Name) > 29 then Game.Name := Copy(Game.Name, 1, 29);
-        Game.Password:=Parameters.Values['Pwd'];
-        if (Game.Password <> '') then Game.PassNeeded:='1'
-        else Game.PassNeeded:='0';
+        if ClientVersion <> '2.0' then
+        begin
+          Game.Password:=Parameters.Values['Pass'];
+          if (Game.Password <> '0') then Game.PassNeeded:='1'
+          else Game.PassNeeded:='0';
+        end
+        else
+        begin
+          Game.Password:=Parameters.Values['Pwd'];
+          if (Game.Password <> '') then Game.PassNeeded:='1'
+          else Game.PassNeeded:='0';
+        end;
         Game.LType:=Parameters.Values['Type'];
         Game.Chan:=DecodeURI(Parameters.Values['Chan']);
         Game.Loc:=Parameters.Values['Loc'];
@@ -241,8 +274,10 @@ begin
             Games[Length(Games)-1]:=Game;
 
             EventLog(Format(L_GAME_CREATED_INFO, [Game.HosterNickname, Game.Name, Game.HosterAddress, Game.HostedFrom]));
-
-            Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10;
+            if not (ClientVersion = '2.0') then
+              Headers:=Headers+'SetGameId: : '+IntToStr(Game.GameID)+#13#10
+            else
+              Headers:=Headers+'SetGameId: '+IntToStr(Game.GameID)+#13#10;
             Body:='<html>'#10'<head><title>Object moved</title></head>'#10'<body>'#10'<h1>Object moved</h1>'#10'This object may be found <a href="/wormageddonweb/GameList.asp?Channel='+Game.Chan+'">here</a>.'#10'</body>'#10'</html>';
             // The string above is for compatibility with Wheat Snooper, otherwise it can't host: Yes, I know, it's quite stupid.
           end
@@ -261,8 +296,11 @@ begin
       if (TextMatch(CmdParam,'Close')) or (TextMatch(CmdParam,'Delete')) then
       begin
         N:=-1;
+        IParam:=Parameters.Values['GameID'];
+        if Pos(': ',IParam) = 1 then
+          Delete(IParam, 1, 2);
         for I:=0 to Length(Games)-1 do
-          if IntToStr(Games[I].GameID)=Parameters.Values['GameID'] then
+          if IntToStr(Games[I].GameID)=IParam then
             if (ConnectingFrom = Games[I].HostedFrom) or (ConnectingFrom = '127.0.0.1') then
             begin
               Game:=Games[I];
@@ -274,7 +312,7 @@ begin
             end
             else
             begin
-              EventLog(Format(L_GAME_FAIL_SABOTAGE, [ConnectingFrom, Games[I].HosterNickname, Parameters.Values['GameID'], Games[I].HostedFrom]));
+              EventLog(Format(L_GAME_FAIL_SABOTAGE, [ConnectingFrom, Games[I].HosterNickname, IParam, Games[I].HostedFrom]));
               Break;
             end;
         if N=-1 then
@@ -283,36 +321,37 @@ begin
           //EventLog(Format(L_GAME_FAIL_NONEXISTENT_GAME, [ConnectingFrom, Parameters.Values['GameID']]));
           end
         else
-          begin
-        {  for I:=0 to Length(Users)-1 do
-           if Users[I].InChannel then
-              Users[I].SendLn(':'+ServerHost+' NOTICE '+IRCChannel+' :'+Game.HosterNickname+'''s game "'+Game.Name+'" has closed.');}
           EventLog(Format(L_GAME_CLOSED_GRACEFULLY, [Game.HosterNickname, Game.Name]));
-          end;
-        end
+      end
       else
         Body:='<NOTHING>'#10
-      {
-      if Parameters.Values['Cmd']='Failed' then        // ?
-        begin
-        Body:='<NOTHING>';
-        end
-      else
-        raise Exception.Create('Unknown game command - '+Parameters.Values['Cmd'])
-      }
     end
     else
     if AspPhp(FileName,'GameList')then
       begin
       CleanUpGames;
       Body:=Body+'<GAMELISTSTART>'#10;
-      Str:=Parameters.Values['Channel'];
-      for I:=0 to Length(Games)-1 do
-        with Games[I] do
-          if TextMatch(Str,Chan) then
-            Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
+      if not (ClientVersion = '2.0') then
+      begin
+        Str:=Parameters.Values['Channel'];
+        for I:=0 to Length(Games)-1 do
+          with Games[I] do
+            if TextMatch(Str,Chan) then
+              Body:=Body+'<GAME '+Name+' '+HosterNickname+' '+HosterAddress+' '+Loc+' 1 '+PassNeeded+' '+IntToStr(GameID)+' '+LType+'><BR>'#10;
+      end
+      else
+        Body:=Body+'<GAME Y0vnIZImSP06P7O1HjKcOY2bK9+FV33pM1hJISZmSEV++smra8z+Fw2XfwhQ8p2sKA3'+'TaLX2CN6S0SO7rfmkBQ3afllCrgIeESvx6ugeEZr7DxoQz8Xtr/bm3V+/y66'+'MadQSp8oaodh5jp3EUDgYrHq8teeivBlriVZ8I8t0AyKUMPzjHa0xuoiTH1Q8e+v'+'EvlsXN/I5aUrk4THcVIclU4d0NTTjtuzWEURHV4+VRgoq0MdmVbE1wlan5ZksEPsHX/vZ/wweiNmL55M7Op25WL7tR0u'+'NVk9DSE8zmFO2kPVlPp/AKMoOJsvOGrpN2MBmdCNgFxTiDXo6f2i0OxCZpw==>'#10;
       Body:=Body+'<GAMELISTEND>'#10;
       end
+    else
+    if AspPhp(FileName,'Rankings')  then
+      if VersionThisNewer(ClientVersion,'3.6.29.10') then
+        Body:='<CENTER><FONT SIZE=4 COLOR="White">Sorry, this server doesn''t support rankings.</FONT></CENTER>'#10
+      else
+        Body:='<FONT Size=2 Colour=0>Sorry, this server doesn''t support rankings.</FONT>'#10
+    else
+    if AspPhp(FileName,'ProcessGameResult') then
+      Body:='<NOTHING>'#10
     else
       begin
       for I:=Length(FileName) downto 1 do
@@ -442,10 +481,23 @@ begin
 end;
 
 function AspPhp(S, PageName: String): Boolean;
+var
+  I: Integer;
+  OrigName: string;
 begin
   Result:=false;
+  OrigName:=S;
+  if Copy(S, 1, 15)='wormageddonweb/' then
+    Delete(S, 1, 15)
+  else if Copy(S, 1, 7)='wwpweb/' then
+    Delete(S, 1, 7)
+  else if Copy(S, 1, 7)='wwpnet/' then
+    Delete(S, 1, 7);
+  while (Pos('/',OrigName) <> 0) and (PathDelim='\') do
+    OrigName[Pos('/',OrigName)]:='\';
   if TextMatch(S, PageName+'.asp') or TextMatch (S, PageName+'.php') then
-    Result:=true;
+    if not ((AllowArbitrary) and FileExists('wwwroot'+PathDelim+OrigName)) then
+      Result:=true;
 end;
 
 end.

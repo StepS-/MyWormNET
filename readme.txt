@@ -29,6 +29,7 @@ StepS' modification currently includes the following:
    - A sample news.txt file is provided
 • Hiding IP addresses for everyone except self, mask configurable with the ini file
    - Default is "no.address.for.you"
+• Fixed IRC password check
 • Support for x64 and various different Delphi compilers (from Delphi 7 to XE5 at least)
 • Support for Unicode compiler
 • Support for the INFO command
@@ -45,6 +46,9 @@ StepS' modification currently includes the following:
    - The Answer (last string) will be encrypted by WWP when connecting to a test server and then saved to authpong.txt
    - After the WWP client's connection to a test server, the AUTHPONG command will be waiting for you in the authpong.txt file
    - Please see http://tus-wa.com/?topic=22731 to exactly know what to do: the operation may be not so simple and all of the steps have to be followed carefully
+• WWP clients can no longer be exploited with a flag bug on this server
+   - They will also have a "WWP" username now, and their hosts will be prefixed with [WWP]
+• User-Agent and version check to alternate content between different W:A and WWP versions, as well as other programs
 • A notification will be thrown when attempting to use the !host or !phost commands
 • Users' IP addresses are no longer forced when hosting
    - The hosting address will no longer be overridden by the socket's address, allowing for WormNAT2 and custom address hosting.
@@ -67,8 +71,9 @@ StepS' modification currently includes the following:
 • Removed the annoying hosted/closed game notices
    - No more channel notices when a game is hosted or closed
 • LogToOper is now disabled by default
-   - Set yourself to mode +L to enable logging (available for ops and above)
-• Support for the ISON command       
+   - Set yourself to mode +L to enable logging (available for ops and above)   
+• Support for the PART reason text
+• Support for the ISON command
 • Support for the TOPIC command which can now be called anytime
 • Support for the LUSERS command which can now be called anytime
    - Now also includes max user count, unknown connections and a total number of connections
@@ -94,7 +99,8 @@ StepS' modification currently includes the following:
 • Ability to change other users' modes when halfopped at least
    - Halfops can only change modes b and v.
    - Modes only apply to users, but as usual, the MODE command has to contain a target channel.
-• Ability to make users invisible with the +i mode (available for ops and above)
+• Ability to make users invisible with the +i mode (available for ops and above)       
+• Ability to perform certain text operations with the CALC command (use CALC help for the list) (available for voiced and above)
 • Support for the channel banlist
    - Mode +b <channel> will show who is currently muted.
 • Support for the TIME command
@@ -106,9 +112,13 @@ StepS' modification currently includes the following:
 • Invalid nicks such as "server", "HostingBuddy", "admin" and alike won't be able to connect to the server now
 • Default starting Game ID is now 1000000, to prevent issues caused by a W:A bug when switching between UK WormNET server and an external one. Should be fixed in a future W:A update.
 • Change the game ID counter with the FORCEGAMEID command (available for ops and above)
+• Ability to use arbitrary asp/php pages rather than the predefined ones
+   - Can be enabled by setting it to 1 in the ini file
+   - Will work if file with the full request path exists
 • Empty Username will now be adjusted
 • Optimized verbose logging to reduce disk space waste
 • Broadcasting to users is now done more properly
 • Missing sharps in IRC channel names will now be adjusted
 • Empty nicknames can no longer initiate the login procedure
 • Minor improvements and fixes
+

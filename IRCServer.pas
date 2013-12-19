@@ -28,8 +28,9 @@ type
 
   TUser=class (TThread)
     ConnectingFrom: string;
-    Nickname, Username, Hostname, Servername, Realname: string;
+    Nickname, Username, Hostname, Servername, Realname, SafeRealname: string;
     LastSenior: string;
+    UserPass: string;
     AwayMsg, QuitMsg: string;
     FloodPoints: Integer;
     SignonTime, LastBanTime: Int64;
@@ -48,6 +49,7 @@ type
     procedure ExecPing(S: String);
     procedure ExecNick(S: String);
     procedure ExecUser(S: String);
+    procedure ExecPass(S: String);
     procedure ExecPrank(S: String);
     procedure ExecKickall(S: String);
     procedure ExecSendraw(S: String);
@@ -70,6 +72,7 @@ type
     procedure ExecSeen(S: String);
     procedure ExecAway(S: String);
     procedure ExecTopic(S: String);
+    procedure ExecCalc(S: String);
     procedure ExecAuthpong(S: String);
     procedure ExecForcegameid(S: String);
     procedure ExecBan(Command, S: String);
@@ -81,6 +84,7 @@ type
 
     procedure Die(Action, Reason, Master: String);
     function ContextCommand(S: String): Boolean;
+    function Authorized: Boolean;
     function Registered: Boolean;
     function ChangeMode(Side, Mode: Char; Master: String): Boolean;
 
@@ -234,7 +238,10 @@ begin
   Socket:=0;
 
   if Registered then
-    EventLog(Format(L_IRC_DISCONNECTED, [Nickname+' ('+ConnectingFrom+')']))
+    EventLog(Format(L_IRC_DISCONNECTED, [Nickname+' ('+ConnectingFrom+')', QuitMsg]))
+  else
+  if not Authorized then
+    EventLog(Format(L_IRC_DISCONNECTED_UNKAUTH, ['<Unknown> ('+ConnectingFrom+')']))
   else
     EventLog(Format(L_IRC_DISCONNECTED_UNKNOWN, ['<Unknown> ('+ConnectingFrom+')']));
 
@@ -257,6 +264,7 @@ end;
 procedure TUser.ExecuteCommand(S: string);
 var Command: string;
 begin
+  S:=Copy(S, 1, 768);
   Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
   Delete(S, 1, Length(Command)+1);
 
@@ -269,7 +277,7 @@ begin
       ExecUser(S)
   else
     if Command='PASS' then
-    //Password:=S
+      ExecPass(S)
   else
     if Command='PING' then
       ExecPing(S)
@@ -280,6 +288,8 @@ begin
     if Command='AUTHPING' then
   else
     if Command='PONG' then
+  else
+    if Command='USERHOST' then
   else
     if Registered then
       if Command='LIST' then
@@ -333,6 +343,9 @@ begin
       if Command='ANNOUNCE' then
         ExecAnnounce(S)
     else
+      if Command='CALC' then
+        ExecCalc(S)
+    else
       if Command='PRANK' then
         ExecPrank(S)
     else
@@ -341,6 +354,9 @@ begin
     else
       if Command='FORCEGAMEID' then
         ExecForcegameid(S)
+    else
+      if Command='BACK' then
+        ExecAway('')
     else
       if (Command='KICKALL')or(Command='KILLALL') then
         ExecKickall(S)
@@ -404,9 +420,9 @@ begin
     SendEvent(001, ':Welcome, '+Nickname+'!', false);
     SendEvent(002, ':Your host is '+ServerHost+', running MyWormNET version '+APPVERSION, false);
     SendEvent(003, ':This server was created '+CreationTime, false);
-    SendEvent(004, ServerHost+' '+APPVERSION+' biL'+IRCPrefModes+' tnb', false);
-    SendEvent(005, 'PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# NICKLEN=15 NETWORK='+NetworkName+' CHANMODES=b,nt MODES=2 :are supported by this server', false);
-    Log('[IRC] > Sent welcome text to '+Nickname);
+    SendEvent(004, ServerHost+' '+APPVERSION+' biL'+IRCPrefModes+' tnb'+IRCPrefModes, false);
+    SendEvent(005, 'PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# NICKLEN=15 CHANNELLEN=30 QUITLEN=160 KICKLEN=300 NETWORK='+NetworkName+' CHANMODES=b,nt MODES=6 :are supported by this server', false);
+    Log('[IRC] > '+Format(L_IRC_LOG_WELCOME, [Nickname]));
     ExecLusers(S);
     ExecInfo(S);
     ExecMotd(S);
@@ -570,7 +586,7 @@ begin
     if Pos(' ', S) <> 0 then
       begin
         Target:=Copy(S, 1, Pos(' ', S)-1);
-        Reason:=Copy(S, Pos(' ', S)+1, Length(S));
+        Reason:=Copy(S, Pos(' ', S)+1, 300);
         if Reason[1] = ':' then Delete(Reason, 1, 1);
       end
     else
@@ -615,7 +631,7 @@ procedure TUser.ExecWhois(S: String);
 const Command='WHOIS';
 var
   I: Integer;
-  UserChannels, UserPrefixes: String;
+  UserChannels, UserPrefixes, TrgRealname: String;
   User: TUser;
 begin
   S:=Copy(S,1,Pos(' ',S+' ')-1);
@@ -632,7 +648,11 @@ begin
       if User.InChannel[I] then
         UserChannels:=UserChannels+UserPrefixes+Channels[I].Name+' ';
 
-    SendEvent(311, User.Nickname+' '+User.Username+' '+StealthIP+' * :'+User.Realname, false);
+    TrgRealname:=User.Realname;
+    if Username='WWP' then     // prevent WWP from crashing
+      TrgRealname:=User.SafeRealname;
+
+    SendEvent(311, User.Nickname+' '+User.Username+' '+StealthIP+' * :'+TrgRealname, false);
 //  SendEvent(307, User.Nickname+' :is a registered nick');
     if UserChannels<>'' then
       SendEvent(319, User.Nickname+' :'+UserChannels, false);
@@ -646,7 +666,7 @@ begin
 
   end;
   SendEvent(318, S+' :End of /WHOIS list.', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecInfo(S: String);
@@ -663,7 +683,7 @@ begin
   SendEvent(371, ':This server was compiled '+CreationTime, false);
   SendEvent(371, ':This server is online since '+StartupTime, false);
   SendEvent(371, ':End of /INFO list.', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecMotd(S: String);
@@ -677,7 +697,7 @@ begin
     if(S<>'')or(Buf<>'') then
       SendEvent(372, ':- '+Buf, false);
   SendEvent(376, ':End of /MOTD command.', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecLusers(S: String);
@@ -713,7 +733,7 @@ begin
   SendEvent(265, ':Current local  users: '+UserCount+'  Max: '+MaxUserCount, false);
   SendEvent(266, ':Current global users: '+UserCount+'  Max: '+MaxUserCount, false);
   SendEvent(250, ':Highest connection count: '+MaxUserCount+' ('+MaxUserCount+' clients) ('+IntToStr(IRCConnections)+' connections received since last server (re)start)', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecSeen(S: String);
@@ -768,8 +788,8 @@ begin
   if (S='') and (Away) then
   begin
     Away:=false;
-    SendEvent(305,':You are no longer marked as being away');
-    EventLog(Nickname+' has returned from an away state.');
+    SendEvent(305, ':You are no longer marked as being away');
+    EventLog(Format(L_IRC_ACTION_BACK, [Nickname]));
   end
   else
     if (S<>'') then
@@ -777,7 +797,7 @@ begin
       AwayMsg:=S;
       Away:=true;
       SendEvent(306, ':You have been marked as being away');
-      EventLog(Nickname+' has set an away message: "'+AwayMsg+'".');
+      EventLog(Format(L_IRC_ACTION_AWAY, [Nickname, AwayMsg]));
     end;
 end;
 
@@ -792,14 +812,15 @@ begin
     Channel:=ChannelByName(S);
     if Channel <> nil then
     begin
-      SendEvent(332, Channel.Name+' :'+Channel.Topic);
-      SendEvent(333, Channel.Name+' '+ServerHost+' '+IntToStr(Channel.CreationTime));
+      SendEvent(332, Channel.Name+' :'+Channel.Topic, false);
+      SendEvent(333, Channel.Name+' '+ServerHost+' '+IntToStr(Channel.CreationTime), false);
     end
     else
       SendError(403,S);
   end
   else
     SendError(461,Command);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecForcegameid(S: string);
@@ -811,7 +832,7 @@ begin
     if S<>'' then
     begin
       GameCounter:=StrToInt(S);
-      EventLog(Nickname+' has forced the GameCounter to '+S+'.');
+      EventLog(Format(L_IRC_ACTION_FORCEGAMEID, [Nickname,S]));
       ServerMessage('Ok. Game counter is now: '+IntToStr(GameCounter));
     end
     else
@@ -839,7 +860,7 @@ begin
       if Pos(' ', S) <> 0 then
       begin
         Target:=Copy(S, 1, Pos(' ', S)-1);
-        Reason:=Copy(S, Pos(' ', S)+1, Length(S));
+        Reason:=Copy(S, Pos(' ', S)+1, 300);
         if Reason[1] = ':' then Delete(Reason, 1, 1);
       end
       else
@@ -907,14 +928,7 @@ begin
 
         if B then
         begin
-          FilePath := ExtractFilePath(ParamStr(0))+BanFile;
-          Assign(F,FilePath);
-          if not FileExists(FilePath) then
-            Rewrite(F);
-          Append(F);
-          WriteLn(F, Target);
-          Close(F);
-
+          TextToFile(Target, ExtractFilePath(ParamStr(0))+BanFile, true);
           for I:=0 to Length(Users)-1 do
             if BType='nickname' then
             begin
@@ -1149,67 +1163,166 @@ begin
     SendLn(':'+ServerHost+' PONG '+ServerHost+' :'+S)
   else
     SendLn('PONG :'+ServerHost);
+end;  
+
+procedure TUser.ExecCalc(S: String);
+const Command='CALC';
+var
+  Operation, Result, FullParam: string;
+  Params: array of string;
+begin
+  S:=Copy(S, 1, 512);
+  if (Modes['v']) or (Modes['h']) or (Modes['o']) or (Modes['a']) or (Modes['q']) then
+  begin
+    if S<>'' then
+    begin
+      Operation:=LowerCase(Copy(S, 1, Pos(' ',S+' ')-1));
+      Delete(S, 1, Pos(' ',S+' '));
+      S:=S+' ';
+      if Operation <> '' then
+      begin
+        FullParam:=S;
+        while Pos(' ',S) <> 0 do
+        begin
+          SetLength(Params,Length(Params)+1);
+          Params[Length(Params)-1]:=Copy(S, 1, Pos(' ', S)-1);
+          Delete(S, 1, Pos(' ',S));
+        end;
+          if Operation = 'help' then
+          begin
+            ServerMessage('Supported calc commands:');
+            ServerMessage('decode64 <string>: will decode string from 64');
+            ServerMessage('encode64 <string>: will encode string to 64');
+            ServerMessage('cp-wa-1251 <string>: will convert a WA string into a Win-1251 string');
+          end
+          else
+          begin
+            if Params[0] <> '' then
+            begin
+              if Operation = 'decode64'        then ServerMessage('Decode64 result: '+Decode64(FullParam))
+              else if Operation = 'encode64'   then ServerMessage('Encode64 result: '+Encode64(FullParam))
+              else if Operation = 'strtohex'   then ServerMessage('StrToHex result: '+StrToHex(FullParam))
+              else if Operation = 'cp-wa-1251' then ServerMessage('Converted W:A to Win1251: '+CP_WAto1251(FullParam))
+              else ServerMessage('Sorry, but I''m not sure what you''re referring to. Use calc with the help parameter to see the full list.');
+            end
+            else
+              ServerMessage('Sorry, but you didn''t specify anough parameters to process your operation...');
+          end;
+      end
+      else
+        SendError(461,Command);
+    end
+    else
+      SendError(461,Command);
+  end
+  else
+    SendError(481,Command);
+end;
+
+procedure TUser.ExecPass(S: String);
+const Command='PASS';
+begin
+  if UserPass='' then
+  begin
+    UserPass:=S;
+    if not Authorized then
+    begin
+      SendLn('ERROR :Bad password');
+      if (Socket <> 0) then closesocket(Socket); Socket:=0;
+    end;
+  end
+  else
+    SendError(462,Command);
 end;
 
 procedure TUser.ExecNick(S: String);
 const Command='NICK';
 var I: Integer;
 begin
-  S:=Copy(S, 1, Pos(' ',S+' ')-1);
-  if Nickname<>'' then
-  begin
-    SendError(400,S);
-    EventLog(Format(L_IRC_ACTION_NICK, [Nickname, S]));
-  end
-  else
-  begin
-    for I:=Length(S) downto 1 do
-      if Pos(S[I], ValidNickChars)=0 then
-        Delete(S, I, 1);
-        
-    if Length(S) > 15 then
-    repeat
-      Delete(S, Length(S), 1);
-    until Length(S) = 15;
-
-    if S='' then
-      SendError(432,Command)
+  if not ForceAuthping then
+    if not Authorized then
+    begin
+      SendLn('ERROR :Bad password');
+      if (Socket <> 0) then closesocket(Socket); Socket:=0;
+    end
     else
     begin
-      if NickInUse(S) then
-      SendError(433,S)
+      S:=Copy(S, 1, Pos(' ',S+' ')-1);
+      if Nickname<>'' then
+      begin
+        SendError(400,S);
+        EventLog(Format(L_IRC_ACTION_NICK, [Nickname, S]));
+      end
       else
       begin
-        Nickname:=S;
-        if Username<>'' then
-          LogIn(S);
+        for I:=Length(S) downto 1 do
+          if Pos(S[I], ValidNickChars)=0 then
+            Delete(S, I, 1);
+
+        if Length(S) > 15 then
+        repeat
+          Delete(S, Length(S), 1);
+        until Length(S) = 15;
+
+        if S='' then
+          SendError(432,Command)
+        else
+        begin
+          if NickInUse(S) then
+          SendError(433,S)
+          else
+          begin
+            Nickname:=S;
+            if Username<>'' then
+              LogIn(S);
+          end;
+        end;
       end;
     end;
-  end;
 end;
 
 procedure TUser.ExecUser;
 const Command='USER';
-// USER Username hostname servername :40 0 RO
+var
+  F: Integer;
+  R, FlagCheck: string;
 begin
   if not ForceAuthping then
-    if (Username='') or (Modes['q']) then
+    if not Authorized then
     begin
-      Username:=Copy(S, 1, Pos(' ', S)-1);
-      Delete(S, 1, Pos(' ', S));
-      Hostname:=Copy(S, 1, Pos(' ', S)-1);
-      Delete(S, 1, Pos(' ', S));
-      Servername:=Copy(S, 1, Pos(' ', S)-1);
-      Delete(S, 1, Pos(':', S));
-      Realname:=S;
-
-      if Username='' then
-        Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
-      if Nickname<>'' then
-        LogIn(S);
+      SendLn('ERROR :Bad password');
+      if (Socket <> 0) then closesocket(Socket); Socket:=0;
     end
     else
-      SendError(462,Command)
+    begin
+      if (Username='') or (Modes['q']) then
+      begin
+        Username:=Copy(S, 1, Pos(' ', S)-1);
+        Delete(S, 1, Pos(' ', S));
+        Hostname:=Copy(S, 1, Pos(' ', S)-1);
+        Delete(S, 1, Pos(' ', S));
+        Servername:=Copy(S, 1, Pos(' ', S)-1);
+        Delete(S, 1, Pos(':', S));
+        Realname:=S;
+        if Pos(':',Realname) = 1 then
+          Delete(Realname, 1, 1);
+        while Pos(' ',Realname) = 1 do
+          Delete(Realname, 1, 1);
+        R:=Realname;
+        SafeRealname:=R;
+        FlagCheck:=Copy(R, 1, Pos(' ',R+' ')-1);
+        F:=StrToIntDef(FlagCheck,-1);
+        if (F > 52) or (F < 0) then
+          SafeRealname:='49'+Copy(R, Pos(' ',R+' '), Length(R)-Pos(' ',R+' ')+1);
+
+        if Username='' then
+          Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
+        if Nickname<>'' then
+          LogIn(S);
+      end
+      else
+        SendError(462,Command)
+    end
   else
   begin
    LoadAuthping;
@@ -1261,9 +1374,10 @@ begin
             StrOut:=StrOut+IRCPrefixes[K];
         StrOut:=StrOut+Users[I].Nickname+' ';
       end;
-    SendEvent(353, StrOut);
+    SendEvent(353, StrOut, false);
   end;
-  SendEvent(366, S+' :End of /NAMES list.');
+  SendEvent(366, S+' :End of /NAMES list.', false);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecJoin(S: String);
@@ -1312,22 +1426,41 @@ procedure TUser.ExecPart(S: String);
 const Command='PART';
 var
    I, N: Integer;
+   Chan, PartMsg, Appendix: String;
    Channel: TChannel;
 begin
-    S:=Copy(S,1,Pos(' ',S+' ')-1);
-    Channel:=ChannelByName(S);
+  if S<>'' then
+  begin
+    Chan:=Copy(S, 1, Pos(' ',S+' ')-1);
+    Delete(S, 1, Pos(' ',S+' '));
+    if Pos(':',S) = 1 then
+      Delete(S, 1, 1);
+    PartMsg:=Copy(S, 1, 160);
+    Channel:=ChannelByName(Chan);
     if Channel <> nil then
     begin
-      S:=Channel.Name;
+      Chan:=Channel.Name;
       N:=Channel.Number;
-      EventLog(Format(L_IRC_PART, [Nickname, S]));
-      if not Quit then
-        if Modes['i'] then
-          SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S)
+      if InChannel[N] then
+      begin
+        if PartMsg <> '' then
+          Appendix:=' :'+PartMsg
         else
-          Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+S, Channel);
-      InChannel[N]:=False;
-    end;
+          Appendix:='';
+        EventLog(Format(L_IRC_PART, [Nickname, Chan]));
+        if not Quit then
+          if Modes['i'] then
+            SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Chan+Appendix)
+          else
+            Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Chan+Appendix, Channel);
+        InChannel[N]:=False;
+      end;
+    end
+    else
+      SendError(403, Command);
+  end
+  else
+    SendError(461, Command);
 end;
 
 procedure TUser.ExecMode(S: String);
@@ -1400,20 +1533,23 @@ begin
                 begin
                   for I:=0 to Length(Users)-1 do
                     if Users[I].Modes['b'] then
-                      SendEvent(367, Channel.Name+' '+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Users[I].LastSenior+' '+IntToStr(Users[I].LastBanTime));
-                SendEvent(368, Channel.Name+' :End of Channel Ban List');
+                      SendEvent(367, Channel.Name+' '+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Users[I].LastSenior+' '+IntToStr(Users[I].LastBanTime), false);
+                SendEvent(368, Channel.Name+' :End of Channel Ban List', false);
+                Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
                 end;
             end
             else
             begin
-              SendEvent(324, Channel.Name+' +tn');
-              SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime));
+              SendEvent(324, Channel.Name+' +tn', false);
+              SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime), false);
+              Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
             end;
           end
           else
           begin
-            SendEvent(324, Channel.Name+' +tn');
-            SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime));
+            SendEvent(324, Channel.Name+' +tn', false);
+            SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime), false);
+            Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
           end;
         end
         else
@@ -1452,7 +1588,7 @@ begin
   if Length(Msg) > 512 then
   begin
     Die('killed','Message too long','server');
-    EventLog(Nickname+' has been killed due to exceeding the maximum message length. Here''s part of his message: "'+Copy(Msg,1,512)+'".');
+    EventLog(Nickname+' has been killed due to exceeding the maximum message length. Here''s part of his message: "'+CP_WAto1251(Copy(Msg,1,512))+'".');
   end
   else
   begin
@@ -1592,7 +1728,7 @@ procedure TUser.ExecWho(S: String);
 const Command='WHO';
 var
   I, K: Integer;
-  Pref, Target, ChanStr: String;
+  Pref, Target, ChanStr, FlagCheck, TrgRealname: String;
   Presence: char;
   Channel: TChannel;
 begin
@@ -1620,6 +1756,10 @@ begin
     else
       Target:=Users[I].Nickname;
 
+    TrgRealname:=Users[I].Realname;
+    if Username='WWP' then     // prevent WWP from crashing
+      TrgRealname:=Users[I].SafeRealname;
+
     if Channel = nil then
     begin
 
@@ -1638,15 +1778,15 @@ begin
           Break;
         end;
 
-      if Users[I].Nickname <> Nickname then
+      if not TextMatch(Users[I].Nickname, Nickname) then
       begin
         if not (Users[I].Modes['i']) then
-          if Users[I].Nickname <> '' then
-            SendEvent(352, ChanStr+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+Users[I].Realname, false);
+          if Users[I].Registered then
+            SendEvent(352, ChanStr+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+TrgRealname, false);
       end
       else
-        SendEvent(352, ChanStr+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+Realname, false);
-      if (S<>'') and (S=Users[I].Nickname) then Break;
+        SendEvent(352, ChanStr+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+TrgRealname, false);
+      if (S<>'') and (TextMatch(S,Users[I].Nickname)) then Break;
     end
     else if Users[I].InChannel[Channel.Number] then
       begin
@@ -1654,17 +1794,17 @@ begin
         then continue
       else
       if not (Users[I].Modes['i']) then
-        if Users[I].Nickname <> Nickname then
-          SendEvent(352, Channel.Name+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' '+Presence+Pref+' :0 '+Users[I].Realname, false)
+        if not TextMatch(Users[I].Nickname, Nickname) then
+          SendEvent(352, Channel.Name+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false)
         else
-          SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' '+Presence+Pref+' :0 '+Realname, false);
+          SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false);
       end;
   end;
   if S='' then
     SendEvent(315, '* :End of /WHO list.', false)
   else
     SendEvent(315, S+' :End of /WHO list.', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecList(S: String);
@@ -1681,7 +1821,7 @@ begin
     SendEvent(322, Channels[I].Name+' '+IntToStr(N)+' :'+Channels[I].Topic, false);
   end;
   SendEvent(323, ':End of /LIST', false);
-  Log('[IRC] > Sent '+Command+' response to '+Nickname);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
 procedure TUser.ExecExpect(S: String);
@@ -1707,7 +1847,7 @@ const Command='GAMES';
 var
   I: Integer;
   OpenType: String;
-begin                                 
+begin
   ServerMessage('--- Channel Passworded Name Hoster URL ---', 1);
   for I:=0 to Length(Games)-1 do
   with Games[I] do
@@ -1721,14 +1861,15 @@ end;
 
 procedure TUser.ExecAuthpong(S: string);
 begin
-  if S<>'' then
-  begin
-    TextToFile('/AUTHPONG '+S,ExtractFilePath(ParamStr(0))+'authpong.txt',true);
-    SendLn('ERROR :Written to authpong.txt! '+S);
-    Sleep(1000);
-    closesocket(Socket);
-    Socket:=0;
-  end;
+  if ForceAuthping then
+    if S<>'' then
+    begin
+      TextToFile('/AUTHPONG '+S,ExtractFilePath(ParamStr(0))+'authpong.txt',true);
+      SendLn('ERROR :Written to authpong.txt! '+S);
+      Sleep(1000);
+      closesocket(Socket);
+      Socket:=0;
+    end;
 end;
 
 procedure TUser.SendLn(S: string; Logging: Boolean=true);
@@ -1789,12 +1930,12 @@ var
 begin
   LastSenior:=Master;
   QuitMsg:=UpperFCStr(Action)+' by '+Master+': '+Reason;
+  Quit:=true;
+  if not Modes['i'] then
+    Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);  
   for I:=0 to Length(Channels)-1 do
     if InChannel[Channels[I].Number] then
       InChannel[Channels[I].Number] := False;
-  Quit:=true;
-  if not Modes['i'] then
-    Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);
   SendLn('ERROR :You have been '+LowerFCStr(Action)+' by '+Master+': '+Reason);
   if Registered then
     AddSeen(Nickname,QuitMsg);
@@ -1826,6 +1967,14 @@ begin
     Result:=false
   else
     Result:=true;
+end;
+
+function TUser.Authorized: Boolean;
+begin
+  Result:=false;
+  if UserPass <> '' then
+    if (UserPass=IRCPassword) or (UserPass=IRCPassword2) then
+      Result:=true;
 end;
 
 function TUser.ChangeMode(Side, Mode: Char; Master: String): Boolean;
@@ -1964,9 +2113,12 @@ begin
       while Pos(' ',Scheme) <> 0 do
         Delete(Scheme,Pos(' ',Scheme),1);
 
+      if Length(Name) > 30 then
+        Name:=Copy(Name, 1, 30);
+
       if (Name='') or (Name='#') then Name:='#AnythingGoes';
       if Name[1] <> '#' then Name:='#'+Name;
-      
+
       if not AddChannel(Name,Scheme,Topic) then
         EventLog('[IRC] '+Format(L_IRC_CHANNEL_ALREADY, [Name]))
       else

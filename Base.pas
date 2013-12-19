@@ -8,7 +8,7 @@ unit Base;
 
 interface
 const
-  APPVERSION = '1.3.6.0';
+  APPVERSION = '1.3.7.0';
 
 var
   ServerHost: string;  // our hostname
@@ -19,7 +19,7 @@ var
   StealthIP: string;
   NetworkName: string;
   StartupTime, CreationTime: string;
-  VerboseLogging, ForceAuthping: Boolean;
+  VerboseLogging, ForceAuthping, AllowArbitrary: Boolean;
 
   MaxIRCUsers: Integer=0;
   IRCConnections: Int64=0;
@@ -66,6 +66,7 @@ begin
 
   VerboseLogging  :=Config.ReadBool   ('Debug','VerboseConsoleLogging', false);
   ForceAuthping   :=Config.ReadBool   ('Debug','ForceAuthping',         false);
+  AllowArbitrary  :=Config.ReadBool   ('Debug','AllowArbitraryPages',   false);
 
   ServerHost:=Copy(ServerHost,1,Pos(' ',ServerHost+' ')-1);
   IRCOperPassword:=Copy(IRCOperPassword,1,Pos(' ',IRCOperPassword+' ')-1);

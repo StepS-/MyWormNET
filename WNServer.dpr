@@ -39,5 +39,6 @@ begin
   Sleep(50);
   if WormNATPort>0 then
     StartWormNATServer;
-  Sleep(INFINITE);
+  while True do
+    Sleep(INFINITE);
 end.

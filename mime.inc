@@ -1,5 +1,5 @@
 const
-  MimeTypes : array[1..137] of record
+  MimeTypes : array[1..139] of record
     Extension, MimeType: string;
     end = (
   (Extension: 'atom'; MimeType: 'application/atom+xml'),
@@ -118,6 +118,8 @@ const
   (Extension: 'ics'; MimeType: 'text/calendar'),
   (Extension: 'ifb'; MimeType: 'text/calendar'),
   (Extension: 'css'; MimeType: 'text/css'),
+  (Extension: 'asp'; MimeType: 'text/html'),
+  (Extension: 'php'; MimeType: 'text/html'),
   (Extension: 'html'; MimeType: 'text/html'),
   (Extension: 'htm'; MimeType: 'text/html'),
   (Extension: 'asc'; MimeType: 'text/plain'),
