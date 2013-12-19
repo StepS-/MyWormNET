@@ -71,7 +71,8 @@ StepS' modification currently includes the following:
 • Removed the annoying hosted/closed game notices
    - No more channel notices when a game is hosted or closed
 • LogToOper is now disabled by default
-   - Set yourself to mode +L to enable logging (available for ops and above)   
+   - Set yourself to mode +L to enable logging (available for ops and above)
+• Quit message will now be shown in the Event/Console log alongside "disconnected".
 • Support for the PART reason text
 • Support for the ISON command
 • Support for the TOPIC command which can now be called anytime
