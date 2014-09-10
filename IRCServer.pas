@@ -162,6 +162,7 @@ var
   ChannelThreadList: TThreadList;
   SeenThreadList: TThreadList;
   SuperThreadList: TThreadList;
+  ThreadID: Cardinal = 0;
 
 procedure StartIRCServer;
 procedure GetChannels;
@@ -2870,65 +2871,47 @@ function MainProc(Nothing: Pointer): Integer; stdcall;
 var
   m_socket, AcceptSocket: TSocket;
   service, incoming: TSockAddrIn;
+  ServicePort: Integer;
   T: Integer;
-  User: TUser;
 begin
   Result:=0;
+  UserThreadList.Clear;
+  ChannelThreadList.Clear;
+  
+  ServicePort:=IRCPort;
   m_socket := socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 
   service.sin_family := AF_INET;
   service.sin_addr.s_addr := inet_addr( '0.0.0.0' );
-  service.sin_port := htons( IRCPort );
+  service.sin_port := htons( ServicePort );
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
-    begin
-    EventLog('[IRC] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+  begin
+    EventLog('[IRC] '+Format(L_ERROR_BIND, [ServicePort, WinSockErrorCodeStr(WSAGetLastError)]));
     Exit;
-    end;
+  end;
   if listen( m_socket, 1 )=SOCKET_ERROR then
-    begin
-    EventLog('[IRC] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+  begin
+    EventLog('[IRC] '+Format(L_ERROR_BIND, [ServicePort, WinSockErrorCodeStr(WSAGetLastError)]));
     Exit;
-    end;
-  EventLog('[IRC] '+L_LISTENING+' '+IntToStr(IRCPort)+'.');
+  end;
+  EventLog('[IRC] '+Format(L_SERVICE_LISTENING, [ServicePort]));
 
   GetChannels;
 
   repeat
     T:=SizeOf(incoming);
-    AcceptSocket := accept( m_socket, @incoming, @T );
-    if (AcceptSocket<>INVALID_SOCKET) then
+    AcceptSocket := CustomAccept(m_socket, @incoming, @T, @ServicePort);
+    if AcceptSocket=INVALID_SOCKET then
+      Sleep(5)
+    else if AcceptSocket<>0 then
     begin
-      if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
-      begin
-        T:=SizeOf(incoming);
-        Log('[IRC] '+L_CONNECTION_ESTABLISHED+' '+inet_ntoa(incoming.sin_addr));
-        Inc(IRCConnections);
+      T:=SizeOf(incoming);
+      Log('[IRC] '+Format(L_CONNECTION_ESTABLISHED, [inet_ntoa(incoming.sin_addr)]));
 
-        User:=TUser.Create(true);
-        SetLength(User.InChannel,Length(Channels));
-        User.SignonTime:=IRCDateTime(Now);
-        User.Socket:=AcceptSocket;
-        User.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-        User.LastSenior:='server';
-        User.QuitMsg:='Disconnected';
-        User.FloodPoints:=0;
-        User.Quit:=false;
-        User.Away:=false;
-        User.LastMessageTime:=Now;
-    //  User.Modes['s']:=True;
-        SetLength(Users, Length(Users)+1);
-        Users[Length(Users)-1]:=User;
-      end
-      else
-      begin
-        EventLog(Format(L_REQUEST_REJECTED, [inet_ntoa(incoming.sin_addr), IntToStr(IRCPort)]));
-        closesocket(AcceptSocket);
-        Sleep(5);
-      end;
-    end
-    else
-      Sleep(5);
+      EventLog(Format(L_IRC_CONNECTING, [inet_ntoa(incoming.sin_addr)]));
+      NewUser(AcceptSocket, incoming.sin_addr);
+    end;
   until False;
 end;
 

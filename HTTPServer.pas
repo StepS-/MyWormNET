@@ -49,9 +49,11 @@ type
 var
   GameThreadList: TThreadList;
   GameCounter: Integer=1000000;
+  ThreadID: Cardinal = 0;
 
 procedure StartHTTPServer;
 function AspPhp(S, PageName: string): Boolean;
+function CustomAccept(s: TSocket; addr: PSockAddr; AddrLen: PInteger; Context: Pointer = nil): TSocket;
 
 implementation
 uses
@@ -442,60 +444,77 @@ end;
 
 // ***************************************************************
 
+function CustomAccept(s: TSocket; addr: PSockAddr; AddrLen: PInteger; Context: Pointer): TSocket;
+var
+  TargetIP: string;
+begin
+  Result:=accept(s, addr, AddrLen);
+  if Result <> INVALID_SOCKET then
+  begin
+    TargetIP:=String(inet_ntoa(addr.sin_addr));
+    if InList(IPBanThreadList, TargetIP) then
+    begin
+      Log(Format(L_CONNECTION_REJECTED, [TargetIP, Word(Context^)]));
+      closesocket(Result);
+      Result:=0;
+    end;
+  end;
+end;
+
 function MainProc(Nothing: Pointer): Integer; stdcall;
 var
   m_socket, AcceptSocket: TSocket;
   service, incoming: TSockAddrIn;
+  ServicePort: Integer;
   T: Integer;
   Request: TRequest;
 begin
   Result:=0;
+  GameThreadList.Clear;
+
+  ServicePort:=HTTPPort;
+
   m_socket := socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 
   service.sin_family := AF_INET;
   service.sin_addr.s_addr := inet_addr( '0.0.0.0' );
-  service.sin_port := htons( HTTPPort );
+  service.sin_port := htons( ServicePort );
 
   if bind(m_socket, service, sizeof(service))=SOCKET_ERROR then
   begin
-    EventLog('[HTTP] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] '+Format(L_ERROR_BIND, [ServicePort, WinSockErrorCodeStr(WSAGetLastError)]));
     Exit;
   end;
   if listen( m_socket, 50 )=SOCKET_ERROR then
   begin
-    EventLog('[HTTP] '+L_BIND_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+    EventLog('[HTTP] '+Format(L_ERROR_BIND, [ServicePort, WinSockErrorCodeStr(WSAGetLastError)]));
     Exit;
   end;
-  EventLog('[HTTP] '+L_LISTENING+' '+IntToStr(HTTPPort)+'.');
+  EventLog('[HTTP] '+Format(L_SERVICE_LISTENING, [ServicePort]));
 
   repeat
     T:=SizeOf(incoming);
-    AcceptSocket := accept( m_socket, @incoming, @T );
-    if (AcceptSocket<>INVALID_SOCKET) then
+    AcceptSocket := CustomAccept(m_socket, @incoming, @T, @HTTPPort);
+    if AcceptSocket=INVALID_SOCKET then
+      Sleep(5)
+    else if AcceptSocket<>0 then
     begin
-      if not BannedIP(String(inet_ntoa(incoming.sin_addr))) then
-      begin
-        T:=SizeOf(incoming);
-        Log('[HTTP] '+L_CONNECTION_ESTABLISHED+' '+inet_ntoa(incoming.sin_addr));
+      T:=SizeOf(incoming);
+      Log('[HTTP] '+Format(L_CONNECTION_ESTABLISHED, [inet_ntoa(incoming.sin_addr)]), false, HTTPtoConsole);
 
-        Request:=TRequest.Create(true);
-        Request.Socket:=AcceptSocket;
-        Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-      end
-      else
-      begin
-        EventLog(Format(L_REQUEST_REJECTED, [inet_ntoa(incoming.sin_addr), IntToStr(HTTPPort)]));
-        closesocket(AcceptSocket);
-        Sleep(1);
-      end;
-    end
-    else
-      Sleep(1);
+      Request:=TRequest.Create(true);
+      Request.Socket:=AcceptSocket;
+      Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
+      Request.White:=false;
+      if InList(WhiteIPThreadList, Request.ConnectingFrom) then
+        Request.White:=true;
+      Request.UserAgent:='Unknown';
+      Request.Parameters:=TStringList.Create;
+      Request.ClientVersion:=TVersion.Create;
+      Request.ResumeThread;
+    end;
   until False;
 end;
-
-var
-  ThreadID: Cardinal = 0;
 
 procedure StartHTTPServer;
 begin
