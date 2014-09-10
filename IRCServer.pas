@@ -2095,11 +2095,29 @@ procedure TUser.ExecAuthpong(S: string);
 begin
   //todo for later
 end;
+procedure TUser.SendLn(Source: TUser; Msg: string; Logging: Boolean=true);
+var
+  AStr: AnsiString;
+  S: string;
+begin
+  if Socket=0 then Exit;
+  if ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
+    S := ':'+Source.Nickname+'!'+Source.Username+'@'+Source.ConnectingFrom+' '+Msg
+  else
+    S := ':'+Source.Nickname+'!'+Source.Username+'@'+StealthIP+' '+Msg;
+  if Logging then
+    Log('[IRC] > '+S);
+  AStr:=AnsiString(S);
+  AStr:=AStr+#13#10;
+  if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
+  begin
+    Socket:=0;  // avoid infinite recursion
+    Log('[IRC] > '+L_ERROR_FAILED+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
+  end;
 end;
 
 procedure TUser.SendLn(S: string; Logging: Boolean=true);
 var
-  TStr: String;
   AStr: AnsiString;
 begin
   if Socket=0 then Exit;
@@ -2110,7 +2128,7 @@ begin
   if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
   begin
     Socket:=0;  // avoid infinite recursion
-    Log('[IRC] > '+L_FAILED+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
+    Log('[IRC] > '+L_ERROR_FAILED+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
   end;
 end;
 
