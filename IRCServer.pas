@@ -2794,6 +2794,75 @@ begin
       Result := True;
 end;
 
+
+// ***************************************************************
+
+constructor TChannel.Create(ChanName, ChanScheme, ChanTopic, ChanCreatedBy: String);
+begin
+  inherited Create;
+  Name:=ChanName;
+  Scheme:=ChanScheme;
+  Topic.Text:=ChanTopic;
+  Topic.SetBy:=ChanCreatedBy;
+  Topic.TimeSet:=DateTimeToUnix(Now);
+  ChannelThreadList.Add(Self);
+end;
+
+constructor TSuper.Create(SuperName, SuperIP: String);
+begin
+  inherited Create;
+  Name:=SuperName;
+  IP:=SuperIP;
+  SuperThreadList.Add(Self);
+end;
+
+constructor TSeen.Create(SeenNick, SeenQuitMsg: String; SeenSilentQuit: Boolean; SeenLastSeen: TDateTime);
+begin
+  inherited Create;
+  Nick:=SeenNick;
+  QuitMsg:=SeenQuitMsg;
+  SilentQuit:=SeenSilentQuit;
+  LastSeen:=SeenLastSeen;
+  SeenThreadList.Add(Self);
+end;
+
+function NewUser(Socket: TSocket; Addr: in_addr): TUser;
+var UserList: TList;
+begin
+  Result:=TUser.Create(true);
+  Result.ChannelsJoined := TThreadList.Create;
+  Result.GameVersion := TVersion.Create;
+  Result.SignonTime:=DateTimeToUnix(Now);
+  Result.Socket:=Socket;
+  Result.ConnectingFrom:=String(inet_ntoa(Addr));
+  Result.LastSenior:='server';
+  Result.QuitMsg:='Abnormal disconnection';
+  Result.Nickname:='Unknown';
+  Result.Username:='unknown';
+  Result.FloodPoints:=0;
+  Result.DataStats:=0;
+  Result.Quit:=false;
+  Result.Away:=false;
+  Result.SilentQuit:=false;
+  Result.LastMessageTime:=Now;
+  Result.LastDataTime:=Now;
+//Result.Modes['s']:=True;
+  Result.White:=false;
+  if InList(WhiteIPThreadList, Result.ConnectingFrom) then
+    Result.White:=true;
+
+  UserList:=UserThreadList.LockList;
+  UserList.Add(Result);
+  if UserList.Count > MaxIRCUsers then
+    MaxIRCUsers := UserList.Count;
+  Inc(IRCConnections);
+  UserThreadList.UnlockList;
+
+  Result.ResumeThread;
+end;
+
+// ***************************************************************
+
 function MainProc(Nothing: Pointer): Integer; stdcall;
 var
   m_socket, AcceptSocket: TSocket;
