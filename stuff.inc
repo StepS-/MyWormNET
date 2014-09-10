@@ -1,6 +1,7 @@
 procedure EnglishDates;
 begin
-  {$IFDEF DELPHIXE2_UP}
+  {$IFDEF MSWINDOWS} {$IF CompilerVersion >= 23}
+  {$IF CompilerVersion >= 25} {$LEGACYIFEND ON} {$IFEND}
   FormatSettings.LongMonthNames[1] := 'January';
   FormatSettings.LongMonthNames[2] := 'February';
   FormatSettings.LongMonthNames[3] := 'March';
@@ -40,5 +41,5 @@ begin
   LongDayNames[5] := 'Thursday';
   LongDayNames[6] := 'Friday';
   LongDayNames[7] := 'Saturday';
-  {$ENDIF}
+  {$IFEND} {$ENDIF}
 end;
