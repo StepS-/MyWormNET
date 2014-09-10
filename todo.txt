@@ -1,4 +1,1 @@
- - handmade localization system with external ini files: resource-based is bound to executables and lacks proper unicode support, as well as ease of translation.
- - Worms 2 support
-
-
+:)
