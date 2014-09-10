@@ -234,6 +234,11 @@ begin
           raise Exception.Create('Connection reset by peer');
         end;
 
+        if DataFloodCheck(Bytes) then
+        begin
+          RuptureError('Excess flood');
+          raise Exception.Create('Excess flood');
+        end;
         SetLength(SA, Bytes);
         R:=recv(Socket, SA[1], Bytes, 0);
         if(R=0)or(R=SOCKET_ERROR)then
@@ -1658,14 +1663,7 @@ begin
     while (Pos(' ',Msg)=1) or (Pos(#160,Msg)=1) do
       Delete(Msg,1,1);
     WACMsg:=CP_WAto1251(Msg);
-    Timelapse:=MillisecondsBetween(Now, LastMessageTime);
-    if Timelapse > FloodPoints then
-      FloodPoints:=0
-    else
-      FloodPoints:=FloodPoints-Timelapse;
-    LastMessageTime:=Now;
-    FloodPoints:=FloodPoints+2000+Length(Msg)*4;
-    if FloodPoints > 6000 then
+    if MessageFloodCheck(Length(Msg)) then
     begin
       Die('killed','Message flood','server');
       EventLog(Nickname+' has been killed due to message flood. Last message: "'+WACMsg+'".');
@@ -2128,7 +2126,43 @@ begin
     Result:=false;
 end;
 
-constructor TChannel.Create(Name, Scheme, Topic: String);
+function TUser.DataFloodCheck(DataLen: Integer): Boolean;
+var
+  Timelapse: Int64;
+begin
+  Result := false;
+  if not White then
+  begin
+    Timelapse:=MillisecondsBetween(Now, LastDataTime);
+    if Timelapse > DataStats then
+      DataStats:=0
+    else
+      DataStats:=DataStats-Timelapse;
+    LastDataTime:=Now;
+    DataStats:=Round((DataStats+1000+DataLen*8)*AntiFloodFactor);
+    if DataStats > 30000 then
+      Result:= true;
+  end;
+end;
+
+function TUser.MessageFloodCheck(MsgLen: Integer): Boolean;
+var
+  Timelapse: Int64;
+begin
+  Result := false;
+  if not White then
+  begin
+    Timelapse:=MillisecondsBetween(Now, LastMessageTime);
+    if Timelapse > FloodPoints then
+      FloodPoints:=0
+    else
+      FloodPoints:=FloodPoints-Timelapse;
+    LastMessageTime:=Now;
+    FloodPoints:=Round(FloodPoints*1.4)+3000+MsgLen*12;
+    if FloodPoints*AntiFloodFactor > 20000 then
+      Result:= true;
+  end;
+end;
 procedure TUser.ResumeThread;
 begin
   {$IFDEF MSWINDOWS}
