@@ -968,6 +968,66 @@ begin
     SendError(481, Command);
 end;
 
+procedure TUser.ExecAddchannel(S: string);
+const Command='ADDCHANNEL';
+var
+  Name, Scheme, Topic: String;
+begin
+  if (Modes['q']) or (Modes['a']) then
+  begin
+    Trim(S);
+    Name:=StringSection(S, 0);
+    if (Name<>'') and (Name<>'#') then
+    begin
+      Scheme:=StringSection(S, 1);
+      Topic:=ContinuedSection(S, 2);
+      if Name[1] <> '#' then Name:='#'+Name;
+      if Scheme = '' then Scheme:='Pf,Be';
+      if Topic = '' then Topic:='00 New channel';
+
+      EventLog(Format(L_IRC_ACTION_ADDCHANNEL, [Nickname, Name]));
+      if AddChannel(Name, Scheme, Topic, Nickname) then
+      begin
+        ExecJoin(Name);
+        ServerMessage('Channel '+Name+' has been created.');
+      end
+      else
+        ServerMessage('Channel '+Name+' has already been created.');
+    end
+    else
+      SendError(461, Command);
+  end
+  else
+    SendError(481, Command);
+end;
+
+procedure TUser.ExecRemovechannel(S: string);
+const Command='REMOVECHANNEL';
+var
+  Channel: TChannel;
+begin
+  S:=StringSection(S, 0);
+  if (Modes['q']) or (Modes['a']) then
+  begin
+    if S<>'' then
+    begin
+      Channel:=LockChannelByName(S);
+      if Channel <> nil then
+      begin
+        EventLog(Format(L_IRC_ACTION_REMOVECHANNEL, [Nickname, Channel.Name]));
+        if RemoveChannel(Channel) then
+          ServerMessage('Channel '+S+' has been removed.')
+      end
+      else
+        SendError(403, S);
+      ChannelThreadList.UnlockList;
+    end
+    else
+      SendError(461, Command);
+  end
+  else
+    SendError(481, Command);
+end; 
 procedure TUser.ExecBan(Command, S: String);
 var
   I, J: Integer;
