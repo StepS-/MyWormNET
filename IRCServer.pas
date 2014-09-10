@@ -1301,14 +1301,22 @@ end;
 
 procedure TUser.ExecAnnounce(S: String);
 const Command='ANNOUNCE';
-var I: Integer;
+var
+  I: Integer;
+  ChannelList: TList;
+  Channel: TChannel;
 begin
   if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
   begin
     if S <> '' then
     begin
-      for I:=0 to Length(Channels)-1 do
-        Broadcast(':SERVER_ANNOUNCEMENT!root@'+ServerHost+' NOTICE '+Channels[I].Name+' :'+S, Channels[I]);
+      ChannelList:=ChannelThreadList.LockList;
+      for I:=0 to ChannelList.Count-1 do
+      begin
+        Channel:=ChannelList[I];
+        Broadcast(':SERVER_ANNOUNCEMENT!root@'+ServerHost+' NOTICE '+Channel.Name+' :'+Nickname+': '+S, Channel, true);
+      end;
+      ChannelThreadList.UnlockList;
       EventLog(Format(L_IRC_ACTION_ANNOUNCE, [Nickname, S]));
     end
     else
