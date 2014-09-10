@@ -37,8 +37,8 @@ procedure LoadAuthping;
 function BannedIP(IP: string): Boolean;
 function BannedNick(Nick: string): Boolean;
 
-function IRCDateTime(T: TDateTime) : Int64;
-function TextDateTime(T: TDateTime) : string;
+function TextDateTime(T: TDateTime; IsUTC: Boolean = false) : string;
+function ExecutableTimestamp: TDateTime;
 
 implementation
 uses
@@ -60,6 +60,8 @@ begin
   IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
   StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
   NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
+    StartupTime   :=TextDateTime(Now);
+    CreationTime  :=TextDateTime(ExecutableTimestamp, true);
     WormNATPort   :=Config.ReadInteger('WormNet','WormNATPort',     0);
 
   VerboseLogging  :=Config.ReadBool   ('Debug','VerboseConsoleLogging', false);
@@ -76,8 +78,6 @@ begin
   if ForceAuthping then
     LoadAuthping;
 
-  StartupTime:=TextDateTime(Now);
-  CreationTime:=TextDateTime(FileDateToDateTime(FileAge(ExtractFileName(ParamStr(0)))));
 end;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
@@ -229,36 +229,57 @@ end;
 
 {$I stuff.inc}
 
-function IRCDateTime(T: TDateTime) : Int64;
+{function IRCDateTime(T: TDateTime) : Int64;
 begin
-  Result := Round(T * SecsPerDay) - 2209176000;
-end;
+  Result := Round(T * SecsPerDay) - UnixDateDelta;
+end;}
 
 {$IFDEF MSWINDOWS}
 
-function TextDateTime(T: TDateTime) : string;
+function TextDateTime(T: TDateTime; IsUTC: Boolean = false) : string;
 var
   Timezone: TTimeZoneInformation;
   Side: Char;
   UTCOffset: TDateTime;
   StrOffset: String;
 begin
+  EnglishDates;
   GetTimeZoneInformation(Timezone);
+  if IsUTC then
+    T:=IncMinute(T, -Timezone.Bias);
   UTCOffset := Timezone.Bias/MinsPerDay;
   StrOffset := TimeToStr(UTCOffset);
   StrOffset := Copy(StrOffset,1,Length(StrOffset)-3);
   if UTCOffset>0 then Side:='-'
   else Side:='+';
-  EnglishDates;
   Result := FormatDateTime('dddd mmmm d yyyy',T)+' -- '+TimeToStr(T)+' UTC'+Side+StrOffset;
 end;
 
+{$IF CompilerVersion >= 20}
+function ExecutableTimestamp: TDateTime;
+begin
+  Result := PImageNtHeaders(HInstance + UIntPtr(PImageDosHeader(HInstance)^._lfanew))^.FileHeader.TimeDateStamp / SecsPerDay + UnixDateDelta;
+end;
+{$ELSE}
+function ExecutableTimestamp: TDateTime;
+var
+  Timezone: TTimeZoneInformation;
+begin
+  GetTimeZoneInformation(Timezone);
+  Result := IncMinute(FileDateToDateTime(FileAge(ExtractFileName(ParamStr(0)))), Timezone.Bias);
+end;
+{$IFEND}
+
 {$ELSE}
 
-function TextDateTime(T: TDateTime) : string;
+function TextDateTime(T: TDateTime; IsUTC: Boolean = false) : string;
 begin
-  EnglishDates;
   Result := FormatDateTime('dddd mmmm d yyyy',T)+' -- '+TimeToStr(T)+' server local time';
+end;
+
+function ExecutableTimestamp: TDateTime;
+begin
+  Result := FileDateToDateTime(FileAge(ExtractFileName(ParamStr(0))));
 end;
 
 {$ENDIF}
