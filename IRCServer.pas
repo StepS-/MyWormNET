@@ -574,31 +574,52 @@ begin
   SendLn(Result);
 end;
 
-{procedure TUser.ExecIpLookup(S: String);
-const Command='IPLOOKUP';
-var I: Integer;
+procedure TUser.ExecMute(Mute: Boolean; S: String);
+var
+  Side: Char;
+  Pre, Command: String;
+  User: TUser;
 begin
+  if Mute then Command:='MUTE'
+  else Command:='UNMUTE';
+  S:=StringSection(S, 0);
   if S <> '' then
   begin
-    if (Modes['q'])or(Modes['a'])or(Modes['o']) then
+    if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
     begin
-      for I:=0 to Length(Users)-1 do
-      if S=Users[I].Nickname then
+      User:=LockUserByName(S);
+      if User <> nil then
       begin
-        ServerMessage('IP of user '+S+' is: '+Users[I].ConnectingFrom+'.');
-        Break
+        if (Modes['q'])
+          or ((Modes['a']) and not (User.Modes['q']))
+          or ((Modes['o']) and not (User.Modes['a']) and not (User.Modes['q']))
+          or ((Modes['h']) and not (User.Modes['a']) and not (User.Modes['q']) and not (User.Modes['o']))
+        then
+        begin
+          if Mute then Side:='+'
+          else Side:='-';
+
+          if not User.ChangeMode(Side,'m',Self) then
+          begin
+            if Mute then Pre:='already'
+            else Pre:='not';
+            SendEvent(401, S+' :This user has '+Pre+' been muted');
+          end;
+        end
+        else
+          SendError(484,S);
       end
-      else if I=Length(Users)-1 then
+      else
         SendError(401,S);
+      UserThreadList.UnlockList;
     end
     else
       SendError(481,Command);
   end
   else
     SendError(461,Command);
-end;}
+end;
 
-procedure TUser.ExecMute(Mute: Boolean; S: String);
 var
   I: Integer;
   Side: Char;
