@@ -1891,12 +1891,14 @@ end;
 
 procedure TUser.ExecOper(Command, S: String);
 var
-  I, J: Integer;
+  I: Integer;
   Mode: Char;
   Description, AdminType: String;
+  ChannelList: TList;
+  Channel: TChannel;
 begin
-  if Copy(S, 1, Pos(' ', S+' ')-1)<>IRCOperPassword then
-    Delete(S, 1, Pos(' ', S+' '));  // ignore username
+  if StringSection(S, 0)<>IRCOperPassword then
+    DeleteSections(S, 1);  // ignore username
   if S=IRCOperPassword then
   begin
     if Command='OPER' then
@@ -1911,18 +1913,22 @@ begin
       AdminType:='Owner';
       Mode:='q';
       if not Modes['q'] then
-      begin
-        SetLength(Supers,Length(Supers)+1);
-        Supers[Length(Supers)-1].Nick:=Nickname;
-        Supers[Length(Supers)-1].IP:=ConnectingFrom;
-      end;
+        TSuper.Create(Nickname, ConnectingFrom);
     end;
     if not Modes[Mode] then
     begin
       EventLog(Format(L_IRC_ADMIN_LOGIN, [Nickname, Description]));
       Modes[Mode]:=True;
       if not Modes['i'] then
-        Broadcast(':'+ServerHost+' MODE '+Channels[I].Name+' +'+Mode+' '+Nickname);
+      begin
+        ChannelList:=ChannelThreadList.LockList;
+        for I:=0 to ChannelList.Count-1 do
+        begin
+          Channel:=ChannelList[I];
+          Broadcast(':'+ServerHost+' MODE '+Channel.Name+' +'+Mode+' '+Nickname, Channel, true);
+        end;
+        ChannelThreadList.UnlockList;
+      end;
       SendEvent(381,':You are now an IRC '+AdminType);
     end;
   end
