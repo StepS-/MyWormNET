@@ -2932,11 +2932,17 @@ end;
 procedure LogToOper(S: string);
 var
   I: Integer;
+  UserList: TList;
+  User: TUser;
 begin
-  for I:=0 to Length(Users)-1 do
-    with Users[I] do
-    if (Modes['L']) and ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
-      SendLn(':'+ServerHost+' NOTICE '+Nickname+' :'+S, false);
+  UserList:=UserThreadList.LockList;
+  for I:=0 to UserList.Count-1 do
+  begin
+    User:=UserList[I];
+    if (User.Modes['s']) and ((User.Modes['a']) or (User.Modes['q'])) then
+      User.SendLn(':'+ServerHost+' NOTICE '+User.Nickname+' :'+S, false);
+  end;
+  UserThreadList.UnlockList;
 end;
 
 var
