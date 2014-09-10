@@ -2,19 +2,18 @@
 
 program WNServer;
 
-{$I cDefines.inc}
 
 uses
-{$IFDEF OS_MSWIN}
+  {$IFDEF MSWINDOWS}
   {$APPTYPE CONSOLE}
   Windows, WinSock,
-{$ELSE}
+  {$ELSE}
   cthreads, FakeWinSock,
-{$ENDIF}
+  {$ENDIF}
   SysUtils, Base, HTTPServer, IRCServer, WormNATServer, Data;
 
+{$IFDEF MSWINDOWS}
 var
-{$IFDEF OS_MSWIN}
   WSA: TWSAData;
 {$ENDIF}
 
@@ -25,7 +24,7 @@ begin
 
   LoadParams;
 
-  {$IFDEF OS_MSWIN}
+  {$IFDEF MSWINDOWS}
   WSAStartUp(2, WSA);
   {$ENDIF}
   

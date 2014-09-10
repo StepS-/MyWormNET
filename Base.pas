@@ -1,6 +1,5 @@
 unit Base;
 
-{$I cDefines.inc}
 
 {$IFDEF FPC}
 {$modeswitch DELPHI}
@@ -44,7 +43,7 @@ function TextDateTime(T: TDateTime) : string;
 
 implementation
 uses
-{$IFDEF OS_MSWIN}
+{$IFDEF MSWINDOWS}
   Windows,
 {$ELSE}
   errors,
@@ -206,7 +205,7 @@ begin
     end;
 end;
 
-{$IFDEF OS_MSWIN}
+{$IFDEF MSWINDOWS}
 
 {$INCLUDE WinSockCodes.inc}
 
@@ -236,7 +235,7 @@ begin
   Result := Round(T * SecsPerDay) - 2209176000;
 end;
 
-{$IFDEF OS_MSWIN}
+{$IFDEF MSWINDOWS}
 
 function TextDateTime(T: TDateTime) : string;
 var

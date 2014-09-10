@@ -1,13 +1,12 @@
 unit HTTPServer;
 // simplistic HTTP server
 
-{$I cDefines.inc}
 
 interface
 uses
   SysUtils, Classes,
-{$IFDEF OS_MSWIN}
   Windows, WinSock,
+{$IFDEF MSWINDOWS}
 {$ELSE}
   Sockets, FakeWinSock,
 {$ENDIF}
@@ -21,6 +20,7 @@ type
     Parameters: TStringList;
     procedure Execute; override;
     procedure SendLn(S: string; Logging: Boolean=true);
+      procedure ResumeThread;
     end;
 
   TGame=record
@@ -410,6 +410,17 @@ begin
   AStr:=AStr+#13#10;
   if send(Socket, AStr[1], Length(AStr), 0)<>Length(AStr) then
     Log('[HTTP] > '+L_FAILED+' ('+WinSockErrorCodeStr(WSAGetLastError)+')');
+procedure TRequest.ResumeThread;
+begin
+  {$IFDEF MSWINDOWS}
+  {$IF CompilerVersion >= 21}
+  Start;
+  {$ELSE}
+  Resume;
+  {$IFEND}
+  {$ELSE}
+  Start;
+  {$ENDIF}
 end;
 
 // ***************************************************************
@@ -453,11 +464,6 @@ begin
         Request:=TRequest.Create(true);
         Request.Socket:=AcceptSocket;
         Request.ConnectingFrom:=String(inet_ntoa(incoming.sin_addr));
-        {$IFNDEF DELPHI2009_DOWN}
-        Request.Start;
-        {$ELSE}
-        Request.Resume;
-        {$ENDIF}
       end
       else
       begin

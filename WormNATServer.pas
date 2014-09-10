@@ -1,11 +1,10 @@
 unit WormNATServer;
 // a proxy for WormNAT routing
 
-{$I cDefines.inc}
 
 interface
 uses
-{$IFDEF OS_MSWIN}
+{$IFDEF MSWINDOWS}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
@@ -21,6 +20,7 @@ type
     ServerAddress, ClientAddress: string;
     ServerSocket, ClientSocket: TSocket;
     procedure Execute; override;
+    procedure ResumeThread;
     end;
 
 var
@@ -118,6 +118,14 @@ begin
   FreeOnTerminate:=True;
 end;
 
+procedure TLink.ResumeThread;
+begin
+  {$IFDEF MSWINDOWS} {$IF CompilerVersion >= 21}
+  Start;
+  {$ELSE} Resume;
+  {$IFEND}
+  {$ELSE} Start; {$ENDIF}
+end;
 // ***************************************************************
 
 procedure PrepareLink(Server, Client: TUser);
@@ -181,22 +189,12 @@ begin
             begin
               ServerSocket:=AcceptSocket;
               if ClientSocket<>0 then
-                {$IFNDEF DELPHI2009_DOWN}
-                Start;
-                {$ELSE}
-                Resume;
-                {$ENDIF}
               B:=True;
             end;
             if(ClientAddress=String(inet_ntoa(incoming.sin_addr)))and(ClientSocket=0) then
             begin
               ClientSocket:=AcceptSocket;
               if ServerSocket<>0 then
-                {$IFNDEF DELPHI2009_DOWN}
-                Start;
-                {$ELSE}
-                Resume;
-                {$ENDIF}
               B:=True;
             end;
           end;

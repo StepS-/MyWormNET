@@ -1,6 +1,5 @@
 unit IRCServer;
 
-{$I cDefines.inc}
 
 {$IFDEF FPC}
 {$modeswitch DELPHI}
@@ -8,7 +7,7 @@ unit IRCServer;
 
 interface
 uses
-{$IFDEF OS_MSWIN}
+{$IFDEF MSWINDOWS}
   Windows, WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
@@ -100,6 +99,7 @@ type
   TSeen=record
     Nick, QuitMsg: String;
     LastSeen: TDateTime;
+      procedure ResumeThread;
     end;
 
 const
@@ -2066,6 +2066,18 @@ begin
 end;
 
 constructor TChannel.Create(Name, Scheme, Topic: String);
+procedure TUser.ResumeThread;
+begin
+  {$IFDEF MSWINDOWS}
+  {$IF CompilerVersion >= 21}
+  Start;
+  {$ELSE}
+  Resume;
+  {$IFEND}
+  {$ELSE}
+  Start;
+  {$ENDIF}
+end;
 begin
     Name:=Name;
     Scheme:=Scheme;
@@ -2299,11 +2311,6 @@ begin
     //  User.Modes['s']:=True;
         SetLength(Users, Length(Users)+1);
         Users[Length(Users)-1]:=User;
-        {$IFNDEF DELPHI2009_DOWN}
-        User.Start;
-        {$ELSE}
-        User.Resume;
-        {$ENDIF}
       end
       else
       begin
