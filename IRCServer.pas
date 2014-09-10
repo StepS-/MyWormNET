@@ -15,91 +15,139 @@ uses
   Classes;
 
 type
+  TTopic=record
+      Text, SetBy: String;
+      TimeSet: Int64;
+    end;
+
+  TUserCount=record
+      Operators, Invisible, Unknown,
+      Registered, All: Integer;
+    end;
+
+  TSeen=class (TObject)
+    public
+      Nick, QuitMsg: String;
+      SilentQuit: Boolean;
+      LastSeen: TDateTime;
+
+      constructor Create(SeenNick, SeenQuitMsg: String; SeenSilentQuit: Boolean; SeenLastSeen: TDateTime);
+      destructor Destroy; override;
+    end;
+
   TChannel=class (TObject)
-    Name, Scheme, Topic: String;
-    Number: Integer;
-    CreationTime: Int64;
+    private
+      function GetUserCount: u_int;
 
-    constructor Create(Name, Scheme, Topic: String);
-    destructor Destroy; override;
+    public
+      Name, Scheme: String;
+      Topic: TTopic;
+      property UserCount: u_int read GetUserCount;
+      constructor Create(ChanName, ChanScheme, ChanTopic, ChanCreatedBy: String);
+      destructor Destroy; override;
+    end;
 
+  TSuper=class (TObject)
+    public
+      Name, IP: String;
+      constructor Create(SuperName, SuperIP: String);
+      destructor Destroy; override;
     end;
 
   TUser=class (TThread)
-    ConnectingFrom: string;
-    Nickname, Username, Hostname, Servername, Realname, SafeRealname: string;
-    LastSenior: string;
-    UserPass: string;
-    AwayMsg, QuitMsg: string;
-    FloodPoints: Integer;
-    SignonTime, LastBanTime: Int64;
-    Socket: TSocket;
-    Quit, Away: Boolean;
-    LastMessageTime: TDateTime;
-    InChannel: array of Boolean;
-    Modes: array[char] of Boolean;
+    private
+      Socket: TSocket;
+      Away, White, Quit, SilentQuit: Boolean;
+      UserPass: string;
+      LastSenior: string;
+      AwayMsg, QuitMsg: string;
+      TempNick, TempUsername: string;
+      FloodPoints, DataStats: Integer;
+      SignonTime, LastBanTime: Int64;
+      LastMessageTime, LastDataTime: TDateTime;
+      function IsAuthorized: Boolean;
+      function IsRegistered: Boolean;
 
-    procedure Execute; override;
-    procedure SendLn(S: string; Logging: Boolean=true);
-    procedure Broadcast(S: string; Channel: TChannel; ExceptSelf: Boolean=false; Logging: Boolean=true); overload;
-    procedure Broadcast(S: string; OnlyChannels: Boolean=true; ExceptSelf: Boolean=false; Logging: Boolean=true); overload;
-    procedure LogIn(S: String);
+      procedure LogIn(S: String);
 
-    procedure ExecPing(S: String);
-    procedure ExecNick(S: String);
-    procedure ExecUser(S: String);
-    procedure ExecPass(S: String);
-    procedure ExecPrank(S: String);
-    procedure ExecKickall(S: String);
-    procedure ExecSendraw(S: String);
-    procedure ExecAnnounce(S: String);
-    procedure ExecIson(S: String);
-    procedure ExecQuit(S: String);
-    procedure ExecJoin(S: String);                                                                                         
-    procedure ExecNames(S: String);
-    procedure ExecPart(S: String);
-    procedure ExecMode(S: String);
-    procedure ExecWho(S: String);
-    procedure ExecList(S: String);
-    procedure ExecExpect(S: String);
-    procedure ExecGames(S: String);
-    procedure ExecKill(S: String);
-    procedure ExecWhois(S: String);
-    procedure ExecInfo(S: String);
-    procedure ExecMotd(S: String);
-    procedure ExecLusers(S: String);
-    procedure ExecSeen(S: String);
-    procedure ExecAway(S: String);
-    procedure ExecTopic(S: String);
-    procedure ExecCalc(S: String);
-    procedure ExecAuthpong(S: String);
-    procedure ExecForcegameid(S: String);
-    procedure ExecBan(Command, S: String);
-    procedure ExecOper(Command, S: String);
-    procedure ExecMessage(Command, S: String);
-    procedure ExecMute(Mute: Boolean; S: String);
+      procedure ExecPing(S: String);
+      procedure ExecNick(S: String);
+      procedure ExecUser(S: String);
+      procedure ExecPass(S: String);
+      procedure ExecPrank(S: String);
+      procedure ExecKickall(S: String);
+      procedure ExecSendfrom(S: String);
+      procedure ExecAnnounce(S: String);
+      procedure ExecIson(S: String);
+      procedure ExecQuit(S: String);
+      procedure ExecJoin(S: String);
+      procedure ExecNames(S: String);
+      procedure ExecPart(S: String);
+      procedure ExecMode(S: String);
+      procedure ExecWho(S: String);
+      procedure ExecList(S: String);
+      procedure ExecExpect(S: String);
+      procedure ExecGames(S: String);
+      procedure ExecKick(S: String);
+      procedure ExecKill(S: String);
+      procedure ExecWhois(S: String);
+      procedure ExecInfo(S: String);
+      procedure ExecMotd(S: String);
+      procedure ExecLusers(S: String);
+      procedure ExecUsers(S: String);
+      procedure ExecSeen(S: String);
+      procedure ExecAway(S: String);
+      procedure ExecTopic(S: String);
+      procedure ExecCalc(S: String);
+      procedure ExecAuthpong(S: String);
+      procedure ExecForcegameid(S: String);
+      procedure ExecAddchannel(S: String);
+      procedure ExecRemovechannel(S: String);
+      procedure ExecReload(S: String);
+      procedure ExecShutdown(S: String);
+      procedure ExecBan(Command, S: String);
+      procedure ExecOper(Command, S: String);
+      procedure ExecMessage(Command, S: String);
+      procedure ExecMute(Mute: Boolean; S: String);
 
-    procedure ExecuteCommand(S: String);
+      procedure GetGameVersion;
+      procedure GetSafeRealname;
+      procedure AddSeen;
+      function MessageFloodCheck(MsgLen: Integer): Boolean;
+      function DataFloodCheck(DataLen: Integer): Boolean;
+      function ContextCommand(S: String): Boolean;
 
-    procedure Die(Action, Reason, Master: String);
-    function ContextCommand(S: String): Boolean;
-    function Authorized: Boolean;
-    function Registered: Boolean;
-    function ChangeMode(Side, Mode: Char; Master: String): Boolean;
+    public
+      Nickname, Username, Hostname, Servername, Realname, SafeRealname: string;
+      GameVersion: TVersion;
+      ConnectingFrom: string;
+      ChannelsJoined: TThreadList;
+      Modes: array[char] of Boolean;
 
-    function SendEvent(EventNo: Integer; S: String; Logging: Boolean=true): String;
-    function SendError(ErrNo: Integer; S: String; Logging: Boolean=true): String;
-    function ServerMessage(S: String; MessageType: ShortInt=0): String;
-    end;
+      property Authorized: Boolean read IsAuthorized;
+      property Registered: Boolean read IsRegistered;
 
-  TSuper=record
-    Nick, IP: String;
-    end;
-
-  TSeen=record
-    Nick, QuitMsg: String;
-    LastSeen: TDateTime;
+      procedure Execute; override;
       procedure ResumeThread;
+
+      procedure SendLn(Source: TUser; Msg: string; Logging: Boolean=true); overload;
+      procedure SendLn(S: string; Logging: Boolean=true); overload;
+      procedure Broadcast(Msg: string; Channel: TChannel; FullString: Boolean = false; ExceptSelf: Boolean=false; Logging: Boolean = true); overload;
+      procedure Broadcast(Msg: string; FullString: Boolean = false; OnlyChannels: Boolean = True; ExceptSelf: Boolean=false; Logging: Boolean = True); overload;
+
+      procedure ExecuteCommand(S: String);
+      procedure Kill(Killer: TUser; Reason: String);
+      procedure ServerKill(Reason: String);
+      procedure CloseConnection;
+
+      function InChannel(Channel: TChannel): Boolean;
+
+      function ChangeMode(Side, Mode: Char; Master: TUser): Boolean;
+
+      function SendEvent(EventNo: Integer; S: String; Logging: Boolean=true): String;
+      function SendError(ErrNo: Integer; S: String; Logging: Boolean=true): String;
+      function RuptureError(Comment: String): String;
+      function ServerMessage(S: String; MessageType: ShortInt=0): String;
     end;
 
 const

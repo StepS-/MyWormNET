@@ -17,22 +17,33 @@ uses
 
 type
   TRequest=class(TThread)
-    Socket: TSocket;
-    ConnectingFrom: string;
-    FileName: string;
-    Parameters: TStringList;
-    procedure Execute; override;
-    procedure SendLn(S: string; Logging: Boolean=true);
+    private
+      Socket: TSocket;
+      White: Boolean;
+
+    public
+      ConnectingFrom: string;
+      FileName: string;
+      UserAgent: string;
+      Parameters: TStringList;
+      ClientVersion: TVersion;
       procedure ResumeThread;
+      procedure Execute; override;
+      procedure SendLn(S: string; Logging: Boolean=true);
     end;
 
-  TGame=record
-    Created: TDateTime;
-    Name, Password, Loc, Chan, LType: string;
-    HosterNickname, HosterAddress, HostedFrom: string;
-    PassNeeded: char;
-    Scheme: string;
-    GameID: Integer;
+  TGame=class(TObject)
+    private
+      function GetGameAge: Int64;
+
+    public
+      Created: TDateTime;
+      Name, Password, Loc, Chan, LType: string;
+      HosterNickname, HosterAddress, HostedFrom: string;
+      PassNeeded: char;
+      Scheme: string;
+      GameID: Integer;
+      property Age: Int64 read GetGameAge;
     end;
 
 var
