@@ -2248,19 +2248,39 @@ begin
   end
 end;
 
-function TUser.Registered: Boolean;
+function TUser.InChannel(Channel: TChannel): Boolean;
+var
+  I: Integer;
+  ChannelsJoinedList: TList;
 begin
-  if (Nickname='') or (Username='') then
+  Result:=false;
+  if Channel <> nil then
+  begin
+    ChannelsJoinedList:=ChannelsJoined.LockList;
+    for I := 0 to ChannelsJoinedList.Count-1 do
+      if ChannelsJoinedList[I] = Channel then
+      begin
+        Result:=true;
+        Break;
+      end;
+    ChannelsJoined.UnlockList;
+  end
+end;
+
+function TUser.IsRegistered: Boolean;
+begin
+  if (TempNick='') or (TempUsername='') then
     Result:=false
   else
     Result:=true;
 end;
 
-function TUser.Authorized: Boolean;
+function TUser.IsAuthorized: Boolean;
 begin
   Result:=false;
   if UserPass <> '' then
-    if (UserPass=IRCPassword) or (UserPass=IRCPassword2) then
+    if (UserPass=IRCPassword) or (UserPass=IRCPassword+' ')
+     or RelativeExists(WhitePassauthThreadList, UserPass) then
       Result:=true;
 end;
 
