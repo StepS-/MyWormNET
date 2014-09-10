@@ -1330,30 +1330,24 @@ procedure TUser.ExecIson(S: String);
 const Command='ISON';
 var
   IsonBuff, Target: String;
-  User: TUser;
 begin
-  if Nickname <> '' then
+  IsonBuff:='';
+  while Pos(' ',S) <> 0 do
   begin
-    IsonBuff:='';
-    while Pos(' ',S) <> 0 do
-    begin
-      Target:=Copy(S, 1, Pos(' ', S)-1);
-      Delete(S, 1, Pos(' ', S));
-      User:=UserByName(Target);
-      if User <> nil then
-        IsonBuff:=IsonBuff+Target+' ';
-    end;
-    if S='' then
-      SendEvent(303, ':'+IsonBuff)
-    else
-    begin
-      Target:=S;
-      User:=UserByName(Target);
-      if User <> nil then
-        IsonBuff:=IsonBuff+Target+' ';
-      SendEvent(303, ':'+IsonBuff);
-    end;
+    Target:=StringSection(S, 0);
+    DeleteSections(S, 1);
+    if NickInUse(Target) then
+      IsonBuff:=IsonBuff+Target+' ';
   end;
+  if S='' then
+    SendEvent(303, ':'+IsonBuff)
+  else
+  begin
+    Target:=S;
+    if NickInUse(Target) then
+      IsonBuff:=IsonBuff+Target+' ';
+    SendEvent(303, ':'+IsonBuff);
+    end;
 end;
 
 procedure TUser.ExecPing(S: String);
