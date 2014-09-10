@@ -620,46 +620,56 @@ begin
     SendError(461,Command);
 end;
 
+procedure TUser.ExecKick(S: String);
+const Command='KICK';
 var
-  I: Integer;
-  Side: Char;
-  Pre, Command: String;
+  Reason, Target: String;
   User: TUser;
+  Channel: TChannel;
 begin
-  if Mute then Command:='MUTE'
-  else Command:='UNMUTE';
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
   if S <> '' then
   begin
-    if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
+    Channel:=LockChannelByName(StringSection(S, 0));
+    if Channel <> nil then
     begin
-      User:=UserByName(S);
+      Target:=StringSection(S, 1);
+      if Pos(' ', S) <> 0 then
+      begin
+        Reason:=Copy(ContinuedSection(S, 2), 1, KICKLEN);
+        CutLeadingColon(Reason);
+        if Reason='' then
+          Reason:='Bye.';
+      end
+      else
+        Reason:='Bye.';
+
+      if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
+      begin
+        User:=LockUserByName(Target);
         if User <> nil then
         begin
           if (Modes['q'])
-          or ((Modes['a']) and not (User.Modes['q']))
-          or ((Modes['o']) and not (User.Modes['a']) and not (User.Modes['q']))
-          or ((Modes['h']) and not (User.Modes['a']) and not (User.Modes['q']) and not (User.Modes['o']))
+            or ((Modes['a']) and not (User.Modes['q']))
+            or ((Modes['o']) and not (User.Modes['a']) and not (User.Modes['q']))
           then
           begin
-            if Mute then Side:='+'
-            else Side:='-';
-
-            if not User.ChangeMode(Side,'b',Nickname) then
-            begin
-              if Mute then Pre:='already'
-              else Pre:='not';
-              SendEvent(401, S+' :This user has '+Pre+' been muted');
-            end;
+            Broadcast('KICK '+Channel.Name+' '+User.Nickname+' :'+Reason);
+            User.ChannelsJoined.Remove(Channel);
+            EventLog(Format(L_IRC_ACTION_KICK, [Nickname, User.Nickname, Channel.Name, Reason]));
           end
           else
-            SendError(484,S);
+            SendError(484,Target);
         end
         else
-          SendError(401,S);
+          SendError(401,Target);
+        UserThreadList.UnlockList;
+      end
+      else
+        SendError(481,Command);
     end
     else
-      SendError(481,Command);
+      SendError(403,Command);
+    ChannelThreadList.UnlockList;
   end
   else
     SendError(461,Command);
