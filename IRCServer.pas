@@ -471,36 +471,33 @@ begin
 end;
 
 procedure TUser.LogIn(S: String);
-var
-  I: Integer;
 begin
-  if BannedNick(Nickname) then
+  if InList(NickBanThreadList, Nickname) then
   begin
-    SendLn('ERROR :You are banned.');
-    EventLog(Format(L_IRC_HALT_BANNED_NICK, [Nickname+' ('+ConnectingFrom+')']));
+    RuptureError('You are banned.');
+    EventLog(Format(L_IRC_HALT_BANNED_NICK, [Nickname, ConnectingFrom]));
     QuitMsg:='Killed by server: Banned nickname';
     Quit:=true;
-    if Socket <> 0 then closesocket(Socket); Socket:=0;
+    CloseConnection;
   end
   else
     if ForbiddenNick(Nickname) then
     begin
-      SendLn('ERROR :Your nickname ('+Nickname+') is invalid, please change nickname and try again.');
+      RuptureError('Your nickname ('+Nickname+') is invalid, please change nickname and try again.');
       EventLog(Nickname+' ('+ConnectingFrom+') has been halted due to his nick being invalid.');
       QuitMsg:='Killed by server: Invalid nickname';
       Quit:=true;
-      if Socket <> 0 then closesocket(Socket); Socket:=0;
+      CloseConnection;
     end
   else
   begin
-    EventLog(Format(L_IRC_LOGGED_IN, [Nickname+' ('+ConnectingFrom+')']));
-    if Length(Users) > MaxIRCUsers then
-      MaxIRCUsers:=Length(Users);
+    EventLog(Format(L_IRC_LOGGED_IN, [Nickname, ConnectingFrom]));
     SendEvent(001, ':Welcome, '+Nickname+'!', false);
     SendEvent(002, ':Your host is '+ServerHost+', running MyWormNET version '+APPVERSION, false);
-    SendEvent(003, ':This server was created '+CreationTime, false);
-    SendEvent(004, ServerHost+' '+APPVERSION+' biL'+IRCPrefModes+' tnb'+IRCPrefModes, false);
-    SendEvent(005, 'PREFIX=('+IRCPrefModes+')'+IRCPrefixes+' STATUSMSG='+IRCPrefixes+' CHANTYPES=# NICKLEN=15 CHANNELLEN=30 QUITLEN=160 KICKLEN=300 NETWORK='+NetworkName+' CHANMODES=b,nt MODES=6 :are supported by this server', false);
+    SendEvent(003, ':This server was created '+StartupTime, false);
+    SendEvent(004, ServerHost+' '+APPVERSION+' Qis'+IRCPrefModes+' Qtn'+IRCPrefModes, false);
+    SendEvent(005, Format('PREFIX=(%s)%s STATUSMSG=%s CHANTYPES=%s NICKLEN=%u CHANNELLEN=%u QUITLEN=%u KICKLEN=%u NETWORK=%s CHANMODES=%s MODES=%s :are supported by this server',
+      [IRCPrefModes, IRCPrefixes, IRCPrefixes, CHANTYPES, NICKLEN, CHANNELLEN, QUITLEN, KICKLEN, NetworkName, 'm,nt', '6']), false);
     Log('[IRC] > '+Format(L_IRC_LOG_WELCOME, [Nickname]));
     ExecLusers(S);
     ExecInfo(S);
@@ -558,8 +555,8 @@ begin
     StrOut:='Unknown error';
   end;
 
-  Result:=':'+ServerHost+' '+IntToStr(ErrNo)+' '+Nickname+' '+S+' :'+StrOut;
-  SendLn(Result,Logging);
+  Result:=SendEvent(ErrNo, S+' :'+StrOut, Logging);
+end;
 end;
 
 function TUser.ServerMessage(S: String; MessageType: ShortInt=0): String;
