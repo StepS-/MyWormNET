@@ -287,7 +287,7 @@ begin
         end;
       end;
     until Socket=0;
-    Log('[IRC] '+L_CLOSING_LINK+' '+ConnectingFrom);
+    Log('[IRC] '+L_CONNECTION_CLOSING_LINK+' '+ConnectingFrom);
     closesocket(Socket);
 
   except
@@ -295,41 +295,30 @@ begin
       begin
         if not Quit then
         begin
-          if not Modes['i'] then
-            Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+E.Message);
           QuitMsg:=E.Message;
-          if Registered then
-            AddSeen(Nickname,E.Message);
+          AddSeen;
+          if Registered and not Modes['i'] then
+            Broadcast('QUIT :'+QuitMsg);
           Log('[IRC] '+L_ERROR_WITH+' '+ConnectingFrom+' : '+E.Message);
         end;
       end;
     end;
 
-  if Socket<>0 then
-    closesocket(Socket);   // ignore errors
-  Socket:=0;
+  Sleep(50);
+  CloseConnection;
 
   if Registered then
-    EventLog(Format(L_IRC_DISCONNECTED, [Nickname+' ('+ConnectingFrom+')', QuitMsg]))
+    if not SilentQuit then
+      EventLog(Format(L_IRC_DISCONNECTED, [Nickname, ConnectingFrom, QuitMsg]))
+    else
+      EventLog(Format(L_IRC_DISCONNECTED_SILENT, [Nickname, ConnectingFrom]))
   else
   if not Authorized then
-    EventLog(Format(L_IRC_DISCONNECTED_UNKAUTH, ['<Unknown> ('+ConnectingFrom+')']))
+    EventLog(Format(L_IRC_DISCONNECTED_UNKAUTH, [ConnectingFrom]))
   else
-    EventLog(Format(L_IRC_DISCONNECTED_UNKNOWN, ['<Unknown> ('+ConnectingFrom+')']));
+    EventLog(Format(L_IRC_DISCONNECTED_UNKNOWN, [ConnectingFrom]));
 
-  // TODO: add some sync lock or something here
-  N:=-1;
-  for I:=0 to Length(Users)-1 do
-    if Users[I]=Self then
-      N:=I;
-  if N=-1 then
-    Log(ConnectingFrom+': '+L_IRC_WTF)
-  else
-    begin
-    for I:=N to Length(Users)-2 do
-      Users[I]:=Users[I+1];
-    SetLength(Users, Length(Users)-1);
-    end;
+  UserThreadList.Remove(Self);
   FreeOnTerminate:=True;
 end;
 
