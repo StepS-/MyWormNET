@@ -2497,6 +2497,20 @@ begin
   ChannelThreadList.Remove(Self);
   inherited Destroy;
 end;
+
+function TChannel.GetUserCount: u_int;
+var
+  I: Integer;
+  UserList: TList;
+begin
+  Result:=0;
+  UserList:=UserThreadList.LockList;
+  for I := 0 to UserList.Count-1 do
+    if TUser(UserList[I]).InChannel(Self) then
+      Inc(Result);
+  UserThreadList.UnlockList;
+end;
+
 // ***************************************************************
 
 function GetFormattedUserCount: TUserCount;
