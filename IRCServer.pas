@@ -678,57 +678,51 @@ end;
 procedure TUser.ExecKill(S: String);
 const Command='KILL';
 var
-  I: Integer;
   Reason, Target: String;
   User: TUser;
 begin
   if S <> '' then
   begin
-    for I:=0 to Length(Channels)-1 do
-      if Pos(Channels[I].Name, S) <> 0 then
-      begin
-        Delete(S, 1, Pos(' ', S));
-        Break;
-      end;
+    if ChannelExists(StringSection(S, 0)) then
+      DeleteSections(S, 1);
+
+    Target:=StringSection(S, 0);
     if Pos(' ', S) <> 0 then
-      begin
-        Target:=Copy(S, 1, Pos(' ', S)-1);
-        Reason:=Copy(S, Pos(' ', S)+1, 300);
-        if Reason[1] = ':' then Delete(Reason, 1, 1);
-      end
+    begin
+      Reason:=Copy(ContinuedSection(S, 1), 1, KICKLEN);
+      CutLeadingColon(Reason);
+    end
     else
-      begin
-        Target:=Copy(S, 1, Length(S));
-        Reason:='No reason specified';
-      end;
+      Reason:='No reason specified';
+
     if (Modes['q'])or(Modes['a'])or(Modes['o']){or(Modes['h'])} then
-     begin
-      User:=UserByName(Target);
+    begin
+      User:=LockUserByName(Target);
       if User <> nil then
-          begin
-            if (Modes['q'])
-            or ((Modes['a']) and not (User.Modes['q']))
-            or ((Modes['o']) and not (User.Modes['a']) and not (User.Modes['q']))
-            then
-              begin
-                User.Die('killed',Reason,Nickname);
-                EventLog(Format(L_IRC_ACTION_KILL, [Nickname, User.Nickname, Reason]));
-              end
-            else
-              SendError(484,Target);
-          end
+      begin
+        if (Modes['q'])
+          or ((Modes['a']) and not (User.Modes['q']))
+          or ((Modes['o']) and not (User.Modes['a']) and not (User.Modes['q']))
+        then
+        begin
+          User.Kill(Self, Reason);
+          EventLog(Format(L_IRC_ACTION_KILL, [Nickname, User.Nickname, Reason]));
+        end
+        else
+          SendError(484,Target);
+      end
       else
         SendError(401,Target);
-     end
+      UserThreadList.UnlockList;
+    end
     else
       SendError(481,Command);
-    //        begin
-    //          if InChannel then InChannel := False;
-    //          for I:=0 to Length(Users)-1 do
-    //            Users[I].SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Kicked: Attempted to use godly powers');
-    //          SendLn('ERROR :Nice try, '+Nickname+'.');
-    //          closesocket(Socket); Socket:=0;
-    //        end;
+    { begin
+      Broadcast('QUIT :Killed: Attempted to use godly powers');
+      SendLn('ERROR :Nice try, '+Nickname+'.');
+      CloseConnection;
+      end;
+    }
   end
   else
     SendError(461,Command);
