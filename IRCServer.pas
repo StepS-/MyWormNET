@@ -1211,18 +1211,18 @@ var
 begin
   if Pos(' ', S) <> 0 then
   begin
-    Target:=Copy(S, 1, Pos(' ', S)-1);
-    Description:=Copy(S, Pos(' ', S)+1, Length(S));
+    Target:=StringSection(S, 0);
+    Description:=ContinuedSection(S, 1);
   end
   else
   begin
-    Target:=Copy(S, 1, Length(S));
+    Target:=S;
     Description:='Something bad happened.';
   end;
 
   if (Modes['q'])or(Modes['a'])or(Modes['o']) then
   begin
-    User:=UserByName(Target);
+    User:=LockUserByName(Target);
     if User <> nil then
       begin
         if (Modes['q'])
@@ -1239,6 +1239,7 @@ begin
       end
       else
         SendError(401,Target);
+    UserThreadList.UnlockList;
   end;
 end;
 
