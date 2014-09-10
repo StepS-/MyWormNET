@@ -202,7 +202,7 @@ procedure TUser.Execute;
 var
   BufferA, SA: ansistring;
   Buffer, S: string;
-  R, Bytes, I, J, N: Integer;
+  R, Bytes: Integer;
   PingTimer: Integer;
   RegTimer: Integer;
   ReadSet, ErrorSet: record
@@ -222,14 +222,14 @@ begin
         BufferA:=ansistring(Buffer);
         ReadSet.count:=1;
         ReadSet.Socket:=Socket;
-        ErrorSet.count:=1;
+        ErrorSet.count:=0;
         ErrorSet.Socket:=Socket;
         TimeVal.tv_sec:=0;
         TimeVal.tv_usec:=10000;
         R:=select(Socket+1, @ReadSet, nil, @ErrorSet, @TimeVal);
         if (R=SOCKET_ERROR) or (ErrorSet.count>0) then
         begin
-          Log('[IRC] '+ConnectingFrom+' '+L_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          Log('[IRC] '+ConnectingFrom+' '+L_ERROR_SELECT+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
           raise Exception.Create(L_CONNECTION_ERROR+'.');
         end;
 
@@ -245,6 +245,7 @@ begin
 
         if Bytes=0 then  // software disconnect
         begin
+          SilentQuit:=true;
           Log('[IRC] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' (Graceful disconnect).');
           raise Exception.Create('Connection reset by peer');
         end;
@@ -254,8 +255,9 @@ begin
           RuptureError('Excess flood');
           raise Exception.Create('Excess flood');
         end;
+
         SetLength(SA, Bytes);
-        R:=recv(Socket, SA[1], Bytes, 0);
+        R:=recv(Socket, SA[1], Length(SA), 0);
         if(R=0)or(R=SOCKET_ERROR)then
         begin
           Log('[IRC] '+ConnectingFrom+' '+L_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
@@ -271,7 +273,7 @@ begin
       while GetLine(Buffer, S) do
       begin
         if Registered then
-          Log('[IRC] < :'+Nickname+'!'+Username+'@'+StealthIP+' '+S)
+          Log('[IRC] < :'+Nickname+'!'+Username+'@'+ConnectingFrom+' '+S)
         else
           Log('[IRC] < :'+ConnectingFrom+' '+S);
         ExecuteCommand(S);
@@ -835,7 +837,7 @@ begin
   SendEvent(371, ':The server software was written by', false);
   SendEvent(371, ':The_CyberShadow <thecybershadow@gmail.com>', false);
   SendEvent(371, ':and extended by StepS <github.com/StepS->', false);
-  if WormNATPort>0 then
+  if WormNATServer.ThreadID <> 0 then
     SendEvent(371, ':[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.', false);    
   SendEvent(371, ':This server was compiled '+CreationTime, false);
   SendEvent(371, ':This server is online since '+StartupTime, false);
@@ -849,7 +851,7 @@ var
   Buf: String;
 begin
   SendEvent(375, ':- '+NetworkName+' Message of the Day - ', false);
-  S:=GetFile('motd.txt')+#13#10;
+  S:=GetTextFile('motd.txt');
   while GetLine(S, Buf) do
     if(S<>'')or(Buf<>'') then
       SendEvent(372, ':- '+Buf, false);
@@ -937,7 +939,6 @@ end;
 procedure TUser.ExecAway(S: String);
 const Command='AWAY';
 begin
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
   if Pos(':',S) = 1 then Delete(S, 1, 1);
   S:=Copy(S, 1, 512);
   if (S='') and (Away) then
@@ -1078,6 +1079,7 @@ begin
   else
     SendError(481, Command);
 end; 
+
 procedure TUser.ExecReload(S: string);
 const Command='RELOADSETTINGS';
 begin
@@ -1105,6 +1107,7 @@ begin
   else
     SendError(481, Command);
 end;
+
 procedure TUser.ExecBan(Command, S: String);
 var
   B, P: Boolean;
@@ -1472,8 +1475,8 @@ begin
     UserPass:=S;
     if not Authorized then
     begin
-      SendLn('ERROR :Bad password');
-      if (Socket <> 0) then closesocket(Socket); Socket:=0;
+      RuptureError('Bad password');
+      CloseConnection;
     end;
   end
   else
@@ -2107,6 +2110,7 @@ const Command='EXPECT';
 var
   User: TUser;
 begin
+  if WormNATServer.ThreadID <> 0 then
   begin
     S:=StringSection(S, 0);
     Log(Format(L_IRC_EXPECT, [ConnectingFrom, S]));
@@ -2120,6 +2124,8 @@ begin
     end;
     UserThreadList.UnlockList;
   end
+  else
+    ServerMessage('WormNAT is not enabled on this server.');
 end;
 
 procedure TUser.ExecGames(S: String);
@@ -2145,6 +2151,7 @@ procedure TUser.ExecAuthpong(S: string);
 begin
   //todo for later
 end;
+
 procedure TUser.SendLn(Source: TUser; Msg: string; Logging: Boolean=true);
 var
   AStr: AnsiString;
@@ -2287,7 +2294,7 @@ begin
   begin
     Result:=true;
     Delete(S,1,1);
-    Command:=Copy(S, 1, Pos(' ', S+' ')-1);
+    Command:=StringSection(S, 0);
     if not ((TextMatch(Command,'PRIVMSG')) or (TextMatch(Command,'NOTICE'))) then
     begin
       EventLog('[COMMAND] <'+Nickname+'> $'+S);
@@ -2463,6 +2470,7 @@ begin
       Result:= true;
   end;
 end;
+
 procedure TUser.AddSeen;
 var
   I: Integer;
@@ -2492,6 +2500,7 @@ begin
     SeenThreadList.UnlockList;
   end;
 end;
+
 procedure TUser.ResumeThread;
 begin
   {$IFDEF MSWINDOWS}
@@ -2504,6 +2513,7 @@ begin
   Start;
   {$ENDIF}
 end;
+
 // ***************************************************************
 
 destructor TSeen.Destroy;
@@ -3001,9 +3011,6 @@ begin
   UserThreadList.UnlockList;
 end;
 
-var
-  ThreadID: Cardinal = 0;
-
 procedure StartIRCServer;
 begin
   if ThreadID=0 then  // start only once
@@ -3023,3 +3030,4 @@ finalization
   SuperThreadList.Free;
 
 end.
+
