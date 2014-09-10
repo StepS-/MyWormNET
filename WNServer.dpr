@@ -15,7 +15,7 @@ uses
   {$ELSE}
   cthreads, FakeWinSock,
   {$ENDIF}
-  SysUtils, Base, HTTPServer, IRCServer, WormNATServer, Data;
+  SysUtils, Base, HTTPServer, IRCServer, WormNATServer;
 
 {$IFDEF MSWINDOWS}
 var
@@ -23,17 +23,11 @@ var
 {$ENDIF}
 
 begin
-  ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
-  EventLog('------------------ '+DateTimeToStr(Now)+' ------------------',true);
-  EventLog(Format(L_START, [APPVERSION]));
-
   LoadParams;
 
   {$IFDEF MSWINDOWS}
   WSAStartUp(MAKEWORD(1,1), WSA);
   {$ENDIF}
-  
-  LoadBanlists;
 
   if IRCPort <> 0 then
     StartIRCServer;
@@ -46,3 +40,4 @@ begin
   while True do
     Sleep(INFINITE);
 end.
+
