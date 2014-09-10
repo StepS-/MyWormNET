@@ -909,19 +909,40 @@ end;
 procedure TUser.ExecTopic(S: String);
 const Command='TOPIC';
 var
+  ChanName, NewTopic: string;
   Channel: TChannel;
 begin
-  S:=Copy(S, 1, Pos(' ',S+' ')-1);
-  if S <> '' then
+  ChanName:=StringSection(S, 0);
+  if ChanName <> '' then
   begin
-    Channel:=ChannelByName(S);
+    DeleteSections(S, 1);
+    Channel:=LockChannelByName(ChanName);
     if Channel <> nil then
     begin
-      SendEvent(332, Channel.Name+' :'+Channel.Topic, false);
-      SendEvent(333, Channel.Name+' '+ServerHost+' '+IntToStr(Channel.CreationTime), false);
+      CutLeadingColon(S);
+      NewTopic:=ContinuedSection(S, 0);
+      if NewTopic<>'' then
+      begin
+        if (Modes['h']) or (Modes['o']) or (Modes['a']) or (Modes['q']) then
+        begin
+          Channel.Topic.Text:=NewTopic;
+          Channel.Topic.SetBy:=Nickname;
+          Channel.Topic.TimeSet:=DateTimeToUnix(Now);
+          Broadcast('TOPIC '+Channel.Name+' :'+Channel.Topic.Text, Channel);
+          EventLog(Format(L_IRC_ACTION_TOPIC, [Nickname, Channel.Name, Channel.Topic.Text]));
+        end
+        else
+          SendError(481, Command);
+      end
+      else
+      begin
+        SendEvent(332, Channel.Name+' :'+Channel.Topic.Text, false);
+        SendEvent(333, Channel.Name+' '+Channel.Topic.SetBy+' '+IntToStr(Channel.Topic.TimeSet), false);
+      end;
     end
     else
-      SendError(403,S);
+      SendError(403,ChanName);
+    ChannelThreadList.UnlockList;
   end
   else
     SendError(461,Command);
