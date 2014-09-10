@@ -1266,17 +1266,35 @@ begin
     SendError(481,Command);
 end;
 
-procedure TUser.ExecSendraw(S: String);
-const Command='SENDRAW';
-var I: Integer;
+procedure TUser.ExecSendfrom(S: String);
+const Command='SENDFROM';
+var
+  Target, HisCommand: String;
+  User: TUser;
 begin
   if (Modes['q']) then
-  begin
     if (S='') then
       SendError(461,Command)
     else
-      Broadcast(S,false);
-  end
+    begin
+      Target:=StringSection(S, 0);
+      HisCommand:=ContinuedSection(S, 1);
+      while Pos(' ',HisCommand) = 1 do
+        Delete(HisCommand, 1, 1);
+      if HisCommand <> '' then
+      begin
+        User:=LockUserByName(Target);
+        if User <> nil then
+        begin
+          Target:=User.Nickname;
+          EventLog(Nickname+' has executed a command on behalf of '+Target+': '+HisCommand);
+          User.ExecuteCommand(HisCommand);
+        end;
+        UserThreadList.UnlockList;
+      end
+      else
+        SendError(461,Command);
+    end
   else
     SendError(481,Command);
 end;
