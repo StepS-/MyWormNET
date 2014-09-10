@@ -21,7 +21,7 @@ uses
   IniFiles, DateUtils, Version, Lists;
 
 const
-  APPVERSION = '1.3.7.0';
+  APPVERSION = '1.4.0.0';
 
 var
   Config: TMemIniFile;
