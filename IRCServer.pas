@@ -2413,6 +2413,35 @@ begin
       Result:= true;
   end;
 end;
+procedure TUser.AddSeen;
+var
+  I: Integer;
+  SeenList: TList;
+  Seen: TSeen;
+begin
+  if SeenService and Registered then
+  begin
+    SeenList:=SeenThreadList.LockList;
+    if SeenList.Count < 1 then
+      TSeen.Create(Nickname, QuitMsg, SilentQuit, Now)
+    else
+      for I:=0 to SeenList.Count-1 do
+      begin
+        Seen:=SeenList[I];
+        if TextMatch(Nickname,Seen.Nick) then
+        begin
+          Seen.Nick:=Nickname;
+          Seen.QuitMsg:=QuitMsg;
+          Seen.SilentQuit:=SilentQuit;
+          Seen.LastSeen:=Now;
+          Break;
+        end
+        else if I = SeenList.Count-1 then
+          TSeen.Create(Nickname, QuitMsg, SilentQuit, Now);
+      end;
+    SeenThreadList.UnlockList;
+  end;
+end;
 procedure TUser.ResumeThread;
 begin
   {$IFDEF MSWINDOWS}
