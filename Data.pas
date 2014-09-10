@@ -1,4 +1,22 @@
-unit Data;  // data encoding/compression/processing
+unit Data;
+
+{-------------------------------------------------------------------------------
+| Data encoding/compression/processing unit.
+| (C) CyberShadow - 2006
+| (C) StepS - 2013-2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Encode and decode strings between various formats
+| - Read and write text files into strings in multiple codepages with ease
+| - Unicode (LE/BE), UTF-8 with Signature and ANSI are supported for text files
+| - Parse language files (in the 'CODE "string"' format)
+| - Dissect strings to more easily get segments separated with whitespaces
+| - Generate random alphanumeric strings
+| - Get W:A URLs
+| - Acknowledges OS/Compiler differences: UTF-8 output on Linux, U/A on Windows
+-------------------------------------------------------------------------------}
+
 {$IFDEF FPC}
 {$mode DELPHI}
 {$ENDIF}

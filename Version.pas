@@ -1,5 +1,61 @@
 unit Version;
 
+{-------------------------------------------------------------------------------
+| Test unit for version checking.
+| (C) StepS - 2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Set and read the version as a string, array of words and/or an int64 number
+| - Validate the version strings (e.g. stray characters surrounded with dots)
+| - Verify whether the given version string or TVersion is newer or older
+| - MakeInt64 macros
+|-------------------------------------------------------------------------------
+| FIELDS AND METHODS:
+|
+| - Num: default property; you can read and write to the version array e.g.
+|   like MyVersion[Index]. Reading beyond the array's dimensions will return 0,
+|   writing beyond the array size will extend the array as long as the index
+|   does not exceed 15. Attempting to write to index above 15 will result in no
+|   operation, as well as trying to set an array size bigger than 16. These
+|   things ensure that you can freely check the version, number by number, with
+|   unknown lengths, should you decide to not use the built-in comparison
+|   features.
+| - Str: this property allows to read and write the version array as a readable
+|   version string, where integers are separated with dots. This is a common
+|   way to get and set the version. When writing to Str, the state of the Valid
+|   property will be changed according to the sanity of the given version
+|   string. Segments consisting of no numbers will be written as 0, and an
+|   internal error counter will be increased.
+| - Size: the size of the array. This property returns the current array size
+|   when read, and changes the array size when written to. Can not exceed 16.
+|   Larger numbers will always be truncated to 16.
+| - Valid: check this property to determine whether the version string provided
+|   for conversion to Str last time did not contain any bad segments (e.g.,
+|   segments consisting of no numbers). This is an easy way to debunk fake
+|   version strings. Note that things like 'h9.o42.$8.5' are still valid, to
+|   ensure compatibility with versions that include other characters near the
+|   numbers. This means, however, that there won't be any difference between
+|   e.g. '1.2b' and '1.2'.
+| - Int64: read and write the version via an int64 number. When reading, the
+|   first 4 words of the version will be returned in an int64 number, and when
+|   writing, the Size will be truncated to 4 and be set from the input value.
+| - Version check methods: use these to compare your TVersion against a string
+|   or another TVersion and get either true or false.
+|-------------------------------------------------------------------------------
+| NOTES:
+| - In newer versions of Delphi, and in FreePascal, you can overload operators
+|   like >, >=, = to make the version checks even less verbose in code, though
+|   this project maintains compatibility. This is why TVersion is a class here
+|   rather than an extended record type.
+| - This can only store the numeric values of versions. As written above,
+|   letters that may supplement the numbers are ignored. In future, probably,
+|   there would be a different TVersionEx class/record to handle such versions.
+|   Arrays would then consist of strings instead of numbers, and checks would
+|   be performed based on the character ordinals. The priority of this is low.
+| - In order to check strings briefly without turning them into TVersion in
+|   the code, some independent methods are also available.
+-------------------------------------------------------------------------------}
 
 {$IFDEF FPC}
 {$mode DELPHI}

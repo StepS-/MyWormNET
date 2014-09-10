@@ -1,5 +1,16 @@
 unit Base;
 
+{-------------------------------------------------------------------------------
+| Base unit for logging and general settings.
+| (C) CyberShadow - 2006
+| (C) StepS - 2013-2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Load and reload the server settings
+| - Log into text files WNServer.log (verbose) and EventLog.log (important)
+| - Some timestamp-related extensions: OS/Compiler differences acknowledged
+-------------------------------------------------------------------------------}
 
 {$IFDEF FPC}
 {$mode DELPHI}

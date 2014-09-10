@@ -1,5 +1,17 @@
 unit Localization;
 
+{-------------------------------------------------------------------------------
+| MyWormNET localization unit.
+| (C) StepS - 2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Parse the language files located in the 'languages' directory
+| - Manage the loc strings and IDs assisted with the Data unit
+| - Autodetect the system language when set to 'default' on MS Windows
+| - Comments in language files start with '//'
+-------------------------------------------------------------------------------}
+
 interface
 
 {$IFDEF FPC}

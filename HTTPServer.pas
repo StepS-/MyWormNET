@@ -1,5 +1,22 @@
 unit HTTPServer;
 
+{-------------------------------------------------------------------------------
+| Simplistic HTTP server.
+| (C) CyberShadow - 2006-2009
+| (C) StepS - 2013-2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Various improvements since the original version
+| - Acknowledges user-agent and client-differences for WormsML
+| - WWP support (without the game list)
+| - More pages and MIME formats are supported than in versions before 1.3
+| - Hold the game list and manage games
+| - Basic HTTP functionality: send files, accept GET requests
+| - Anti-flood protection for the game-list: only 1 host allowed at a time
+| - W:A version-check if enabled
+-------------------------------------------------------------------------------}
+
 {$IFDEF FPC}
 {$mode DELPHI}
 {$ENDIF}

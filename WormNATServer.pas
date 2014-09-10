@@ -1,5 +1,19 @@
 unit WormNATServer;
-// a proxy for WormNAT routing
+
+{-------------------------------------------------------------------------------
+| A proxy for WormNAT routing.
+| (C) CyberShadow - 2006
+| (C) StepS - 2013-2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Nostalgia
+| - Almost totally obsolete, only kept for history
+| - Disabled by default
+| - Probably broken some updates ago
+| - Cooperates with the IRC server for WormNAT users to join WormNAT games
+| - More details about this artifact: http://worms.thecybershadow.net/wormnat/
+-------------------------------------------------------------------------------}
 
 {$IFDEF FPC}
 {$mode DELPHI}

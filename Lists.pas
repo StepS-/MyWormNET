@@ -1,5 +1,15 @@
 unit Lists;
 
+{-------------------------------------------------------------------------------
+| White/banlists unit.
+| (C) StepS - 2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Hold the lists and provide interface for their usage
+| - Get and update lists in files
+-------------------------------------------------------------------------------}
+
 {$IFDEF FPC}
 {$mode DELPHI}
 {$ENDIF}

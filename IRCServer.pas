@@ -1,5 +1,23 @@
 unit IRCServer;
 
+{-------------------------------------------------------------------------------
+| The MyWormNET IRC server unit.
+| (C) CyberShadow - 2006-2008
+| (C) StepS - 2013-2014
+|-------------------------------------------------------------------------------
+| FEATURES:
+|
+| - Start and manage the IRC server. Manage users, channels and other objects
+| - Largely rewritten and improved in versions 1.1-1.4
+| - Multiple channels are supported since version 1.2
+| - A lot of new IRC commands were added after version 1.0
+| - Thread-safe since version 1.4
+| - Six different user privilege levels, as well as invisible users
+| - Various W:A-related features, such as the game list on IRC or version check
+| - Some anti-flood protections
+| - Mute, kick, kill, permaban, prank as you please
+| - Many other things not written here
+-------------------------------------------------------------------------------}
 
 {$IFDEF FPC}
 {$mode DELPHI}
