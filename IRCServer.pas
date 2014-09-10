@@ -734,27 +734,33 @@ var
   I: Integer;
   UserChannels, UserPrefixes, TrgRealname: String;
   User: TUser;
+  ChannelList: TList;
+  Channel: TChannel;
 begin
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
+  S:=StringSection(S, 0);
   UserChannels:='';
   UserPrefixes:='';
-  User:=UserByName(S);
+  User:=LockUserByName(S);
   if User <> nil then
   begin
     for I:=1 to Length(IRCPrefModes) do
       if User.Modes[IRCPrefModes[I]] then
         UserPrefixes:=UserPrefixes+IRCPrefixes[I];
 
-    for I:=0 to Length(Channels)-1 do
-      if User.InChannel[I] then
-        UserChannels:=UserChannels+UserPrefixes+Channels[I].Name+' ';
+    ChannelList:=ChannelThreadList.LockList;
+    for I:=0 to ChannelList.Count-1 do
+    begin
+      Channel:=ChannelList[I];
+      if User.InChannel(Channel) then
+        UserChannels:=UserChannels+UserPrefixes+Channel.Name+' ';
+    end;
+    ChannelThreadList.UnlockList;
 
     TrgRealname:=User.Realname;
-    if Username='WWP' then     // prevent WWP from crashing
-      TrgRealname:=User.SafeRealname;
+    if (Username='WWP') or (GameVersion.Valid and GameVersion.IsOlderThan('3.6.23.0')) then
+      TrgRealname:=User.SafeRealname; // prevent WWP and old W:A from crashing
 
     SendEvent(311, User.Nickname+' '+User.Username+' '+StealthIP+' * :'+TrgRealname, false);
-//  SendEvent(307, User.Nickname+' :is a registered nick');
     if UserChannels<>'' then
       SendEvent(319, User.Nickname+' :'+UserChannels, false);
     SendEvent(312, User.Nickname+' '+ServerHost+' :'+NetworkName+' (MyWormNET '+APPVERSION+')', false);
@@ -764,8 +770,8 @@ begin
     then
       SendEvent(338, User.Nickname+' '+User.ConnectingFrom+' :Actual IP', false);
     SendEvent(317, User.Nickname+' '+IntToStr(SecondsBetween(Now,User.LastMessageTime))+' '+IntToStr(User.SignonTime)+' :seconds idle, signon time', false);
-
   end;
+  UserThreadList.UnlockList;
   SendEvent(318, S+' :End of /WHOIS list.', false);
   Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
