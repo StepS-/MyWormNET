@@ -165,7 +165,7 @@ begin
       if VersionThisNewer(ClientVersion,'3.6.29.29') then
       begin
         Body:='<CONNECT '+Target+'>';
-        Body:=Body+#13#10'<MOTD>'+GetFile('news.txt')+#13#10'</MOTD>'#10;
+        Body:=Body+#13#10'<MOTD>'+GetTextFile('news.xml')+'</MOTD>'#10;
       end
       else
         if ClientVersion = '2.0' then
