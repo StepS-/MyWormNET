@@ -2192,22 +2192,41 @@ begin
   end;
 end;
 
-procedure TUser.Die(Action, Reason, Master: String);
-var
-  I: Integer;
+procedure TUser.Kill(Killer: TUser; Reason: String);
 begin
-  LastSenior:=Master;
-  QuitMsg:=UpperFCStr(Action)+' by '+Master+': '+Reason;
+  LastSenior:=Killer.Nickname;
+  QuitMsg:='Killed by '+Killer.Nickname+': '+Reason;
   Quit:=true;
   if not Modes['i'] then
-    Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);  
-  for I:=0 to Length(Channels)-1 do
-    if InChannel[Channels[I].Number] then
-      InChannel[Channels[I].Number] := False;
-  SendLn('ERROR :You have been '+LowerFCStr(Action)+' by '+Master+': '+Reason);
-  if Registered then
-    AddSeen(Nickname,QuitMsg);
-  if (Socket <> 0) then closesocket(Socket); Socket:=0;
+  begin
+    SendLn(Killer, 'KILL '+Nickname+' :'+Reason);
+    RuptureError('Killed by '+Killer.Nickname+': '+Reason);
+    Broadcast('QUIT :'+QuitMsg, false, true, false);
+  end;
+  AddSeen;
+  CloseConnection;
+end;
+
+procedure TUser.ServerKill(Reason: String);
+begin
+  LastSenior:='server';
+  QuitMsg:='Server kill: '+Reason;
+  Quit:=true;
+  if not Modes['i'] then
+  begin
+    SendLn(':'+ServerHost+' KILL '+Nickname+' :'+Reason);
+    RuptureError('Server kill: '+Reason);
+    Broadcast('QUIT :'+QuitMsg, false, true, false);
+  end;
+  AddSeen;
+  CloseConnection;
+end;
+
+procedure TUser.CloseConnection;
+begin
+  if (Socket <> 0) then
+    closesocket(Socket);
+  Socket:=0;
 end;
 
 function TUser.ContextCommand(S: String): Boolean;
