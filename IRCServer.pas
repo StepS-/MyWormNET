@@ -1432,97 +1432,118 @@ end;
 
 procedure TUser.ExecNick(S: String);
 const Command='NICK';
-var I: Integer;
+var
+  I, K: Integer;
+  ChannelsJoinedList: TList;
+  Channel: TChannel;
 begin
-  if not ForceAuthping then
-    if not Authorized then
+  if not Authorized then
+  begin
+    RuptureError('Bad password');
+    CloseConnection;
+  end
+  else
+  begin
+    S:=Copy(SanitizeName(StringSection(S, 0)), 1, NICKLEN);
+    if TempNick='' then
     begin
-      SendLn('ERROR :Bad password');
-      if (Socket <> 0) then closesocket(Socket); Socket:=0;
+      if (S='') or (Pos(S[1], Numbers) <> 0) then
+        SendEvent(432, S+' :Erroneous nickname')
+      else
+      begin
+        if NickInUse(S) then
+          SendEvent(433, S+' '+S+' :Nickname is already in use')
+        else if not ValidateRelativity(WhiteNickThreadList, S, ConnectingFrom) then
+          ServerKill('Sorry, nickname '+S+' is protected. Please choose another one.')
+        else if not ValidateRelativity(WhitePassauthThreadList, S, UserPass) then
+          ServerKill('Bad password for nickname '+S)                                    //two factor auth
+        else begin
+          Nickname:=S;
+          TempNick:=Nickname;
+          if TempUsername<>'' then
+            LogIn(S);
+        end;
+      end;
     end
     else
     begin
-      S:=Copy(S, 1, Pos(' ',S+' ')-1);
-      if Nickname<>'' then
+      if not ((Modes['o']) or (Modes['a']) or (Modes['q'])) then
       begin
         SendError(400,S);
-        EventLog(Format(L_IRC_ACTION_NICK, [Nickname, S]));
+        EventLog(Format(L_IRC_ACTION_NICK_FAIL, [Nickname, S]));
       end
       else
       begin
-        for I:=Length(S) downto 1 do
-          if Pos(S[I], ValidNickChars)=0 then
-            Delete(S, I, 1);
-
-        if Length(S) > 15 then
-        repeat
-          Delete(S, Length(S), 1);
-        until Length(S) = 15;
-
-        if S='' then
-          SendError(432,Command)
+        if (S='') or (Pos(S[1], Numbers) <> 0) then
+          SendEvent(432, S+' :Erroneous nickname')
+        else if NickInUse(S) then
+          SendEvent(433, S+' :Nickname is already in use')
+        else if not ValidateRelativity(WhiteNickThreadList, S, ConnectingFrom) then
+          SendEvent(432, S+' :Sorry, nickname '+S+' is protected. Please choose another one.')
+        else if not ValidateRelativity(WhitePassauthThreadList, S, UserPass) then
+          ServerKill('Bad password for nickname '+S)
         else
         begin
-          if NickInUse(S) then
-          SendError(433,S)
-          else
+          Broadcast('QUIT :Changing nick to '+S, false, true, true);
+          ChannelsJoinedList:=ChannelsJoined.LockList;
+          SendLn(Self, 'NICK :'+S);
+          EventLog(Format(L_IRC_ACTION_NICK_SUCCESS, [Nickname, S]));
+          Nickname:=S;
+          for I := 0 to ChannelsJoinedList.Count-1 do
           begin
-            Nickname:=S;
-            if Username<>'' then
-              LogIn(S);
+            Channel:=TChannel(ChannelsJoinedList[I]);
+            Broadcast('JOIN '+Channel.Name, Channel, false, true, true);
+            for K:=1 to Length(IRCPrefModes) do
+              if Modes[IRCPrefModes[K]] then
+                Broadcast(':'+ServerHost+' MODE '+Channel.Name+' +'+IRCPrefModes[K]+' '+Nickname, Channel, true, true, true);
           end;
+          ChannelsJoined.UnlockList;
         end;
-      end;
+       end;
     end;
+  end;
 end;
 
 procedure TUser.ExecUser;
 const Command='USER';
-var
-  F: Integer;
-  R, FlagCheck: string;
 begin
-  if not ForceAuthping then
-    if not Authorized then
-    begin
-      SendLn('ERROR :Bad password');
-      if (Socket <> 0) then closesocket(Socket); Socket:=0;
-    end
-    else
-    begin
-      if (Username='') or (Modes['q']) then
-      begin
-        Username:=Copy(S, 1, Pos(' ', S)-1);
-        Delete(S, 1, Pos(' ', S));
-        Hostname:=Copy(S, 1, Pos(' ', S)-1);
-        Delete(S, 1, Pos(' ', S));
-        Servername:=Copy(S, 1, Pos(' ', S)-1);
-        Delete(S, 1, Pos(':', S));
-        Realname:=S;
-        if Pos(':',Realname) = 1 then
-          Delete(Realname, 1, 1);
-        while Pos(' ',Realname) = 1 do
-          Delete(Realname, 1, 1);
-        R:=Realname;
-        SafeRealname:=R;
-        FlagCheck:=Copy(R, 1, Pos(' ',R+' ')-1);
-        F:=StrToIntDef(FlagCheck,-1);
-        if (F > 52) or (F < 0) then
-          SafeRealname:='49'+Copy(R, Pos(' ',R+' '), Length(R)-Pos(' ',R+' ')+1);
-
-        if Username='' then
-          Username:='Username'; //Prevent the Username from being blank (i.e. Wheat Snooper)
-        if Nickname<>'' then
-          LogIn(S);
-      end
-      else
-        SendError(462,Command)
-    end
+  if not Authorized then
+  begin
+    RuptureError('Bad password');
+    CloseConnection;
+  end
   else
   begin
-   LoadAuthping;
-   SendLn('AUTHPING '+AuthSecret+' '+AuthChallenge);
-  end;
+    if (TempUsername='') or (Modes['q']) then
+    begin
+      if UserPass = IRCPassword+' ' then
+        Username:='Username'
+      else if UserPass = IRCPassword then
+        if Pos('WWP hostname servername :', S) = 1 then
+          Username:='WWP'
+        else begin 
+          Username:='~'+SanitizeName(StringSection(S, 0));
+          if Username='~' then Username:='~UserName'
+        end
+      else begin
+        Username:=SanitizeName(StringSection(S, 0));
+        if Username='' then Username:='Registered';
+      end;
+      TempUsername:=Username;
+      Hostname:=StringSection(S, 1);
+      Servername:=StringSection(S, 2);
+      Realname:=TrimLeft(GetTrail(S));
+      GetSafeRealname;
+      GetGameVersion;
+      
+      if GameVersion.Valid and GameVersion.IsOlderThan(MinimumVersion) then
+        ServerKill('Sorry, your version of the game ('+GameVersion.Str+') is too old. Please update via http://wa.team17.com')
+      else if TempNick<>'' then
+        LogIn(S);
+    end
+    else
+      SendError(462,Command)
+    end
 end;
 
 procedure TUser.ExecQuit(S: String);
