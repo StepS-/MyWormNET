@@ -110,20 +110,25 @@ const
   ValidNickChars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`-';
 
 var
-  Supers: array of TSuper;
-  Users: array of TUser;
-  Seens: array of TSeen;
-  Channels: array of TChannel;
+  UserThreadList: TThreadList;
+  ChannelThreadList: TThreadList;
+  SeenThreadList: TThreadList;
+  SuperThreadList: TThreadList;
 
 procedure StartIRCServer;
 procedure GetChannels;
 procedure LogToOper(S: string);
 procedure AddSeen(Nick, QuitMsg: String);
 function AddChannel(Name, Scheme, Topic: String): Boolean;
-function UserByIP(IP: String): TUser;
-function UserByName(Name: String): TUser;
-function ChannelByName(Name: String): TChannel;
+function LockUserByIP(IP: String): TUser;
+function LockUserByName(Name: String): TUser;
+function LockChannelByName(Name: String): TChannel;
+function LockSuperByIP(IP: String): TSuper;
+function LockSuperByName(Name: String): TSuper;
+function SuperNameExists(Name: String): Boolean;
+function SuperIPExists(IP: String): Boolean;
 function NickInUse(Nick: string): Boolean;
+function ChannelExists(Name: string): Boolean;
 function ForbiddenNick(Nick: string): Boolean;
 
 implementation
@@ -2158,91 +2163,146 @@ begin
       Break;
     end
     else if I=Length(Seens)-1 then
+// ***************************************************************
+
+function LockUserByIP(IP: String): TUser;
+var
+  I: Integer;
+  UserList: TList;
+  User: TUser;
+begin
+  Result := nil;
+  UserList:=UserThreadList.LockList;
+  if IP <> '' then
+    for I:=0 to UserList.Count-1 do
     begin
-      SetLength(Seens,Length(Seens)+1);
-      Seens[Length(Seens)-1].Nick:=Nick;
-      Seens[Length(Seens)-1].LastSeen:=Now;
-      Seens[Length(Seens)-1].QuitMsg:=QuitMsg;
+      User:=UserList[I];
+      if TextMatch(User.ConnectingFrom,IP) then
+      begin
+        Result := User;
+        Break;
+      end;
     end;
 end;
 
-function AddChannel(Name, Scheme, Topic: String): Boolean;
+function LockUserByName(Name: String): TUser;
 var
-  I, L: Integer;
-  B: Boolean;
+  I: Integer;
+  UserList: TList;
+  User: TUser;
+begin
+  Result := nil;
+  UserList:=UserThreadList.LockList;
+  if Name <> '' then
+    for I:=0 to UserList.Count-1 do
+    begin
+      User:=UserList[I];
+      if TextMatch(User.Nickname,Name) and User.Registered then
+      begin
+        Result := User;
+        Break;
+      end;
+    end;
+end;
+
+function LockChannelByName(Name: String): TChannel;
+var
+  I: Integer;
+  ChannelList: TList;
   Channel: TChannel;
 begin
-  B:=true;
-  for I:=0 to Length(Channels)-1 do
-    if Channels[I].Name = Name then
+  Result := nil;
+  ChannelList:=ChannelThreadList.LockList;
+  if Name <> '' then
+    for I:=0 to ChannelList.Count-1 do
     begin
-      B:=false;
-      Break;
+      Channel:=ChannelList[I];
+      if TextMatch(Channel.Name,Name) then
+      begin
+        Result := Channel;
+        Break;
+      end;
     end;
-  if (B) then
-  begin
-    SetLength(Channels, Length(Channels)+1);
-    Channel:=TChannel.Create(Name, Scheme, Topic);
-    L:=Length(Channels)-1;
-    Channels[L]:=Channel;
-    Channels[L].Name:=Name;
-    Channels[L].Scheme:=Scheme;
-    Channels[L].Topic:=Topic;
-    Channels[L].CreationTime:=Channel.CreationTime;
-    Channels[L].Number:=L;
-  end;
-  Result:=B;
 end;
 
-function UserByIP(IP: String): TUser;
+function LockSuperByName(Name: String): TSuper;
 var
   I: Integer;
+  SuperList: TList;
+  Super: TSuper;
 begin
   Result := nil;
-  for I:=0 to Length(Users)-1 do
-    if IP <> '' then
-      if TextMatch(Users[I].ConnectingFrom,IP) then
+  SuperList:=SuperThreadList.LockList;
+  if Name <> '' then
+    for I:=0 to SuperList.Count-1 do
+    begin
+      Super:=SuperList[I];
+      if TextMatch(Super.Name,Name) then
       begin
-        Result := Users[I];
+        Result := Super;
         Break;
       end;
+    end;
 end;
 
-function UserByName(Name: String): TUser;
+function LockSuperByIP(IP: String): TSuper;
 var
   I: Integer;
+  SuperList: TList;
+  Super: TSuper;
 begin
   Result := nil;
-  for I:=0 to Length(Users)-1 do
-    if Name <> '' then
-      if TextMatch(Users[I].Nickname,Name) then
+  SuperList:=SuperThreadList.LockList;
+  if IP <> '' then
+    for I:=0 to SuperList.Count-1 do
+    begin
+      Super:=SuperList[I];
+      if TextMatch(Super.IP,IP) then
       begin
-        Result := Users[I];
+        Result := Super;
         Break;
       end;
+    end;
 end;
 
-function ChannelByName(Name: String): TChannel;
-var
-  I: Integer;
+function SuperNameExists(Name: String): Boolean;
+var Super: TSuper;
 begin
-  Result := nil;
-  for I:=0 to Length(Channels)-1 do
-    if Name <> '' then
-      if TextMatch(Channels[I].Name,Name) then
-      begin
-        Result := Channels[I];
-        Break;
-      end;
+  Result := False;
+  Super := LockSuperByName(Name);
+  if (Super <> nil) then
+    Result := True;
+  SuperThreadList.UnlockList;
+end;
+
+function SuperIPExists(IP: String): Boolean;
+var Super: TSuper;
+begin
+  Result := False;
+  Super := LockSuperByIP(IP);
+  if (Super <> nil) then
+    Result := True;
+  SuperThreadList.UnlockList;
 end;
 
 function NickInUse(Nick: String): Boolean;
-var I: Integer;
+var User: TUser;
 begin
   Result := False;
-  for I:=0 to Length(Users)-1 do
-    if TextMatch(Users[I].Nickname,Nick) then
-      Result := True;
+  User := LockUserByName(Nick);
+  if (User <> nil) then
+    Result := True;
+  UserThreadList.UnlockList;
+end;
+
+function ChannelExists(Name: String): Boolean;
+var Channel: TChannel;
+begin
+  Result := False;
+  Channel := LockChannelByName(Name);
+  if (Channel <> nil) then
+    Result := True;
+  ChannelThreadList.UnlockList;
 end;
 
 function ForbiddenNick(Nick: String): Boolean;
@@ -2342,5 +2402,17 @@ begin
   if ThreadID=0 then  // start only once
     CreateThread(nil, 0, @MainProc, nil, 0, ThreadID);
 end;
+
+initialization
+  UserThreadList:=TThreadList.Create;
+  ChannelThreadList:=TThreadList.Create;
+  SeenThreadList:=TThreadList.Create;
+  SuperThreadList:=TThreadList.Create;
+
+finalization
+  UserThreadList.Free;
+  ChannelThreadList.Free;
+  SeenThreadList.Free;
+  SuperThreadList.Free;
 
 end.

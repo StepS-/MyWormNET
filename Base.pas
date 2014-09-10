@@ -25,7 +25,6 @@ var
 
   IPBans, NickBans: array of String;
 
-
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;

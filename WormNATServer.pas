@@ -24,7 +24,7 @@ type
     end;
 
 var
-  Links: array of TLink;
+  LinkThreadList: TThreadList;
 
 procedure StartWormNATServer;
 procedure PrepareLink(Server, Client: TUser);
@@ -107,14 +107,7 @@ begin
   closesocket(ServerSocket);
   closesocket(ClientSocket);
 
-  // TODO: add some sync lock or something here
-  N:=-1;
-  for I:=0 to Length(Links)-1 do
-    if Links[I]=Self then
-      N:=I;
-  for I:=N to Length(Links)-2 do
-    Links[I]:=Links[I+1];
-  SetLength(Links, Length(Links)-1);
+  LinkThreadList.Remove(Self);
   FreeOnTerminate:=True;
 end;
 
@@ -130,7 +123,8 @@ end;
 
 procedure PrepareLink(Server, Client: TUser);
 var
-  Link: TLink;
+  I: Integer;
+  LinkList: TList;
 begin
   Link:=TLink.Create(True);
   Link.ServerNickname:=Server.Nickname;
@@ -139,8 +133,13 @@ begin
   Link.ClientAddress:=Client.ConnectingFrom;
   Link.ServerSocket:=0;
   Link.ClientSocket:=0;
-  SetLength(Links, Length(Links)+1);
-  Links[Length(Links)-1]:=Link;
+  LinkList:=LinkThreadList.LockList;
+  for I := LinkList.Count-1 downto 0 do
+  begin
+    TLink(LinkList[I]).Free;
+    LinkList.Remove(LinkList[I]);
+  end;
+  LinkThreadList.UnlockList;
 end;
 
 // ***************************************************************

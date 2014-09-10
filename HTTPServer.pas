@@ -36,7 +36,7 @@ type
     end;
 
 var
-  Games: array of TGame;
+  GameThreadList: TThreadList;
   GameCounter: Integer=1000000;
 
 procedure StartHTTPServer;
@@ -48,16 +48,18 @@ uses
 
 procedure CleanUpGames;
 var
-  I, J: Integer;
+  I: Integer;
+  GameList: TList;
 begin
-  for I:=Length(Games)-1 downto 0 do
-    if MinutesBetween(Games[I].Created, Now)>4 then
-      begin
-      EventLog(Format(L_GAME_CLOSED_TIMEOUT, [Games[I].HosterNickname, Games[I].Name]));
-      for J:=I to Length(Games)-2 do
-        Games[J]:=Games[J+1];
-      SetLength(Games, Length(Games)-1);
-      end;
+  GameList:=GameThreadList.LockList;
+  for I:=GameList.Count-1 downto 0 do with TGame(GameList[I]) do
+    if Age > 300 then
+    begin
+      EventLog(Format(L_GAME_CLOSED_TIMEOUT, [HosterNickname, Name]));
+      GameList.Remove(GameList[I]);
+      Free;
+    end;
+  GameThreadList.UnlockList;
 end;
 
 {$I mime.inc}
@@ -71,6 +73,7 @@ var
   ExternalFile: Boolean;
 //User: TUser;
   Channel: TChannel;
+  GameList: TList;
   Game: TGame;
 begin
   try
