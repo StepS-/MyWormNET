@@ -1028,6 +1028,33 @@ begin
   else
     SendError(481, Command);
 end; 
+procedure TUser.ExecReload(S: string);
+const Command='RELOADSETTINGS';
+begin
+  if Modes['q'] then
+  begin
+    ServerMessage('Reloading the server configuration...');
+    LoadParams;
+    ServerMessage('Configuration reloaded.');
+    EventLog(Format(L_IRC_ACTION_RELOADSETTINGS, [Nickname]));
+  end
+  else
+    SendError(481, Command);
+end;
+
+procedure TUser.ExecShutdown(S: string);
+const Command='SHUTDOWN';
+begin
+  if Modes['q'] then
+  begin
+    ExecAnnounce('The server is shutting down!');
+    EventLog(Format(L_IRC_ACTION_SHUTDOWN, [Nickname]));
+    Sleep(1000);
+    Halt(0);
+  end
+  else
+    SendError(481, Command);
+end;
 procedure TUser.ExecBan(Command, S: String);
 var
   I, J: Integer;
