@@ -189,6 +189,7 @@ var
   Buffer, S: string;
   R, Bytes, I, J, N: Integer;
   PingTimer: Integer;
+  RegTimer: Integer;
   ReadSet, ErrorSet: record
     count: u_int;
     Socket: TSocket;
@@ -200,6 +201,7 @@ begin
     Buffer:='';
     BufferA:='';
     PingTimer:=0;
+    RegTimer:=0;
     repeat
       repeat
         BufferA:=ansistring(Buffer);
@@ -258,14 +260,22 @@ begin
       Inc(PingTimer);
       if PingTimer=18000 then
         SendLn('PING :'+ServerHost);
-      if PingTimer=24000 then
+      if PingTimer>=24000 then
       begin
-        if not Modes['i'] then
-          Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :Ping timeout');
-        if Registered then
-          AddSeen(Nickname,'Ping timeout');
-        if (Socket <> 0) then closesocket(Socket); Socket:=0;
+        QuitMsg:='Ping timeout';
+        AddSeen;
+        if Registered and not Modes['i'] then
+          Broadcast('QUIT :Ping timeout');
         Break;
+      end;
+      if not Registered then
+      begin
+        Inc(RegTimer);
+        if RegTimer>=3000 then
+        begin
+          RuptureError('Registration timeout');
+          Break;
+        end;
       end;
     until Socket=0;
     Log('[IRC] '+L_CLOSING_LINK+' '+ConnectingFrom);
