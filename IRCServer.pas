@@ -2454,16 +2454,49 @@ begin
   Start;
   {$ENDIF}
 end;
+// ***************************************************************
+
+destructor TSeen.Destroy;
 begin
-    Name:=Name;
-    Scheme:=Scheme;
-    Topic:=Topic;
-    CreationTime:=IRCDateTime(Now);
-    Number:=Length(Channels)-1;
+  SeenThreadList.Remove(Self);
+  inherited Destroy;
+end;
+
+destructor TSuper.Destroy;
+begin
+  SuperThreadList.Remove(Self);
+  inherited Destroy;
 end;
 
 destructor TChannel.Destroy;
-var I: Integer;
+var
+  I: Integer;
+  GameList: TList;
+  UserList: TList;
+  User: TUser;
+begin
+  UserList:=UserThreadList.LockList;
+  for I := 0 to UserList.Count-1 do
+  begin
+    User:=UserList[I];
+    if User.InChannel(Self) then
+    begin
+      User.SendLn(':'+ServerHost+' KICK '+Name+' '+User.Nickname+' :Channel closed');
+      User.ChannelsJoined.Remove(Self);
+    end;
+  end;
+  UserThreadList.UnlockList;
+  GameList:=GameThreadList.LockList;
+  for I := GameList.Count-1 downto 0 do
+    if TextMatch('#'+TGame(GameList[I]).Chan, Name) then
+    begin
+      GameList.Remove(GameList[I]);
+      TGame(GameList[I]).Free;
+    end;
+  GameThreadList.UnlockList;
+  ChannelThreadList.Remove(Self);
+  inherited Destroy;
+end;
 // ***************************************************************
 
 function GetFormattedUserCount: TUserCount;
