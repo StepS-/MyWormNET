@@ -6,35 +6,35 @@ unit Base;
 {$ENDIF}
 
 interface
+uses
+  IniFiles, DateUtils, Version, Lists;
+
 const
   APPVERSION = '1.3.7.0';
 
 var
+  Config: TMemIniFile;
   ServerHost: string;  // our hostname
   IRCPort, HTTPPort, WormNATPort: Word;
-  AuthSecret, AuthChallenge, AuthAnswer: string;
+  StartupTime, CreationTime: string;
   IRCOperPassword: string;
-  IRCChannel: string;
+  IRCPassword: string;
   StealthIP: string;
   NetworkName: string;
-  StartupTime, CreationTime: string;
-  VerboseLogging, ForceAuthping, AllowArbitrary: Boolean;
+  AppLanguage: string;
+  MinimumVersion: TVersion;
+  VerboseLogging, AllowArbitrary, SeenService, HTTPtoConsole: Boolean;
+  ChatAntiFlood: Boolean;
 
+  AntiFloodFactor: Double=1.0;
   MaxIRCUsers: Integer=0;
   IRCConnections: Int64=0;
-
-  IPBans, NickBans: array of String;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
 function WinSockErrorCodeStr(Code: Integer): string;
 
-procedure LoadBanlists;
 procedure LoadParams;
-procedure LoadAuthping;
-
-function BannedIP(IP: string): Boolean;
-function BannedNick(Nick: string): Boolean;
 
 function TextDateTime(T: TDateTime; IsUTC: Boolean = false) : string;
 function ExecutableTimestamp: TDateTime;
@@ -46,166 +46,132 @@ uses
 {$ELSE}
   errors,
 {$ENDIF}
-  IniFiles, SysUtils, IRCServer, Data;
+  SysUtils, SyncObjs,
+  HTTPServer, IRCServer, WormNATServer, Localization, Data;
 
-procedure LoadParams;
 var
-  Config: TMemIniFile;
+  PCS, LCS, ECS: TCriticalSection;
+
+procedure InitSettings;
 begin
-  Config := TMemIniFile.Create(ExtractFilePath(ParamStr(0))+'WNServer.ini');
-  ServerHost      :=Config.ReadString ('WormNet','ServerHost',     'localhost');
-  IRCPort         :=Config.ReadInteger('WormNet','IRCPort',               6667);
-  HTTPPort        :=Config.ReadInteger('WormNet','HTTPPort',                80);
-  IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
-  StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
-  NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
+  if Config = nil then
+  begin
+    ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
     StartupTime   :=TextDateTime(Now);
     CreationTime  :=TextDateTime(ExecutableTimestamp, true);
+    EventLog('------------------ '+DateTimeToStr(Now)+' ------------------',true);
+    Config := TMemIniFile.Create('WNServer.ini');
+    AppLanguage   :=Config.ReadString ('WormNet','Language',        'Default');
+    GetLocalizations(AppLanguage);
+    EventLog(Format(L_START, [APPVERSION]));
+    IRCPort       :=Config.ReadInteger('WormNet','IRCPort',         6667);
+    HTTPPort      :=Config.ReadInteger('WormNet','HTTPPort',        80);
     WormNATPort   :=Config.ReadInteger('WormNet','WormNATPort',     0);
+  end;
+end;
+
+procedure LoadParams;
+begin
+  PCS.Enter;
+  AppLanguage         :=Config.ReadString ('WormNet','Language',        'Default');
+  ServerHost          :=Config.ReadString ('WormNet','ServerHost',      'localhost');
+  IRCOperPassword     :=Config.ReadString ('WormNet','IRCOperPassword', 'Random');
+  IRCPassword         :=Config.ReadString ('WormNet','IRCPassword',     IRCDefPassword);
+  StealthIP           :=Config.ReadString ('WormNet','StealthIP',       'no.address.for.you');
+  NetworkName         :=Config.ReadString ('WormNet','NetworkName',     'MyWormNET');
+  MinimumVersion.Str  :=Config.ReadString ('WormNet','MinimumVersion',  '0.0');
+  SeenService         :=Config.ReadBool   ('WormNet','SeenService',     false);
+  ChatAntiFlood       :=Config.ReadBool   ('WormNet','ChatAntiFlood',   true);
+  AntiFloodFactor     :=Config.ReadFloat  ('WormNet','AntiFloodFactor', 1.0);
 
   VerboseLogging  :=Config.ReadBool   ('Debug','VerboseConsoleLogging', false);
-  ForceAuthping   :=Config.ReadBool   ('Debug','ForceAuthping',         false);
   AllowArbitrary  :=Config.ReadBool   ('Debug','AllowArbitraryPages',   false);
 
-  ServerHost:=Copy(ServerHost,1,Pos(' ',ServerHost+' ')-1);
-  IRCOperPassword:=Copy(IRCOperPassword,1,Pos(' ',IRCOperPassword+' ')-1);
-  while Pos(' ',StealthIP) <> 0 do
-    StealthIP[Pos(' ',StealthIP)]:=#160;
+  ServerHost:=StringSection(ServerHost, 0);
+  IRCOperPassword:=StringSection(IRCOperPassword, 0);
+  IRCPassword:=StringSection(IRCPassword,0);
+  StealthIP:=StringSection(StealthIP, 0);
+
   while Pos(' ',NetworkName) <> 0 do
     NetworkName[Pos(' ',NetworkName)]:=#160;
 
-  if ForceAuthping then
-    LoadAuthping;
+  if not GetLocalizations(AppLanguage) then
+    EventLog('MyWormNET: failed to find the language file - "Languages'+PathDelim+AppLanguage+'.txt"');
 
+  if TextMatch(IRCPassword, 'Default')  then
+    IRCPassword:=IRCDefPassword
+  else if TextMatch(IRCPassword, 'Random') then
+  begin
+    IRCPassword:=RandomString(12);
+    if IRCPort <> 0 then
+      EventLog('MyWormNET: '+Format(L_IRC_RANDOM_PASS, [IRCPassword]));
+  end;
+  if TextMatch(IRCOperPassword, 'Default') or TextMatch(IRCOperPassword, 'Random') then
+  begin
+    IRCOperPassword:=RandomString(8);
+    if IRCPort <> 0 then
+      EventLog('MyWormNET: '+Format(L_IRC_RANDOM_OPERPASS, [IRCOperPassword]));
+  end;
+
+  if DirectoryExists('lists') then
+  begin
+    GetListFromFile(NickBanThreadList, 'lists'+PathDelim+'ban_nicks.txt');
+    GetListFromFile(IPBanThreadList, 'lists'+PathDelim+'ban_ips.txt');
+    GetListFromFile(WhiteIPThreadList, 'lists'+PathDelim+'white_throttle.txt');
+    GetListFromFile(WhiteNickThreadList, 'lists'+PathDelim+'white_nickipauth.txt');
+    GetListFromFile(WhitePassauthThreadList, 'lists'+PathDelim+'white_passauth.txt');
+  end;
+  
+  if VerboseLogging or (IRCPort = 0) then
+    HTTPtoConsole:=true
+  else
+    HTTPtoConsole:=false;
+  PCS.Leave;
 end;
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 var
-  F: text;
+  SX: string;
 begin
 //  if Copy(S, 1, 1)<>'-' then
-  S:='['+TimeToStr(Now)+'] '+S;
 
+  LCS.Enter;
   // logging to disk will work only if the file WNServer.log exists
-  TextToFile(S, ExtractFilePath(ParamStr(0))+'WNServer.log');
+  TextToFile('['+DateTimeToStr(Now)+'] '+S, 'WNServer.log');
 
-  if VerboseLogging or Important then
-    if not DiskOnly then
-    begin
-      // logging to console, if it's enabled
-      {$I-}
-      WriteLn(S);
-      {$I+}
-      if IOResult<>0 then ;
-    end;
+  if (VerboseLogging or Important) and not DiskOnly then
+  begin
+    // logging to console, if it's enabled
+    {$I-}
+    SX:=S;
+    {$IF Defined(MSWINDOWS) and (CompilerVersion < 20)}
+    if CharToOemA(PAnsiChar(S), PAnsiChar(SX)) then
+    {$IFEND}
+    WriteLn('['+TimeToStr(Now)+'] '+SX);
+    {$I+}
+  end;
+  LCS.Leave;
 end;
 
 procedure EventLog(S: string; DiskOnly: Boolean=false);
 begin
   Log(S,DiskOnly,true);
 
-  // echo to IRC OPERs
+  //echo to IRC Admins and Owners
   LogToOper(S);
 
   if Copy(S, 1, 1)<>'-' then
     S:='['+DateTimeToStr(Now)+'] '+S;
 
+  ECS.Enter;
   // logging to disk will work only if the file EventLog.log exists
-  TextToFile(S, ExtractFilePath(ParamStr(0))+'EventLog.log');
-end;
-
-procedure LoadBanlists;
-var
-  F: text;
-  FilePath: String;
-begin
-  FilePath:=ExtractFilePath(ParamStr(0))+'banlist_nicks.txt';
-  Assign(F,FilePath);
-  if not FileExists(FilePath) then
-  begin
-    Rewrite(F);
-    WriteLn(F, 'fuck');
-    SetLength(NickBans,1);
-    NickBans[0]:='fuck';
-    Close(F);
-  end
-  else
-  begin
-    Reset(F);
-    while not EOF(F) do
-    begin
-      SetLength(NickBans, Length(NickBans)+1);
-      ReadLn(f, NickBans[Length(NickBans)-1]);
-    end;
-    Close(F);
-  end;
-
-  FilePath:=ExtractFilePath(ParamStr(0))+'banlist_ips.txt';
-  Assign(F,FilePath);
-  if not FileExists(FilePath) then
-  begin
-    Rewrite(F);
-    WriteLn(F, '1.1.1.1');
-    SetLength(IPBans,1);
-    IPBans[0]:='1.1.1.1';
-    Close(F);
-  end
-  else
-  begin
-    Reset(F);
-    while not EOF(F) do
-    begin
-      SetLength(IPBans, Length(IPBans)+1);
-      ReadLn(f, IPBans[Length(IPBans)-1]);
-    end;
-    Close(F);
-  end;
-end;
-
-procedure LoadAuthping;
-var Buf: String;
-begin
-  if not FileExists('authping.txt') then
-  begin
-    TextToFile('wormnet.team17.com$1', 'authping.txt', true);
-    TextToFile('0123456789ABCDEF0123456789ABCDEF01234567', 'authping.txt');
-    TextToFile('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'authping.txt');
-  end;
-  Buf:=GetFile('authping.txt')+#10;
-  GetLine(Buf,AuthSecret);
-  GetLine(Buf,AuthChallenge);
-  GetLine(Buf,AuthAnswer);
-end;
-
-function BannedIP(IP: String): Boolean;
-var I: Integer;
-begin
-  Result:=false;
-  for I:=0 to Length(IPBans)-1 do
-  begin
-    if IPBans[I] = IP then
-    begin
-      Result := true;
-      Break;
-    end;
-  end;
-end;
-
-function BannedNick(Nick: String): Boolean;
-var I: Integer;
-begin
-  Result:=false;
-  for I:=0 to Length(NickBans)-1 do
-    if UpperCase(NickBans[I]) = UpperCase(Nick) then
-    begin
-      Result := true;
-      Break;
-    end;
+  TextToFile(S, 'EventLog.log');
+  ECS.Leave;
 end;
 
 {$IFDEF MSWINDOWS}
 
-{$INCLUDE WinSockCodes.inc}
+{$I WinSockCodes.inc}
 
 function WinSockErrorCodeStr(Code: Integer): string;
 var
@@ -283,4 +249,19 @@ end;
 
 {$ENDIF}
 
+initialization
+  MinimumVersion:=TVersion.Create;
+  PCS:=TCriticalSection.Create;
+  LCS:=TCriticalSection.Create;
+  ECS:=TCriticalSection.Create;
+  InitSettings;
+
+finalization
+  MinimumVersion.Free;
+  LCS.Free;
+  ECS.Free;
+  PCS.Free;
+  Config.Free;
+
 end.
+
