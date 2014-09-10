@@ -30,7 +30,7 @@ begin
   LoadParams;
 
   {$IFDEF MSWINDOWS}
-  WSAStartUp(2, WSA);
+  WSAStartUp(MAKEWORD(1,1), WSA);
   {$ENDIF}
   
   LoadBanlists;
