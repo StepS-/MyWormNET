@@ -35,13 +35,13 @@ begin
   
   LoadBanlists;
 
-  if IRCPort>0 then
+  if IRCPort <> 0 then
     StartIRCServer;
   Sleep(50);
-  if HTTPPort>0 then
+  if HTTPPort <> 0 then
     StartHTTPServer;
   Sleep(50);
-  if WormNATPort>0 then
+  if (WormNATPort <> 0) and (IRCPort <> 0) then
     StartWormNATServer;
   while True do
     Sleep(INFINITE);

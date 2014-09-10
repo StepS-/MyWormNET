@@ -11,7 +11,7 @@ const
 
 var
   ServerHost: string;  // our hostname
-  IRCPort, HTTPPort, WormNATPort: Integer;
+  IRCPort, HTTPPort, WormNATPort: Word;
   AuthSecret, AuthChallenge, AuthAnswer: string;
   IRCOperPassword: string;
   IRCChannel: string;
@@ -57,10 +57,10 @@ begin
   ServerHost      :=Config.ReadString ('WormNet','ServerHost',     'localhost');
   IRCPort         :=Config.ReadInteger('WormNet','IRCPort',               6667);
   HTTPPort        :=Config.ReadInteger('WormNet','HTTPPort',                80);
-  WormNATPort     :=Config.ReadInteger('WormNet','WormNATPort',          17018);
   IRCOperPassword :=Config.ReadString ('WormNet','IRCOperPassword', 'password');
   StealthIP       :=Config.ReadString ('WormNet','StealthIP',      'no.address.for.you');
   NetworkName     :=Config.ReadString ('WormNet','NetworkName',      'MyWormNET');
+    WormNATPort   :=Config.ReadInteger('WormNet','WormNATPort',     0);
 
   VerboseLogging  :=Config.ReadBool   ('Debug','VerboseConsoleLogging', false);
   ForceAuthping   :=Config.ReadBool   ('Debug','ForceAuthping',         false);
