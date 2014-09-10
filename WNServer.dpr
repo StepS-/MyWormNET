@@ -2,43 +2,42 @@
 
 program WNServer;
 
-{$I cDefines.inc}
+{$IF Defined(MSWINDOWS) and (CompilerVersion >= 20)}
+  {$IF CompilerVersion >= 25} {$LEGACYIFEND ON} {$IFEND}
+  {$WEAKLINKRTTI ON}
+  {$RTTI EXPLICIT METHODS([]) PROPERTIES([]) FIELDS([])}
+{$IFEND}
 
 uses
-{$IFDEF OS_MSWIN}
+  {$IFDEF MSWINDOWS}
   {$APPTYPE CONSOLE}
   Windows, WinSock,
-{$ELSE}
+  {$ELSE}
   cthreads, FakeWinSock,
-{$ENDIF}
-  SysUtils, Base, HTTPServer, IRCServer, WormNATServer, Data;
+  {$ENDIF}
+  SysUtils, Base, HTTPServer, IRCServer, WormNATServer;
 
+{$IFDEF MSWINDOWS}
 var
-{$IFDEF OS_MSWIN}
   WSA: TWSAData;
 {$ENDIF}
 
 begin
-  ChDir(ExtractFilePath(ExpandFileName(ParamStr(0))));
-  EventLog('------------------ '+DateTimeToStr(Now)+' ------------------',true);
-  EventLog(Format(L_START, [APPVERSION]));
-
   LoadParams;
 
-  {$IFDEF OS_MSWIN}
-  WSAStartUp(2, WSA);
+  {$IFDEF MSWINDOWS}
+  WSAStartUp(MAKEWORD(1,1), WSA);
   {$ENDIF}
-  
-  LoadBanlists;
 
-  if IRCPort>0 then
+  if IRCPort <> 0 then
     StartIRCServer;
   Sleep(50);
-  if HTTPPort>0 then
+  if HTTPPort <> 0 then
     StartHTTPServer;
   Sleep(50);
-  if WormNATPort>0 then
+  if (WormNATPort <> 0) and (IRCPort <> 0) then
     StartWormNATServer;
   while True do
     Sleep(INFINITE);
 end.
+

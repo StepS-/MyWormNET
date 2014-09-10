@@ -22,7 +22,9 @@ else
 {
   error_log("Forwarder: Connection established.");
 
-  $out = "GET $URI HTTP/1.0\r\n\r\n";
+  $USERAGENT = $_SERVER["HTTP_USER_AGENT"];
+  $USERIP    = $_SERVER["REMOTE_ADDR"];
+  $out = "GET $URI HTTP/1.0\r\nUser-Agent: $USERAGENT\r\nRequester: $USERIP\r\n\r\n";
 
   fwrite($fp, $out);
   error_log("Forwarder: Sent request to MyWormNET.");
