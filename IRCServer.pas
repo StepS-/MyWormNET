@@ -1548,8 +1548,6 @@ end;
 
 procedure TUser.ExecQuit(S: String);
 const Command='QUIT';
-var
-  I, J: Integer;
 begin
 // :CyberShadow!cybershado@38F7DF98.502358C0.F6DD7E74.IP QUIT :Input/output error
   if not Quit then
@@ -1557,14 +1555,16 @@ begin
     QuitMsg:=S;
     if Pos(':',QuitMsg) = 1 then
       Delete(QuitMsg, 1, 1);
-    QuitMsg:=Copy(QuitMsg, 1, 160);
-    if (QuitMsg='') or (QuitMsg=' ') then QuitMsg:='Quit';
-    if not (Modes['i']) then
-      Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' QUIT :'+QuitMsg);
+    QuitMsg:=Copy(QuitMsg, 1, QUITLEN);
+    if (QuitMsg='') or (QuitMsg=' ') then
+      QuitMsg:='Quit'
+    else if not ((QuitMsg='Joined Game') or (Pos('Hosting a game: ', QuitMsg) <> 0)) then
+      QuitMsg:='Quit: '+QuitMsg;
+    if not (Modes['i']) and Registered then
+      Broadcast('QUIT :'+QuitMsg);
     Quit:=true;
-    if Registered then
-      AddSeen(Nickname,QuitMsg);
-    if (Socket <> 0) then closesocket(Socket); Socket:=0;
+    AddSeen;
+    CloseConnection;
   end;
 end;
 
