@@ -1788,29 +1788,26 @@ end;
 
 procedure TUser.ExecMessage(Command, S: String);
 var
-  I, K, N, Timelapse: Integer;
-  Target, Msg, WACMsg, Subcommand, Substr, LMsg: String;
+  K: Integer;
+  Target, Msg, WACMsg, Subcommand, Substr: String;
   User: TUser;
   Channel: TChannel;
 begin
-  Target:=Copy(S, 1, Pos(' ', S+' ')-1);
+  Target:=StringSection(S, 0);
   Target:=Copy(Target, 1, 20);
-  Delete(S, 1, Pos(':', S+':')-1);
-  Msg:=S;
-  if Pos(':', Msg)=1 then Delete(Msg, 1, 1);
+  Msg:=GetTrail(S);
   if Length(Msg) > 512 then
   begin
-    Die('killed','Message too long','server');
+    ServerKill('Message too long');
     EventLog(Nickname+' has been killed due to exceeding the maximum message length. Here''s part of his message: "'+CP_WAto1251(Copy(Msg,1,512))+'".');
   end
   else
   begin
-    while (Pos(' ',Msg)=1) or (Pos(#160,Msg)=1) do
-      Delete(Msg,1,1);
+    Trim(Msg);
     WACMsg:=CP_WAto1251(Msg);
     if MessageFloodCheck(Length(Msg)) then
     begin
-      Die('killed','Message flood','server');
+      ServerKill('Message flood');
       EventLog(Nickname+' has been killed due to message flood. Last message: "'+WACMsg+'".');
     end
     else
@@ -1819,50 +1816,51 @@ begin
       begin
         if not ContextCommand(Msg) then
         begin
-          if Modes['b'] then
+          if Modes['m'] then
             ServerMessage('Sorry, but you are muted by '+LastSenior+' and thus cannot talk.')
           else
           begin
-            Channel:=ChannelByName(Target);
+            Channel:=LockChannelByName(Target);
             if Channel <> nil then
             begin
-              Target:=Channel.Name;
-              N:=Channel.Number;
-
-              Substr:=Msg;
-
-              if Pos('!',Substr) = 1 then
+              if InChannel(Channel) then
               begin
-                Subcommand:=Copy(Substr, 2, Pos(' ',Substr+' ')-2);
-                Delete(Substr, 1, Pos(' ',Substr+' '));
+                Target:=Channel.Name;
 
-                if (TextMatch(Subcommand,'host')) or (TextMatch(Subcommand,'phost')) then
+                Substr:=Msg;
+
+                if Pos('!',Substr) = 1 then
                 begin
-                  EventLog('[COMMAND] <'+Nickname+'> '+Msg);
-                  ServerMessage('Sorry, but there is no HostingBuddy on this server. HostingBuddy is a proprietary bot owned by CyberShadow which is not available for use on unofficial WormNET servers. Try hosting yourself or install WormNAT2 if you can''t: http://worms2d.info/WormNAT2')
+                  Subcommand:=Copy(Substr, 2, Pos(' ',Substr+' ')-2);
+                  DeleteSections(Substr, 1);
+
+                  if ((TextMatch(Subcommand,'host')) or (TextMatch(Subcommand,'phost')) and not (NickInUse('HostingBuddy'))) then
+                  begin
+                    EventLog('[COMMAND] <'+Nickname+'> '+Msg);
+                    ServerMessage('Sorry, but there is no HostingBuddy on this server. Try hosting yourself or install WormNAT2 if you can''t: http://worms2d.info/WormNAT2')
+                  end
+                  else
+                  begin
+                    if SeenService and TextMatch(Subcommand,'seen') then
+                      ExecSeen(Substr);
+
+                    EventLog('['+Target+'] <'+Nickname+'> '+WACMsg);
+                    Broadcast(Command+' '+Target+' :'+Msg, Channel, false, true);
+                  end;
                 end
                 else
                 begin
-                  if TextMatch(Subcommand,'seen') then
-                    ExecSeen(Substr);
-
                   EventLog('['+Target+'] <'+Nickname+'> '+WACMsg);
-                  Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg, Channel, true);
+                  Broadcast(Command+' '+Target+' :'+Msg, Channel, false, true);
                 end;
-              end
-              else
-              begin
-                EventLog('['+Target+'] <'+Nickname+'> '+WACMsg);
-                Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg, Channel, true);
               end;
             end
             else
             begin
-              User:=nil;
               for K:=1 to Length(IRCPrefixes) do
                 if Pos(IRCPrefixes[K],Target) <> 0 then
                   Delete(Target,Pos(IRCPrefixes[K],Target),1);
-              User:=UserByName(Target);
+              User:=LockUserByName(Target);
               if User=nil then
                 SendError(401,Target)
               else
@@ -1873,12 +1871,14 @@ begin
                   if User.Away then
                     SendEvent(301,Target+' :'+User.AwayMsg);
                   EventLog('['+Command+'] <'+Nickname+'> -> <'+Target+'> '+WACMsg);
-                  User.SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' '+Command+' '+Target+' :'+Msg, false);
+                  User.SendLn(Self, Command+' '+Target+' :'+Msg, false);
                 end
                 else
                   SendError(401,Target);
               end;
+              UserThreadList.UnlockList;
             end;
+            ChannelThreadList.UnlockList;
         //  Sleep(1000); // throttle
           end;
         end;
