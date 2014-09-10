@@ -575,6 +575,38 @@ begin
   SendLn(Result);
 end;
 
+procedure TUser.GetGameVersion;
+var
+  F: Integer;
+begin
+  if Realname[Length(Realname)] = ' ' then
+  begin
+    GameVersion.Str:=StringSection(Realname, 3);
+    if not GameVersion.Valid then
+    begin
+      F:=StrToIntDef(StringSection(Realname, 0),-1);
+      if (F < 53) and (F >= 0) then
+        if StringSection(Realname, 1) = '0' then
+          if StringSection(Realname, 2) = '' then
+            GameVersion.Str:='3.0'       //1.0 is determined over HTTP
+          else if (Length(StringSection(Realname, 2)) = 2)
+           and (StringSection(Realname, 3) = '') then
+            GameVersion.Str:='3.6.23.0'; //lowest possible
+    end;
+  end;
+end;
+
+procedure TUser.GetSafeRealname;
+var
+  F: Integer;
+  FlagCheck: String;
+begin
+  FlagCheck:=StringSection(Realname, 0);
+  F:=StrToIntDef(FlagCheck,-1);
+  if (F > 52) or (F < 0) then
+    SafeRealname:='49'+Copy(Realname, Pos(' ',Realname+' '), Length(Realname)-Pos(' ',Realname+' ')+1)
+  else
+    SafeRealname:=Realname;
 end;
 
 function TUser.ServerMessage(S: String; MessageType: ShortInt=0): String;
