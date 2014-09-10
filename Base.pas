@@ -2,7 +2,7 @@ unit Base;
 
 
 {$IFDEF FPC}
-{$modeswitch DELPHI}
+{$mode DELPHI}
 {$ENDIF}
 
 interface

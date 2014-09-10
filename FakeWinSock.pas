@@ -40,10 +40,10 @@ function inet_addr(Addr: string): cardinal;
 function select (N:cint; readfds,writefds,exceptfds:PWinFDSet; TimeOut:PTimeVal):cint;  // HACK
 function bind (s:cint; var addrx : tsockaddrin; addrlen : tsocklen):cint;
 function listen (s:cint; backlog : cint):cint;
-function accept (s:cint; addrx : psockaddr; addrlen : psocklen):cint;
+function accept (s:cint; addrx : psockaddr; addrlen : PInteger):cint;
 function socket (domain:cint; xtype:cint; protocol: cint):cint;
-function recv (s:cint; buf: char; len: size_t; flags: cint):ssize_t;
-function send (s:cint; msg: char; len:size_t; flags:cint):ssize_t;
+function recv (s:cint; var Buf; len: size_t; flags: cint):ssize_t;
+function send (s:cint; var Buf; len:size_t; flags:cint):ssize_t;
 
 implementation
 
@@ -59,7 +59,7 @@ end;
 
 function ioctlsocket(Socket: TSocket; Message: Integer; var Parameter): Integer;
 begin
-  Result:=BaseUnix.FpIOCtl(Socket, Message, @Parameter);
+  Result:=FpIOCtl(Socket, Message, @Parameter);
 end;
 
 function select (N:cint; readfds,writefds,exceptfds:PWinFDSet; TimeOut:PTimeVal):cint;  // HACK
@@ -81,9 +81,9 @@ begin
   Result:=fplisten(s, backlog);
 end;
 
-function accept (s:cint; addrx : psockaddr; addrlen : psocklen):cint;
+function accept (s:cint; addrx : psockaddr; addrlen : PInteger):cint;
 begin
-  Result:=fpaccept(s, addrx, addrlen);
+  Result:=fpaccept(s, addrx, psocklen(addrlen));
 end;
 
 function socket (domain:cint; xtype:cint; protocol: cint):cint;
@@ -91,14 +91,14 @@ begin
   Result:=fpsocket(Domain,xtype,ProtoCol);
 end;
 
-function recv (s:cint; buf: char; len: size_t; flags: cint):ssize_t;
+function recv (s:cint; var Buf; len: size_t; flags: cint):ssize_t;
 begin
   Result:=fprecv(S,@Buf,Len,Flags);
 end;
 
-function send (s:cint; msg: char; len:size_t; flags:cint):ssize_t;
+function send (s:cint; var Buf; len:size_t; flags:cint):ssize_t;
 begin
-  Result:=fpSend(S,@msg,len,flags);
+  Result:=fpSend(S,@Buf,len,flags);
 end;
 
 type
@@ -120,11 +120,11 @@ begin
   Result:=1;
   ThreadID:=1;
   with TCustomThread.Create(True) do
-    begin
+  begin
     FProc:=Proc;
     FParam:=Param;
-    Resume;
-    end;
+    Start;
+  end;
 
 end;
 

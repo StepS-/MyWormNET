@@ -1,4 +1,7 @@
 unit Data;  // data encoding/compression/processing
+{$IFDEF FPC}
+{$mode DELPHI}
+{$ENDIF}
 
 interface
 

@@ -1,6 +1,9 @@
 unit HTTPServer;
 // simplistic HTTP server
 
+{$IFDEF FPC}
+{$mode DELPHI}
+{$ENDIF}
 
 interface
 uses
