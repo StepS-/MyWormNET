@@ -25,7 +25,6 @@ var
 
   IPBans, NickBans: array of String;
 
-{$I locale.inc}
 
 procedure Log(S: string; DiskOnly: Boolean=False; Important: Boolean=False);
 procedure EventLog(S: string; DiskOnly: Boolean=False);
