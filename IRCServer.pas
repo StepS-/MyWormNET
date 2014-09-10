@@ -1057,10 +1057,8 @@ begin
 end;
 procedure TUser.ExecBan(Command, S: String);
 var
-  I, J: Integer;
   B, P: Boolean;
-  F: text;
-  FilePath, BanFile: String;
+  BanFile: String;
   Target, Reason, BType, LBType, Result, LResult: String;
   User: TUser;
 begin
@@ -1072,13 +1070,13 @@ begin
       P:=true;
       if Pos(' ', S) <> 0 then
       begin
-        Target:=Copy(S, 1, Pos(' ', S)-1);
-        Reason:=Copy(S, Pos(' ', S)+1, 300);
-        if Reason[1] = ':' then Delete(Reason, 1, 1);
+        Target:=StringSection(S, 0);
+        Reason:=Copy(S, Pos(' ', S)+1, KICKLEN);
+        CutLeadingColon(Reason);
       end
       else
       begin
-        Target:=Copy(S, 1, Length(S));
+        Target:=S;
         Reason:='No reason specified';
       end;
 
@@ -1091,26 +1089,17 @@ begin
           BType:='nickname';
           LBType:=L_IRC_TYPE_NICKNAME;
           Result:='banned';
-          for I:=0 to Length(NickBans)-1 do
-            if TextMatch(NickBans[I],Target) then
-            begin
-              B:=false;
-              Break;
-            end;
-            
+          if InList(NickBanThreadList, Target) then
+            B:=false;
+
           if not Modes['q'] then
-            for I:=0 to Length(Supers)-1 do
-              if TextMatch(Supers[I].Nick,Target) then
-              begin
-                B := false;
-                P := false;
-                Break;
-              end;    
+            if SuperNameExists(Target) then
+            begin
+              B := false;
+              P := false;
+            end;
           if (B) then
-          begin
-            SetLength(NickBans,Length(NickBans)+1);
-            NickBans[Length(NickBans)-1]:=Target;
-          end;
+            NickBanThreadList.Add(NewListEntry(Target, Nickname, Reason, true, Now, -1));
         end
         else
         begin
@@ -1118,42 +1107,35 @@ begin
           BType:='IP';
           LBType:=L_IRC_TYPE_IP;
           Result:='permabanned';
-          for I:=0 to Length(IPBans)-1 do
-            if TextMatch(IPBans[I],Target) then
-            begin
-              B:=false;
-              Break;
-            end;
+          if InList(IPBanThreadList, Target) then
+            B:=false;
           if not Modes['q'] then
-            for I:=0 to Length(Supers)-1 do
-              if TextMatch(Supers[I].IP,Target) then
-              begin
-                B := false;
-                P := false;
-                Break;
-              end;
+            if SuperIPExists(Target) then
+            begin
+              B := false;
+              P := false;
+            end;
           if (B) then
-          begin
-            SetLength(IPBans,Length(IPBans)+1);
-            IPBans[Length(IPBans)-1]:=Target;
-          end;
+            IPBanThreadList.Add(NewListEntry(Target, Nickname, Reason, true, Now, -1));
         end;
 
         if B then
         begin
-          TextToFile(Target, ExtractFilePath(ParamStr(0))+BanFile, true);
-          for I:=0 to Length(Users)-1 do
-            if BType='nickname' then
-            begin
-              if TextMatch(Users[I].Nickname,Target) then
-              begin
-                Users[I].Die(Result,Reason,Nickname);
-                Break;
-              end;
-            end
-            else
-              if TextMatch(Users[I].ConnectingFrom,Target) then
-                Users[I].Die(Result,Reason,Nickname);
+          TextToFile(Target, BanFile, true);
+          if BType='nickname' then
+          begin
+            User:=LockUserByName(Target);
+            if User <> nil then
+              User.Kill(Self, 'Banned: '+Reason);
+            UserThreadList.UnlockList;
+          end
+          else
+          begin
+            User:=LockUserByIP(Target);
+            if User <> nil then
+              User.Kill(Self, 'Permabanned: '+Reason);
+            UserThreadList.UnlockList;
+          end;
         end;
       end
       else
@@ -1162,49 +1144,27 @@ begin
         Result:='unbanned';
         if (Pos('.',Target) = 0) and (Pos(':',Target) = 0) then
         begin
-          BanFile:='banlist_nicks.txt';
           BType:='nickname';
           LBType:=L_IRC_TYPE_NICKNAME;
-          for I:=Length(NickBans)-1 downto 0 do
-            if TextMatch(NickBans[I],Target) then
-            begin
-              for J:=I to Length(NickBans)-2 do
-                NickBans[J]:=NickBans[J+1];
-              Break;
-            end
-            else if I=0 then B:=false;
-          if B then
-            SetLength(NickBans,Length(NickBans)-1);
+          if InList(NickBanThreadList, Target) then
+            RemoveListEntry(NickBanThreadList, Target)
+          else B:=false;
         end
         else
         begin
-          BanFile:='banlist_ips.txt';
           BType:='IP';
           LBType:=L_IRC_TYPE_IP;
-          for I:=Length(IPBans)-1 downto 0 do
-            if TextMatch(IPBans[I],Target) then
-            begin
-              for J:=I to Length(IPBans)-2 do
-                IPBans[J]:=IPBans[J+1];
-              Break;
-            end
-            else if I=0 then B:=false;
-          if B then
-            SetLength(IPBans,Length(IPBans)-1);
+          if InList(IPBanThreadList, Target) then
+            RemoveListEntry(IPBanThreadList, Target)
+          else B:=false;
         end;
 
         if B then
         begin
-          FilePath := ExtractFilePath(ParamStr(0))+BanFile;
-          Assign(F,FilePath);
-          Rewrite(F);
           if BType='nickname' then
-            for I:=0 to Length(NickBans)-1 do
-              WriteLn(F,NickBans[I])
+            UpdateListInFile(NickBanThreadList, BanFile)
           else
-            for I:=0 to Length(IPBans)-1 do
-              WriteLn(F,IPBans[I]);
-          Close(F);
+            UpdateListInFile(IPBanThreadList, BanFile)
         end;
       end;
 
@@ -1220,17 +1180,20 @@ begin
         begin
           if BType='nickname' then
           begin
-            User:=UserByName(Target);
+            User:=LockUserByName(Target);
             if User <> nil then
               User.ServerMessage(Nickname+' has just attempted to ban you by nick!');
+            UserThreadList.UnlockList;
           end
           else
           begin
-            User:=UserByIP(Target);
+            User:=LockUserByIP(Target);
             if User <> nil then
               User.ServerMessage(Nickname+' has just attempted to ban you by IP!');
+            UserThreadList.UnlockList;
           end;
-            EventLog(Format(L_IRC_ACTION_FAILBAN, [Nickname, LBType+' "'+Target+'"']));
+
+          EventLog(Format(L_IRC_ACTION_FAILBAN, [Nickname, LBType+' "'+Target+'"']));
         end;
     end
     else
