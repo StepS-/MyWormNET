@@ -2284,10 +2284,12 @@ begin
       Result:=true;
 end;
 
-function TUser.ChangeMode(Side, Mode: Char; Master: String): Boolean;
+function TUser.ChangeMode(Side, Mode: Char; Master: TUser): Boolean;
 var
-  I, J: Integer;
-  Pre, LAction: String;
+  I: Integer;
+  ChannelList: TList;
+  Channel: TChannel;
+  Super: TSuper;
 begin
   if ((Side = '+') and not (Modes[Mode])) or ((Side = '-') and (Modes[Mode])) then
   begin
@@ -2295,22 +2297,20 @@ begin
     if Side='+' then Modes[Mode] := true
     else Modes[Mode] := false;
 
-    if Mode='b' then
+    if Mode='m' then
     begin
-      LastSenior:=Master;
+      LastSenior:=Master.Nickname;
       if Side = '+' then
       begin
-        Pre:='';
-        LAction:=L_IRC_ACTION_MUTE;
-        LastBanTime:=IRCDateTime(Now);
+        ServerMessage('You have been muted by '+Master.Nickname+'.');
+        EventLog(Format(L_IRC_ACTION_MUTE, [Master.Nickname, Nickname]));
+        LastBanTime:=DateTimeToUnix(Now);
       end
       else
       begin
-        Pre:='un';
-        LAction:=L_IRC_ACTION_UNMUTE;
+        ServerMessage('You have been unmuted by '+Master.Nickname+'.');
+        EventLog(Format(L_IRC_ACTION_UNMUTE, [Master.Nickname, Nickname]));
       end;
-      ServerMessage('You have been '+Pre+'muted by '+Master+'.');
-      EventLog(Format(LAction, [Master, Nickname]));
     end
 
     else
@@ -2318,16 +2318,14 @@ begin
       begin
         if Side = '+' then
         begin
-          Pre:='in';
-          LAction:=L_IRC_ACTION_HIDE;
+          ServerMessage('You have been made invisible by '+Master.Nickname+'.');
+          EventLog(Format(L_IRC_ACTION_HIDE, [Master.Nickname, Nickname]));
         end
         else
         begin
-          Pre:='';
-          LAction:=L_IRC_ACTION_UNHIDE;
+          ServerMessage('You have been made visible by '+Master.Nickname+'.');
+          EventLog(Format(L_IRC_ACTION_UNHIDE, [Master.Nickname, Nickname]));
         end;
-        ServerMessage('You have been made '+Pre+'visible by '+Master+'.');
-        EventLog(Format(LAction, [Master, Nickname]));
       end
     else
       if (Mode='a')or(Mode='q') then
@@ -2335,11 +2333,7 @@ begin
         if Side = '+' then
         begin
           if not ((Modes['a']) or (Modes['q'])) then
-          begin
-            SetLength(Supers,Length(Supers)+1);
-            Supers[Length(Supers)-1].Nick:=Nickname;
-            Supers[Length(Supers)-1].IP:=ConnectingFrom;
-          end;
+            TSuper.Create(Nickname, ConnectingFrom);
         end
         else
         begin
@@ -2347,24 +2341,34 @@ begin
              or (not (Modes['a']) and (Modes['q']) and (Mode='q'))
           then
           begin
-            for I:=Length(Supers)-1 downto 0 do
-              for J:=I to Length(Supers)-2 do
-                Supers[J]:=Supers[J+1];
-            SetLength(Supers, Length(Supers)-1);
+            Super:=LockSuperByName(Nickname);
+            if Super <> nil then
+              Super.Free;
+            SuperThreadList.UnlockList;
           end;
         end;
       end;
 
+    ChannelList:=ChannelThreadList.LockList;
     if Mode='i' then
-      if Side = '+' then
-        Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Channels[I].Name, true, true)
-      else
-        Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN '+Channels[I].Name, true, true)
+      for I := 0 to ChannelList.Count-1 do
+      begin
+        Channel:=ChannelList[I];
+        if Side = '+' then
+          Broadcast('PART '+Channel.Name, Channel, false, true)
+        else
+          Broadcast('JOIN '+Channel.Name, Channel, false, true)
+      end
     else
-      Broadcast(':'+Master+' MODE '+Channels[I].Name+' '+Side+Mode+' '+Nickname);
+      for I := 0 to ChannelList.Count-1 do
+      begin
+        Channel:=ChannelList[I];
+        Master.Broadcast('MODE '+Channel.Name+' '+Side+Mode+' '+Nickname, Channel);
+      end;
+    ChannelThreadList.UnlockList;
 
-    if (Mode<>'b')and(Mode<>'i') then
-      EventLog(Format(L_IRC_ACTION_MODE, [Master, Side+Mode, Nickname]));
+    if (Mode<>'m')and(Mode<>'i') then
+      EventLog(Format(L_IRC_ACTION_MODE, [Master.Nickname, Side+Mode, Nickname]));
 
     Result:=true;
   end
