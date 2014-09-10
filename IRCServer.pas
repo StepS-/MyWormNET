@@ -2784,16 +2784,19 @@ end;
 function ForbiddenNick(Nick: String): Boolean;
 begin
   Result := False;
-  if ULPos('serve',Nick) <> 0 then
+  if ULPos('server',Nick) <> 0 then
     Result := True
-  else
-    if ULPos('admin',Nick) <> 0 then
-      Result := True
-  else
-    if ULPos('HostingBud',Nick) <> 0 then
-      Result := True;
 end;
 
+function SanitizeName(S: string): string;
+var
+  I: Integer;
+begin
+  for I:=Length(S) downto 1 do
+    if Pos(S[I], ValidNickChars) = 0 then
+      Delete(S, I, 1);
+  Result:=S;
+end;
 
 // ***************************************************************
 
