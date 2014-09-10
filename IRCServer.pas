@@ -2055,19 +2055,21 @@ end;
 procedure TUser.ExecExpect(S: String);
 const Command='EXPECT';
 var
-  I: Integer;
   User: TUser;
 begin
-  S:=Copy(S, 1, Pos(' ',S+' ')-1);
-  Log(Format(L_IRC_EXPECT, [ConnectingFrom, S]));
-  User:=UserByName(S);
-  if User=nil then
-    SendError(401,S)
-  else
   begin
-    SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from his IP');
-    PrepareLink(Self, User);
-  end;
+    S:=StringSection(S, 0);
+    Log(Format(L_IRC_EXPECT, [ConnectingFrom, S]));
+    User:=LockUserByName(S);
+    if User=nil then
+      SendError(401,S)
+    else
+    begin
+      SendLn(':'+ServerHost+' NOTICE '+Nickname+' :OK, expecting '+User.Nickname+' from his IP');
+      PrepareLink(Self, User);
+    end;
+    UserThreadList.UnlockList;
+  end
 end;
 
 procedure TUser.ExecGames(S: String);
