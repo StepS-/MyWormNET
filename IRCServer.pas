@@ -1940,24 +1940,28 @@ procedure TUser.ExecWho(S: String);
 const Command='WHO';
 var
   I, K: Integer;
-  Pref, Target, ChanStr, FlagCheck, TrgRealname: String;
+  Pref, Target, ChanStr, TrgRealname, TrgAddress: String;
+  IsChannelRequest: Boolean;
   Presence: char;
+  UserList, ChannelsJoinedList: TList;
+  User: TUser;
   Channel: TChannel;
 begin
   //:wormnet1.team17.com 352 DoctorWho #AnythingGoes Username no.address.for.you wormnet1.team17.com TiCPU H :0 TiCpu
   //:wormnet1.team17.com 315 DoctorWho * :End of /WHO list.
-  
-  Channel:=ChannelByName(S);
-  for I:=0 to Length(Users)-1 do
+  IsChannelRequest:=ChannelExists(S);
+  UserList:=UserThreadList.LockList;
+  for I:=0 to UserList.Count-1 do
   begin
-    if Users[I].Away then
+    User:=UserList[I];
+    if User.Away then
       Presence:='G'
     else
       Presence:='H';
     Pref:='';
 
     for K:=1 to Length(IRCPrefModes) do
-      if Users[I].Modes[IRCPrefModes[K]] then
+      if User.Modes[IRCPrefModes[K]] then
       begin
         Pref:=IRCPrefixes[K];
         Break;
@@ -1966,52 +1970,62 @@ begin
     if S<>'' then
       Target:=S
     else
-      Target:=Users[I].Nickname;
+      Target:=User.Nickname;
 
-    TrgRealname:=Users[I].Realname;
-    if Username='WWP' then     // prevent WWP from crashing
-      TrgRealname:=Users[I].SafeRealname;
+    TrgRealname:=User.Realname;
+    if Username = 'WWP' then     // prevent WWP from crashing
+      TrgRealname:=User.SafeRealname;
 
-    if Channel = nil then
+    TrgAddress:=StealthIP;
+    if (Modes['o']) or (Modes['a']) or (Modes['q']) then
+      TrgAddress:=User.ConnectingFrom;
+
+    if not IsChannelRequest then
     begin
-
       for K:=1 to Length(IRCPrefixes) do
         if Pos(IRCPrefixes[K],S) <> 0 then
           Delete(S,Pos(IRCPrefixes[K],S),1);
 
-      if (S<>'') and (S<>Users[I].Nickname) then continue;
+      if (S<>'') and (S<>User.Nickname) then continue;
 
       ChanStr:='*';
 
-      for K:=0 to Length(Channels)-1 do
-        if Users[I].InChannel[Channels[K].Number] then
-        begin
-          ChanStr:=Channels[K].Name;
-          Break;
-        end;
+      ChannelsJoinedList:=ChannelsJoined.LockList;
+      if ChannelsJoinedList.Count > 0 then
+        ChanStr:=TChannel(ChannelsJoinedList[0]).Name;
+      ChannelsJoined.UnlockList;
 
-      if not TextMatch(Users[I].Nickname, Nickname) then
+      if not TextMatch(User.Nickname, Nickname) then
       begin
-        if not (Users[I].Modes['i']) then
-          if Users[I].Registered then
-            SendEvent(352, ChanStr+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+TrgRealname, false);
+        if not (User.Modes['i']) then
+          if User.Registered then
+            SendEvent(352, ChanStr+' '+User.Username+' '+TrgAddress+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+TrgRealname, false);
       end
       else
         SendEvent(352, ChanStr+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Target+' '+Presence+Pref+' :0 '+TrgRealname, false);
-      if (S<>'') and (TextMatch(S,Users[I].Nickname)) then Break;
+      if (S<>'') and (TextMatch(S,User.Nickname)) then Break;
     end
-    else if Users[I].InChannel[Channel.Number] then
+    else
+    begin
+      Channel:=LockChannelByName(S);
+      if Channel <> nil then
+        if User.InChannel(Channel) then
+        begin
+          if not (User.Modes['i']) and not ((Pos(' o ',S+' ') <> 0) and not ((User.Modes['h']) or (User.Modes['o']) or (User.Modes['a']) or (User.Modes['q']))) then
+            if not TextMatch(User.Nickname, Nickname) then
+              SendEvent(352, Channel.Name+' '+User.Username+' '+TrgAddress+' '+ServerHost+' '+User.Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false)
+            else
+              SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false);
+        end;
+      ChannelThreadList.UnlockList;
+      if Channel = nil then
       begin
-      if (Pos(' o ',S+' ') <> 0) and not ((Users[I].Modes['h']) or (Users[I].Modes['o']) or (Users[I].Modes['a']) or (Users[I].Modes['q']))
-        then continue
-      else
-      if not (Users[I].Modes['i']) then
-        if not TextMatch(Users[I].Nickname, Nickname) then
-          SendEvent(352, Channel.Name+' '+Users[I].Username+' '+StealthIP+' '+ServerHost+' '+Users[I].Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false)
-        else
-          SendEvent(352, Channel.Name+' '+Username+' '+ConnectingFrom+' '+ServerHost+' '+Nickname+' '+Presence+Pref+' :0 '+TrgRealname, false);
+        EventLog('[ACHIEVEMENT GET]: WHO-smasher!');  //Go!
+        Break;
       end;
+    end;
   end;
+  UserThreadList.UnlockList;
   if S='' then
     SendEvent(315, '* :End of /WHO list.', false)
   else
