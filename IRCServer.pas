@@ -1606,7 +1606,7 @@ end;
 procedure TUser.ExecJoin(S: String);
 const Command='JOIN';
 var
-  K, N: Integer;
+  K: Integer;
   CurChan: String;
   Channel: TChannel;
 begin
@@ -1615,32 +1615,32 @@ begin
   begin
     CurChan:=Copy(S,1,Pos(',',S)-1);
     Delete(S,1,Pos(',',S));
-    Channel:=ChannelByName(CurChan);
+    Channel:=LockChannelByName(CurChan);
     if Channel <> nil then
     begin
-      N:=Channel.Number;
-      if not InChannel[N] then
+      if not InChannel(Channel) then
       begin
         Quit:=false;
         CurChan:=Channel.Name;
         EventLog(Format(L_IRC_JOIN, [Nickname, CurChan]));
-        InChannel[N]:=True;
+        ChannelsJoined.Add(Channel);
         //:CyberShadow-MD!Username@no.address.for.you JOIN :#AnythingGoes
         if not Modes['i'] then
         begin
-          Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan, Channel);
+          Broadcast('JOIN :'+CurChan, Channel);
           for K:=1 to Length(IRCPrefModes) do
             if Modes[IRCPrefModes[K]] then
-              Broadcast(':'+ServerHost+' MODE '+CurChan+' +'+IRCPrefModes[K]+' '+Nickname, Channel);
+              Broadcast(':'+ServerHost+' MODE '+CurChan+' +'+IRCPrefModes[K]+' '+Nickname, Channel, true);
         end
         else
-          SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' JOIN :'+CurChan);
+          SendLn(Self, 'JOIN :'+CurChan);
         ExecTopic(CurChan);
         ExecNames(CurChan);
-      end;
+      end
     end
     else
       SendError(403,CurChan);
+    ChannelThreadList.UnlockList;
   end
   until Pos(',',S) = 0;
 end;
