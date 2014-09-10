@@ -41,7 +41,7 @@ uses
 procedure TLink.Execute;
 var
   SA: AnsiString;
-  R, Bytes, I, N: Integer;
+  R, Bytes: Integer;
   ReadSet: record
     count: u_int;
     Socket: TSocket;
@@ -59,22 +59,22 @@ begin
         TimeVal.tv_usec:=10000;  // 10 ms
         R:=select(ClientSocket+1, @ReadSet, nil, nil, @TimeVal);
         if R=SOCKET_ERROR then
-          raise Exception.Create(L_CLIENT_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_CLIENT_SELECT+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if (ReadSet.count=0)or(R=0) then
           Break;         // nothing to read
 
         R:=ioctlsocket(ClientSocket, FIONREAD, Bytes);
         if R=SOCKET_ERROR then
-          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_CLIENT_SELECT+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if Bytes=0 then  // software disconnect
-          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' (Graceful disconnect).');
+          raise Exception.Create(L_ERROR_CLIENT_SELECT+' (Graceful disconnect).');
 
         SetLength(SA, Bytes);
-        R:=recv(ClientSocket, SA[1], Bytes, 0);
+        R:=recv(ClientSocket, SA[1], Length(SA), 0);
         if(R=0)or(R=SOCKET_ERROR)then
-          raise Exception.Create(L_CLIENT_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_CLIENT_SELECT+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         SetLength(SA, R);
         send(ServerSocket, SA[1], Length(SA), 0);
       until False;
@@ -85,22 +85,22 @@ begin
         ReadSet.Socket:=ServerSocket;
         R:=select(0, @ReadSet, nil, nil, @TimeVal);
         if R=SOCKET_ERROR then
-          raise Exception.Create(L_SERVER_SELECT_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_SERVER_SELECT+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if (ReadSet.count=0)or(R=0) then
           Break;         // nothing to read
 
         R:=ioctlsocket(ServerSocket, FIONREAD, Bytes);
         if R=SOCKET_ERROR then
-          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_SERVER_CONNECTION+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
 
         if Bytes=0 then  // software disconnect
-          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' (Graceful disconnect).');
+          raise Exception.Create(L_ERROR_SERVER_CONNECTION+' (Graceful disconnect).');
 
         SetLength(SA, Bytes);
-        R:=recv(ServerSocket, SA[1], Bytes, 0);
+        R:=recv(ServerSocket, SA[1], Length(SA), 0);
         if(R=0)or(R=SOCKET_ERROR)then
-          raise Exception.Create(L_SERVER_CONNECTION_ERROR+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
+          raise Exception.Create(L_ERROR_SERVER_CONNECTION+' ('+WinSockErrorCodeStr(WSAGetLastError)+').');
         SetLength(SA, R);
         send(ClientSocket, SA[1], Length(SA), 0);
       until False;
@@ -124,9 +124,21 @@ begin
   {$IFEND}
   {$ELSE} Start; {$ENDIF}
 end;
+
 // ***************************************************************
 
-procedure PrepareLink(Server, Client: TUser);
+function PrepareLink(Server, Client: TUser): TLink;
+begin
+  Result:=TLink.Create(True);
+  Result.ServerNickname:=Server.Nickname;
+  Result.ServerAddress:=Server.ConnectingFrom;
+  Result.ClientNickname:=Client.Nickname;
+  Result.ClientAddress:=Client.ConnectingFrom;
+  Result.ServerSocket:=0;
+  Result.ClientSocket:=0;
+  LinkThreadList.Add(Result);
+end;
+
 procedure Freedom;
 var
   I: Integer;
@@ -213,11 +225,17 @@ begin
   until False;
 end;
 
-
 procedure StartWormNATServer;
 begin
   if ThreadID=0 then  // start only once
     CreateThread(nil, 0, @MainProc, nil, 0, ThreadID);
 end;
 
+initialization
+  LinkThreadList:=TThreadList.Create;
+
+finalization
+  LinkThreadList.Free;
+
 end.
+
