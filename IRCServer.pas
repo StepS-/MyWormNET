@@ -1246,23 +1246,20 @@ end;
 procedure TUser.ExecKickall(S: String);
 const Command='KICKALL';
 var
-  I,J: Integer;
+  I: Integer;
+  UserList: TList;
+  User: TUser;
 begin
   if Modes['q'] then
   begin
-    for I:=0 to Length(Users)-1 do
-      if Users[I].Modes['q'] = false then
-      begin
-        Users[I].QuitMsg:='Massive killing started by '+Nickname;
-        if not Users[I].Modes['i'] then
-          Users[I].Broadcast(':'+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' QUIT :'+Users[I].QuitMsg);
-        Users[I].Quit:=true;
-        Users[I].LastSenior:=Nickname;
-        if Users[I].Registered then
-          AddSeen(Users[I].Nickname,Users[I].QuitMsg);
-        Users[I].SendLn('ERROR :'+Users[I].QuitMsg);
-        if (Users[I].Socket <> 0) then closesocket(Users[I].Socket); Users[I].Socket:=0;
-      end;
+    UserList := UserThreadList.LockList;
+    for I:=0 to UserList.Count-1 do
+    begin
+      User := UserList[I];
+      if User.Modes['q'] = false then
+        User.Kill(Self, 'Massive killing started by '+Nickname);
+    end;
+    UserThreadList.UnlockList;
     EventLog(Format(L_IRC_ACTION_KICKALL, [Nickname]));
   end
   else
