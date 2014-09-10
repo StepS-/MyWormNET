@@ -12,7 +12,7 @@ uses
 {$ELSE}
   Sockets, FakeWinSock,
 {$ENDIF}
-  Classes;
+  Classes, Types, Version;
 
 type
   TTopic=record
@@ -151,11 +151,16 @@ type
     end;
 
 const
+  CHANTYPES='#';
+  NICKLEN=15;
+  CHANNELLEN=30;
+  QUITLEN=160;
+  KICKLEN=300;
   IRCPrefModes='qaohv';
   IRCPrefixes='~&@%+';
-  IRCPassword='ELSILRACLIHP ';
-  IRCPassword2='ELSILRACLIHP';
-  ValidNickChars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`-';
+  IRCDefPassword=#69#76#83#73#76#82#65#67#76#73#72#80;
+  Numbers='-0123456789';
+  ValidNickChars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`'+Numbers;
 
 var
   UserThreadList: TThreadList;
@@ -167,12 +172,15 @@ var
 procedure StartIRCServer;
 procedure GetChannels;
 procedure LogToOper(S: string);
-procedure AddSeen(Nick, QuitMsg: String);
-function AddChannel(Name, Scheme, Topic: String): Boolean;
+
+function NewUser(Socket: TSocket; Addr: in_addr): TUser;
+
 function GetFormattedUserCount: TUserCount;
 function GetRegisteredUserCount: u_int;
 function GetUserCount: u_int;
 function GetChannelCount: u_int;
+function AddChannel(Name, Scheme, Topic, CreatedBy: String): Boolean;
+function RemoveChannel(Channel: TChannel): Boolean;
 function LockUserByIP(IP: String): TUser;
 function LockUserByName(Name: String): TUser;
 function LockChannelByName(Name: String): TChannel;
@@ -183,10 +191,12 @@ function SuperIPExists(IP: String): Boolean;
 function NickInUse(Nick: string): Boolean;
 function ChannelExists(Name: string): Boolean;
 function ForbiddenNick(Nick: string): Boolean;
+function SanitizeName(S: string): string;
+procedure Freedom;
 
 implementation
 uses
-  Base, Data, DateUtils, SysUtils, IniFiles, HTTPServer, WormNATServer;
+  Base, Data, Lists, DateUtils, SysUtils, IniFiles, HTTPServer, WormNATServer, Localization;
 
 procedure TUser.Execute;
 var
@@ -2797,6 +2807,27 @@ begin
     if Pos(S[I], ValidNickChars) = 0 then
       Delete(S, I, 1);
   Result:=S;
+end;
+
+procedure Freedom;
+var
+  I: Integer;
+  UserList, ChannelList: TList;
+begin
+  UserList:=UserThreadList.LockList;
+  for I := UserList.Count-1 downto 0 do
+  begin  
+    TUser(UserList[I]).ServerKill('I''m finally free!');
+    UserList.Remove(UserList[I]);
+  end;
+  UserThreadList.UnlockList;
+  ChannelList:=ChannelThreadList.LockList;
+  for I := ChannelList.Count-1 downto 0 do
+  begin
+    TChannel(ChannelList[I]).Free;
+    ChannelList.Remove(ChannelList[I]);
+  end;
+  ChannelThreadList.UnlockList;
 end;
 
 // ***************************************************************

@@ -7,13 +7,13 @@ unit HTTPServer;
 
 interface
 uses
-  SysUtils, Classes,
-  Windows, WinSock,
+  Classes, Types,
 {$IFDEF MSWINDOWS}
+  WinSock,
 {$ELSE}
   Sockets, FakeWinSock,
 {$ENDIF}
-  IRCServer;
+  IRCServer, Localization, Version;
 
 type
   TRequest=class(TThread)
@@ -52,12 +52,16 @@ var
   ThreadID: Cardinal = 0;
 
 procedure StartHTTPServer;
+procedure Freedom;
 function AspPhp(S, PageName: string): Boolean;
 function CustomAccept(s: TSocket; addr: PSockAddr; AddrLen: PInteger; Context: Pointer = nil): TSocket;
 
 implementation
 uses
-  Base, Data, DateUtils;
+{$IFDEF MSWINDOWS}
+  Windows,
+{$ENDIF}
+  SysUtils, Base, Lists, DateUtils, Data;
 
 procedure CleanUpGames;
 var
@@ -443,6 +447,20 @@ begin
 end;
 
 // ***************************************************************
+
+procedure Freedom;
+var
+  I: Integer;
+  GameList: TList;
+begin
+  GameList:=GameThreadList.LockList;
+  for I := GameList.Count-1 downto 0 do
+  begin
+    TGame(GameList[I]).Free;
+    GameList.Remove(GameList[I]);
+  end;
+  GameThreadList.UnlockList;
+end;
 
 function CustomAccept(s: TSocket; addr: PSockAddr; AddrLen: PInteger; Context: Pointer): TSocket;
 var

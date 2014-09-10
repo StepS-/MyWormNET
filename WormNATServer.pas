@@ -1,6 +1,9 @@
 unit WormNATServer;
 // a proxy for WormNAT routing
 
+{$IFDEF FPC}
+{$mode DELPHI}
+{$ENDIF}
 
 interface
 uses
@@ -9,7 +12,7 @@ uses
 {$ELSE}
   Sockets, FakeWinSock,
 {$ENDIF}
-  Classes, IRCServer;
+  Classes, Types, IRCServer, Localization;
 
 type
   TLinkType=(ltServer, ltClient);
@@ -28,11 +31,12 @@ var
   ThreadID: Cardinal = 0;
 
 procedure StartWormNATServer;
-procedure PrepareLink(Server, Client: TUser);
+procedure Freedom;
+function PrepareLink(Server, Client: TUser): TLink;
 
 implementation
 uses
-  Base, SysUtils;
+  Base, HTTPServer, SysUtils;
 
 procedure TLink.Execute;
 var
@@ -123,17 +127,11 @@ end;
 // ***************************************************************
 
 procedure PrepareLink(Server, Client: TUser);
+procedure Freedom;
 var
   I: Integer;
   LinkList: TList;
 begin
-  Link:=TLink.Create(True);
-  Link.ServerNickname:=Server.Nickname;
-  Link.ServerAddress:=Server.ConnectingFrom;
-  Link.ClientNickname:=Client.Nickname;
-  Link.ClientAddress:=Client.ConnectingFrom;
-  Link.ServerSocket:=0;
-  Link.ClientSocket:=0;
   LinkList:=LinkThreadList.LockList;
   for I := LinkList.Count-1 downto 0 do
   begin
