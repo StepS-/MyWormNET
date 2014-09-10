@@ -1692,107 +1692,98 @@ var
   Side, Mode: Char;
   ModeStr, Target: String;
   Channel: TChannel;
+  UserList: TList;
   User: TUser;
 begin
-    Target:=Copy(S, 1, Pos(' ', S+' ')-1);
-    ModeStr:='';
-    Channel:=ChannelByName(Target);
-      if Channel <> nil then
-        begin
-        Delete(S,1,Pos(Channel.Name,S));
+  Target:=StringSection(S, 0);
+  ModeStr:='';
+  Channel:=LockChannelByName(Target);
+  if Channel <> nil then
+  begin
+    Delete(S,1,Pos(Channel.Name,S));
+    if Pos(' ', S) <> 0 then
+    begin
+      DeleteSections(S, 1);
+      if (Pos('+',S))or(Pos('-',S)) = 1 then
+      begin
         if Pos(' ', S) <> 0 then
+        begin
+          if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
           begin
-          Delete(S,1,Pos(' ',S));
-          if (Pos('+',S))or(Pos('-',S)) = 1 then
+            ModeStr:=Copy(S, 1, Pos(' ', S));
+            Delete(S, 1, Pos(' ', S));
+            Target:=S;
+            User:=LockUserByName(Target);
+            if User <> nil then
             begin
-            if Pos(' ', S) <> 0 then
+              for K:=2 to Pos(' ',ModeStr)-1 do
               begin
-              if (Modes['q'])or(Modes['a'])or(Modes['o'])or(Modes['h']) then
+                Mode:=ModeStr[K];
+                Side:=ModeStr[1];
+                if (S<>' ') then
                 begin
-                ModeStr:=Copy(S, 1, Pos(' ', S));
-                Delete(S, 1, Pos(' ', S));
-                Target:=S;
-                User:=UserByName(Target);
-                if User <> nil then
-                    begin
-                    for K:=2 to Pos(' ',ModeStr)-1 do
-                      begin
-                      Mode:=ModeStr[K];
-                      Side:=ModeStr[1];
-                      if (S<>' ') then
-                        begin
-                          if not
-                            (
-                              (((Mode='a') or (Mode='q')) and not (Modes['q']))
-                              or (not (Mode='v') and not (Mode='b') and ((Modes['h'])
-                                  and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
-                              or ((Mode='L') and (Target<>Nickname))
-                              or ((User.Modes['q']) and not (Modes['q']))
-                              or ((User.Modes['a']) and not (Modes['q']))
-                              or ((User.Modes['o']) and not (Modes['o']) and not (Modes['a']) and not (Modes['q']))
-                            )
-                          then
-                            User.ChangeMode(Side,Mode,Nickname)
-                          else
-                            if ((Mode='L') and (Target<>Nickname)) then
-                              SendError(502,Command)
-                            else
-                            begin
-                              SendError(482,Command);
-                              Break;
-                            end;
-                        end;
-                      end;
-                    end
+                  if not
+                  (
+                  (((Mode='a') or (Mode='q')) and not (Modes['q']))
+                  or (not (Mode='v') and not (Mode='m') and ((Modes['h'])
+                     and not (Modes['o']) and not (Modes['a']) and not (Modes['q'])))
+                  or ((Mode='s') and (Target<>Nickname))
+                  or ((User.Modes['q']) and not (Modes['q']))
+                  or ((User.Modes['a']) and not (Modes['q']))
+                  or ((User.Modes['o']) and not (Modes['o']) and not (Modes['a']) and not (Modes['q']))
+                  )
+                  then
+                    User.ChangeMode(Side,Mode,Self)
+                  else
+                    if ((Mode='s') and (Target<>Nickname)) then
+                      SendError(502,Command)
                     else
-                      SendError(401,Target);
-                end
-                else
-                  SendError(481,Command);
-              end
-              else
-                if Pos('+b',S) <> 0 then
-                begin
-                  for I:=0 to Length(Users)-1 do
-                    if Users[I].Modes['b'] then
-                      SendEvent(367, Channel.Name+' '+Users[I].Nickname+'!'+Users[I].Username+'@'+StealthIP+' '+Users[I].LastSenior+' '+IntToStr(Users[I].LastBanTime), false);
-                SendEvent(368, Channel.Name+' :End of Channel Ban List', false);
-                Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
+                    begin
+                      SendError(482,Command);
+                      Break;
+                    end;
                 end;
+              end;
             end
             else
-            begin
-              SendEvent(324, Channel.Name+' +tn', false);
-              SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime), false);
-              Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
-            end;
+              SendError(401,Target);
+            UserThreadList.UnlockList;
           end
           else
-          begin
-            SendEvent(324, Channel.Name+' +tn', false);
-            SendEvent(329, Channel.Name+' '+IntToStr(Channel.CreationTime), false);
-            Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
-          end;
+            SendError(481,Command);
         end
         else
-          SendError(403,Target);
-   {     else
+          if Pos('+Q',S) <> 0 then
           begin
-          User:=nil;
-          for I:=0 to Length(Users)-1 do
-            if Users[I].Nickname=Target then
-              User:=Users[I];
-          if User=nil then
-            SendLn(':'+ServerHost+' 401 '+Nickname+' '+Target+' :No such nick/channel.')
-          else
+            UserList:=UserThreadList.LockList;
+            for I:=0 to UserList.Count-1 do
             begin
-            S:='';
-            for C:=#0 to #255 do
-              if Modes[C] then
-                S:=S+C;
-            SendLn(':'+ServerHost+' 324 '+Nickname+' '+Target+' +'+S);
+              User:=UserList[I];
+              if User.Modes['m'] then
+                SendEvent(367, Channel.Name+' '+User.Nickname+'!'+User.Username+'@'+StealthIP+' '+User.LastSenior+' '+IntToStr(User.LastBanTime), false);
             end;
-          end;     }
+            UserThreadList.UnlockList;
+            SendEvent(368, Channel.Name+' :End of Muted Users List', false);
+            Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
+          end;
+      end
+      else
+      begin
+        SendEvent(324, Channel.Name+' +tn', false);
+        SendEvent(329, Channel.Name+' '+IntToStr(Channel.Topic.TimeSet), false);
+        Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
+      end;
+    end
+    else
+    begin
+      SendEvent(324, Channel.Name+' +tn', false);
+      SendEvent(329, Channel.Name+' '+IntToStr(Channel.Topic.TimeSet), false);
+      Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
+    end;
+  end
+  else
+    SendError(403,Target);
+  ChannelThreadList.UnlockList;
 end;
 
 procedure TUser.ExecMessage(Command, S: String);
