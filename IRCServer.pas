@@ -2035,17 +2035,19 @@ end;
 
 procedure TUser.ExecList(S: String);
 const Command='LIST';
-var I, J, N: Integer;
+var
+  I: Integer;
+  ChannelList: TList;
+  Channel: TChannel;
 begin                     
   SendEvent(321, 'Channel :Users  Name', false);
-  for I:=0 to Length(Channels)-1 do
+  ChannelList:=ChannelThreadList.LockList;
+  for I:=0 to ChannelList.Count-1 do
   begin
-    N:=0;
-    for J:=0 to Length(Users)-1 do
-      if Users[J].InChannel[Channels[I].Number] then
-        Inc(N);
-    SendEvent(322, Channels[I].Name+' '+IntToStr(N)+' :'+Channels[I].Topic, false);
+    Channel:=ChannelList[I];
+    SendEvent(322, Channel.Name+' '+IntToStr(Channel.UserCount)+' :'+Channel.Topic.Text, false);
   end;
+  ChannelThreadList.UnlockList;
   SendEvent(323, ':End of /LIST', false);
   Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
