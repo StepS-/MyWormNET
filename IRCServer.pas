@@ -809,37 +809,28 @@ end;
 
 procedure TUser.ExecLusers(S: String);
 const Command='LUSERS';
-var
-  I: Integer;
-  Ops, Inv, Unk, Usr: Integer;
-  UserCount, MaxUserCount: String;
+var UserCount: TUserCount;
 begin
-  Ops:=0;
-  Inv:=0;
-  Unk:=0;
-  Usr:=0;
-  MaxUserCount:=IntToStr(MaxIRCUsers);
-  for I:=0 to Length(Users)-1 do
-    if Users[I].Registered then
-    begin
-      Inc(Usr);
-      if (Users[I].Modes['q'])or(Users[I].Modes['a'])or(Users[I].Modes['o']) then
-        Inc(Ops);
-      if Users[I].Modes['i'] then
-        Inc(Inv);
-    end
-    else
-      Inc(Unk);
-  UserCount:=IntToStr(Usr);
-  SendEvent(251, ':There are '+IntToStr(Length(Users)-Inv)+' users and '+IntToStr(Inv)+' invisible on this server', false);
-  SendEvent(252, IntToStr(Ops)+' :IRC Operators online', false);
-  if Unk > 0 then
-    SendEvent(253, IntToStr(Unk)+' :unknown connection(s)', false);
-  SendEvent(254, IntToStr(Length(Channels))+' :channels formed', false);
-  SendEvent(255, ':I have '+UserCount+' clients and 0 servers', false);
-  SendEvent(265, ':Current local  users: '+UserCount+'  Max: '+MaxUserCount, false);
-  SendEvent(266, ':Current global users: '+UserCount+'  Max: '+MaxUserCount, false);
-  SendEvent(250, ':Highest connection count: '+MaxUserCount+' ('+MaxUserCount+' clients) ('+IntToStr(IRCConnections)+' connections received since last server (re)start)', false);
+  UserCount:=GetFormattedUserCount;
+  SendEvent(251, ':There are '+IntToStr(UserCount.Registered - UserCount.Invisible)+' users and '+IntToStr(UserCount.Invisible)+' invisible on this server', false);
+  SendEvent(252, IntToStr(UserCount.Operators)+' :IRC Operators online', false);
+  if UserCount.Unknown > 0 then
+    SendEvent(253, IntToStr(UserCount.Unknown)+' :unknown connection(s)', false);
+  SendEvent(254, IntToStr(GetChannelCount)+' :channels formed', false);
+  SendEvent(255, ':I have '+IntToStr(UserCount.Registered)+' clients and 0 servers', false);
+  ExecUsers(S);
+  SendEvent(250, ':Highest connection count: '+IntToStr(MaxIRCUsers)+' ('+IntToStr(MaxIRCUsers)+' clients) ('+IntToStr(IRCConnections)+' connections received since last server (re)start)', false);
+  Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
+end;
+
+procedure TUser.ExecUsers(S: String);
+const Command='USERS';
+var UserCount, MaxUsers: string;
+begin
+  UserCount:=IntToStr(GetRegisteredUserCount);
+  MaxUsers:=IntToStr(MaxIRCUsers);
+  SendEvent(265, ':Current local  users: '+UserCount+'  Max: '+MaxUsers, false);
+  SendEvent(266, ':Current global users: '+UserCount+'  Max: '+MaxUsers, false);
   Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
 
