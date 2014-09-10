@@ -568,6 +568,13 @@ begin
 
   Result:=SendEvent(ErrNo, S+' :'+StrOut, Logging);
 end;
+
+function TUser.RuptureError(Comment: String): String;
+begin
+  Result:=Format('ERROR :Closing Link: %s[%s@%s] (%s)', [Nickname, Username, ConnectingFrom, Comment]);
+  SendLn(Result);
+end;
+
 end;
 
 function TUser.ServerMessage(S: String; MessageType: ShortInt=0): String;
