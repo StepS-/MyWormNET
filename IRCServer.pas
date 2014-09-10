@@ -2077,16 +2077,18 @@ const Command='GAMES';
 var
   I: Integer;
   OpenType: String;
+  GameList: TList;
 begin
+  GameList:=GameThreadList.LockList;
   ServerMessage('--- Channel Passworded Name Hoster URL ---', 1);
-  for I:=0 to Length(Games)-1 do
-  with Games[I] do
+  for I:=0 to GameList.Count-1 do with TGame(GameList[I]) do
   begin
     if PassNeeded='0' then OpenType:='[OPEN]'
     else OpenType:='[PASS]';
-    ServerMessage('#'+Chan+' '+OpenType+' '+Name+' '+HosterNickname+' wa://'+HosterAddress+'?gameid='+IntToStr(GameID)+'&Scheme='+Scheme, 1);
+    ServerMessage('#'+Chan+' '+OpenType+' '+Name+' '+HosterNickname+' '+MakeWALink(HosterAddress, IntToStr(GameID), Scheme));
   end;
-  ServerMessage('--- '+IntToStr(Length(Games))+' games total ---', 1);
+  ServerMessage('--- '+IntToStr(GameList.Count)+' games total ---', 1);
+  GameThreadList.UnlockList;
 end;
 
 procedure TUser.ExecAuthpong(S: string);
