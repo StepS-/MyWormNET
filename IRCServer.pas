@@ -1571,27 +1571,34 @@ end;
 procedure TUser.ExecNames(S: String);
 const Command='NAMES';
 var
-  I, K, N: Integer;
+  I, K: Integer;
   StrOut: String;
   Channel: TChannel;
+  UserList: TList;
+  User: TUser;
 begin
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
-  Channel:=ChannelByName(S);
+  S:=StringSection(S, 0);
+  Channel:=LockChannelByName(S);
   if Channel <> nil then
   begin
     S:=Channel.Name;
-    N:=Channel.Number;
     StrOut:='= '+S+' :';
-    for I:=0 to Length(Users)-1 do
-      if (Users[I].InChannel[N]) and not (Users[I].Modes['i']) then
+    UserList:=UserThreadList.LockList;
+    for I:=0 to UserList.Count-1 do
+    begin
+      User:=UserList[I];
+      if (User.InChannel(Channel)) and not (User.Modes['i']) then
       begin
         for K:=1 to Length(IRCPrefModes) do
-          if Users[I].Modes[IRCPrefModes[K]] then
+          if User.Modes[IRCPrefModes[K]] then
             StrOut:=StrOut+IRCPrefixes[K];
-        StrOut:=StrOut+Users[I].Nickname+' ';
+        StrOut:=StrOut+User.Nickname+' ';
       end;
+    end;
+    UserThreadList.UnlockList;
     SendEvent(353, StrOut, false);
   end;
+  ChannelThreadList.UnlockList;
   SendEvent(366, S+' :End of /NAMES list.', false);
   Log('[IRC] > '+Format(L_IRC_LOG_RESPONSE, [Command, Nickname]));
 end;
