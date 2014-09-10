@@ -2132,39 +2132,64 @@ begin
   end;
 end;
 
-procedure TUser.Broadcast(S: string; Channel: TChannel; ExceptSelf: Boolean=false; Logging: Boolean = true);
+procedure TUser.Broadcast(Msg: string; Channel: TChannel; FullString: Boolean = false; ExceptSelf: Boolean=false; Logging: Boolean = true);
 var
   I: Integer;
-  TStr: String;
+  S: string;
+  UserList: TList;
+  User: TUser;
 begin
+  if FullString then S:=Msg
+  else S:=':'+Nickname+'!'+Username+'@'+ConnectingFrom+' '+Msg;
   if Logging then
     Log('[IRC] > '+S);
-  for I := 0 to Length(Users)-1 do
-    if Users[I].InChannel[Channel.Number] then
-      if not ((ExceptSelf) and (Users[I] = Self)) then
-        Users[I].SendLn(S,false);
+  UserList:=UserThreadList.LockList;
+  for I := 0 to UserList.Count-1 do
+  begin
+    User:=UserList[I];
+    if User.InChannel(Channel) then
+      if not (ExceptSelf and (User = Self)) then
+        if FullString then
+          User.SendLn(S, false)
+        else
+          User.SendLn(Self, Msg, false);
+  end;
+  UserThreadList.UnlockList;
 end;
 
-procedure TUser.Broadcast(S: string; OnlyChannels: Boolean = True; ExceptSelf: Boolean=false; Logging: Boolean = True);
+procedure TUser.Broadcast(Msg: string; FullString: Boolean = false; OnlyChannels: Boolean = True; ExceptSelf: Boolean=false; Logging: Boolean = True);
 var
-  I,J: Integer;
-  TStr: String;
+  I: Integer;
+  S: string;
+  UserList: TList;
+  User: TUser;
+  ChannelsJoinedList: TList;
 begin
+  if FullString then S:=Msg
+  else S:=':'+Nickname+'!'+Username+'@'+ConnectingFrom+' '+Msg;
   if Logging then
     Log('[IRC] > '+S);
   if OnlyChannels then
   begin
-    for I := 0 to Length(Channels)-1 do
-      if InChannel[Channels[I].Number] then
-        for J := 0 to Length(Users)-1 do
-          if Users[J].InChannel[Channels[I].Number] then
-            if not ((ExceptSelf) and (Users[J] = Self)) then
-              Users[J].SendLn(S,false);
+    ChannelsJoinedList:=ChannelsJoined.LockList;
+    for I := 0 to ChannelsJoinedList.Count-1 do
+      Broadcast(Msg, TChannel(ChannelsJoinedList[I]), FullString, ExceptSelf, false);
+    ChannelsJoined.UnlockList;
   end
   else
-    for I := 0 to Length(Users)-1 do
-      if not ((ExceptSelf) and (Users[I] = Self)) then
-        Users[I].SendLn(S,false);
+  begin
+    UserList:=UserThreadList.LockList;
+    for I := 0 to UserList.Count-1 do
+    begin
+      User:=UserList[I];
+      if not ((ExceptSelf) and (User = Self)) then
+        if FullString then
+          User.SendLn(S, false)
+        else
+          User.SendLn(Self, Msg, false);
+    end;
+    UserThreadList.UnlockList;
+  end;
 end;
 
 procedure TUser.Die(Action, Reason, Master: String);
