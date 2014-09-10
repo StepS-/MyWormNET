@@ -2093,15 +2093,8 @@ end;
 
 procedure TUser.ExecAuthpong(S: string);
 begin
-  if ForceAuthping then
-    if S<>'' then
-    begin
-      TextToFile('/AUTHPONG '+S,ExtractFilePath(ParamStr(0))+'authpong.txt',true);
-      SendLn('ERROR :Written to authpong.txt! '+S);
-      Sleep(1000);
-      closesocket(Socket);
-      Socket:=0;
-    end;
+  //todo for later
+end;
 end;
 
 procedure TUser.SendLn(S: string; Logging: Boolean=true);
