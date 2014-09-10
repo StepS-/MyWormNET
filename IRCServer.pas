@@ -952,12 +952,12 @@ end;
 procedure TUser.ExecForcegameid(S: string);
 const Command='FORCEGAMEID';
 begin
-  S:=Copy(S,1,Pos(' ',S+' ')-1);
-  if (Modes['o']) or (Modes['a']) or (Modes['q']) then
+  S:=StringSection(S, 0);
+  if (Modes['a']) or (Modes['q']) then
   begin
     if S<>'' then
     begin
-      GameCounter:=StrToInt(S);
+      InterLockedExchange(GameCounter, StrToIntDef(S, 1000000));
       EventLog(Format(L_IRC_ACTION_FORCEGAMEID, [Nickname,S]));
       ServerMessage('Ok. Game counter is now: '+IntToStr(GameCounter));
     end
