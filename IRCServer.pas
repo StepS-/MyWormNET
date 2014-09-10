@@ -1357,51 +1357,52 @@ begin
     SendLn(':'+ServerHost+' PONG '+ServerHost+' :'+S)
   else
     SendLn('PONG :'+ServerHost);
-end;  
+end;
 
 procedure TUser.ExecCalc(S: String);
 const Command='CALC';
 var
-  Operation, Result, FullParam: string;
-  Params: array of string;
+  Operation, FullParam: string;
+  //Params: TStringList;
 begin
   S:=Copy(S, 1, 512);
   if (Modes['v']) or (Modes['h']) or (Modes['o']) or (Modes['a']) or (Modes['q']) then
   begin
     if S<>'' then
     begin
-      Operation:=LowerCase(Copy(S, 1, Pos(' ',S+' ')-1));
-      Delete(S, 1, Pos(' ',S+' '));
-      S:=S+' ';
+      Operation:=LowerCase(StringSection(S, 0));
+      DeleteSections(S, 1);
       if Operation <> '' then
       begin
         FullParam:=S;
+        {S:=S+' ';
+        Params := TStringList.Create;
         while Pos(' ',S) <> 0 do
         begin
-          SetLength(Params,Length(Params)+1);
-          Params[Length(Params)-1]:=Copy(S, 1, Pos(' ', S)-1);
-          Delete(S, 1, Pos(' ',S));
-        end;
-          if Operation = 'help' then
+          Params.Add(StringSection(S, 0));
+          DeleteSections(S, 1);
+        end;}
+        if Operation = 'help' then
+        begin
+          ServerMessage('Supported calc commands:');
+          ServerMessage('decode64 <string>: will decode string from base64');
+          ServerMessage('encode64 <string>: will encode string to base64');
+          ServerMessage('cp-wa-1251 <string>: will convert a WA string into a Win-1251 string');
+        end
+        else
+        begin
+          if FullParam <> '' then
           begin
-            ServerMessage('Supported calc commands:');
-            ServerMessage('decode64 <string>: will decode string from 64');
-            ServerMessage('encode64 <string>: will encode string to 64');
-            ServerMessage('cp-wa-1251 <string>: will convert a WA string into a Win-1251 string');
+            if Operation = 'decode64'        then ServerMessage('Decode64 result: '+StrDecode64(FullParam))
+            else if Operation = 'encode64'   then ServerMessage('Encode64 result: '+StrEncode64(FullParam))
+            else if Operation = 'strtohex'   then ServerMessage('StrToHex result: '+StrToHex(FullParam))
+            else if Operation = 'cp-wa-1251' then ServerMessage('Converted W:A to Win1251: '+CP_WAto1251(FullParam))
+            else ServerMessage('Sorry, but I''m not sure what you''re referring to. Use calc with the help parameter to see the full list.');
           end
           else
-          begin
-            if Params[0] <> '' then
-            begin
-              if Operation = 'decode64'        then ServerMessage('Decode64 result: '+Decode64(FullParam))
-              else if Operation = 'encode64'   then ServerMessage('Encode64 result: '+Encode64(FullParam))
-              else if Operation = 'strtohex'   then ServerMessage('StrToHex result: '+StrToHex(FullParam))
-              else if Operation = 'cp-wa-1251' then ServerMessage('Converted W:A to Win1251: '+CP_WAto1251(FullParam))
-              else ServerMessage('Sorry, but I''m not sure what you''re referring to. Use calc with the help parameter to see the full list.');
-            end
-            else
-              ServerMessage('Sorry, but you didn''t specify anough parameters to process your operation...');
-          end;
+            ServerMessage('Sorry, but you didn''t specify anough parameters to process your operation...');
+        end;
+        //Params.Destroy;
       end
       else
         SendError(461,Command);
