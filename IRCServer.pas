@@ -838,43 +838,50 @@ procedure TUser.ExecSeen(S: String);
 const Command='SEEN';
 var
   I: Integer;
-  TimeDiff, DaysAgo, HoursAgo, MinsAgo, SecsAgo: Integer;
+  TimeDiff, DaysAgo, HoursAgo, MinsAgo: Integer;
   LongAgo: String;
-  User: TUser;
+  SeenList: TList;
 begin
-  S:=Copy(S, 1, Pos(' ',S+' ')-1);
-  if S<>'' then
+  if SeenService then
   begin
-    User:=UserByName(S);
-    if User = nil then
+    S:=StringSection(S, 0);
+    if S<>'' then
     begin
-      if Length(Seens) < 1 then
-        ServerMessage('Sorry, but there was no '+S+' around.')
-      else
-        for I:=0 to Length(Seens)-1 do
-          if TextMatch(S,Seens[I].Nick) then
-          begin
-            LongAgo:='';
-            TimeDiff:=SecondsBetween(Now,Seens[I].LastSeen);
-            DaysAgo:=TimeDiff div SecsPerDay;
-            if DaysAgo > 0 then LongAgo:=LongAgo+IntToStr(DaysAgo)+' days ';
-            HoursAgo:=(TimeDiff div 3600) mod 24;
-            if HoursAgo > 0 then LongAgo:=LongAgo+IntToStr(HoursAgo)+' hours ';
-            MinsAgo:=(TimeDiff div 60) mod 60;
-            if MinsAgo > 0 then LongAgo:=LongAgo+IntToStr(MinsAgo)+' mins ';
-            LongAgo:=LongAgo+IntToStr(TimeDiff mod 60)+' secs ';
+      if not NickInUse(S) then
+      begin
+        SeenList:=SeenThreadList.LockList;
+        if SeenList.Count < 1 then
+          ServerMessage('Sorry, but there was no '+S+' around.')
+        else
+          for I:=0 to SeenList.Count-1 do
+            with TSeen(SeenList[I]) do
+              if TextMatch(S, Nick) then
+              begin
+                LongAgo:='';
+                TimeDiff:=SecondsBetween(Now, LastSeen);
+                DaysAgo:=TimeDiff div SecsPerDay;
+                if DaysAgo > 0 then LongAgo:=LongAgo+IntToStr(DaysAgo)+' days ';
+                HoursAgo:=(TimeDiff div 3600) mod 24;
+                if HoursAgo > 0 then LongAgo:=LongAgo+IntToStr(HoursAgo)+' hours ';
+                MinsAgo:=(TimeDiff div 60) mod 60;
+                if MinsAgo > 0 then LongAgo:=LongAgo+IntToStr(MinsAgo)+' mins ';
+                LongAgo:=LongAgo+IntToStr(TimeDiff mod 60)+' secs ';
 
-            ServerMessage(Seens[I].Nick+' was last seen '+LongAgo+'ago, quit with a message: '+Seens[I].QuitMsg);
-            Break;
-          end
-          else if I=Length(Seens)-1 then
-            ServerMessage('Sorry, but there was no '+S+' around.');
+                ServerMessage(Nick+' was last seen '+LongAgo+'ago, quit with a message: '+QuitMsg);
+                Break;
+              end
+              else if I=SeenList.Count-1 then
+                ServerMessage('Sorry, but there was no '+S+' around.');
+        SeenThreadList.UnlockList;
+      end
+      else
+        ServerMessage(S+' is online right now!');
     end
     else
-      ServerMessage(User.Nickname+' is online right now!');
+      SendError(461,Command);
   end
   else
-    SendError(461,Command);
+    ServerMessage('Sorry, but the seen service is disabled for this server.');
 end;
 
 procedure TUser.ExecAway(S: String);
