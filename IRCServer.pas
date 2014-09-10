@@ -168,6 +168,10 @@ procedure GetChannels;
 procedure LogToOper(S: string);
 procedure AddSeen(Nick, QuitMsg: String);
 function AddChannel(Name, Scheme, Topic: String): Boolean;
+function GetFormattedUserCount: TUserCount;
+function GetRegisteredUserCount: u_int;
+function GetUserCount: u_int;
+function GetChannelCount: u_int;
 function LockUserByIP(IP: String): TUser;
 function LockUserByName(Name: String): TUser;
 function LockChannelByName(Name: String): TChannel;
@@ -2185,10 +2189,60 @@ end;
 
 destructor TChannel.Destroy;
 var I: Integer;
+// ***************************************************************
+
+function GetFormattedUserCount: TUserCount;
+var
+  I: Integer;
+  User: TUser;
+  UserList: TList;
 begin
-  for I:=Number to Length(Channels)-2 do
-    Channels[I]:=Channels[I+1];
-  SetLength(Channels, Length(Channels)-1);
+  Result.Invisible := 0;
+  Result.Operators := 0;
+  Result.Unknown := 0;
+  Result.Registered := 0;
+  UserList := UserThreadList.LockList;
+  Result.All := UserList.Count;
+  for I:=0 to UserList.Count-1 do
+  begin
+    User:=UserList[I];
+    if User.Registered then
+    begin
+      Inc(Result.Registered);
+      if (User.Modes['q'])or(User.Modes['a'])or(User.Modes['o']) then
+        Inc(Result.Operators);
+      if User.Modes['i'] then
+        Inc(Result.Invisible);
+    end
+    else
+      Inc(Result.Unknown);
+  end;
+  UserThreadList.UnlockList;
+end;
+
+function GetRegisteredUserCount: u_int;
+var UserCount: TUserCount;
+begin
+  UserCount:=GetFormattedUserCount;
+  Result:=UserCount.Registered;
+end;
+
+function GetUserCount: u_int;
+var
+  UserList: TList;
+begin
+  UserList:=UserThreadList.LockList;
+  Result:=UserList.Count;
+  UserThreadList.UnlockList;
+end;
+
+function GetChannelCount: u_int;
+var
+  ChannelList: TList;
+begin
+  ChannelList:=ChannelThreadList.LockList;
+  Result:=ChannelList.Count;
+  ChannelThreadList.UnlockList;
 end;
 
 // ***************************************************************
