@@ -2,6 +2,11 @@
 
 program WNServer;
 
+{$IF Defined(MSWINDOWS) and (CompilerVersion >= 20)}
+  {$IF CompilerVersion >= 25} {$LEGACYIFEND ON} {$IFEND}
+  {$WEAKLINKRTTI ON}
+  {$RTTI EXPLICIT METHODS([]) PROPERTIES([]) FIELDS([])}
+{$IFEND}
 
 uses
   {$IFDEF MSWINDOWS}
