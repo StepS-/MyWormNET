@@ -336,8 +336,8 @@ end;
 procedure TUser.ExecuteCommand(S: string);
 var Command: string;
 begin
-  S:=Copy(S, 1, 768);
-  Command:=UpperCase(Copy(S, 1, Pos(' ', S+' ')-1));
+  S:=Copy(S, 1, 768);      
+  Command:=UpperCase(StringSection(S, 0));
   Delete(S, 1, Length(Command)+1);
 
     if Command='CAP' then
@@ -351,11 +351,11 @@ begin
     if Command='PASS' then
       ExecPass(S)
   else
-    if Command='PING' then
-      ExecPing(S)
-  else
     if Command='AUTHPONG' then
       ExecAuthpong(S)
+  else
+    if Command='QUIT' then
+      ExecQuit(S)
   else
     if Command='AUTHPING' then
   else
@@ -364,6 +364,9 @@ begin
     if Command='USERHOST' then
   else
     if Registered then
+      if Command='PING' then
+        ExecPing(S)
+    else
       if Command='LIST' then
         ExecList(S)
     else
@@ -378,9 +381,6 @@ begin
     else
       if Command='PART' then
         ExecPart(S)
-    else
-      if Command='QUIT' then
-        ExecQuit(S)
     else
       if Command='AWAY' then
         ExecAway(S)
@@ -406,6 +406,9 @@ begin
       if Command='LUSERS' then
         ExecLusers(S)
     else
+      if Command='USERS' then
+        ExecUsers(S)
+    else
       if Command='INFO' then
         ExecInfo(S)
     else
@@ -421,11 +424,23 @@ begin
       if Command='PRANK' then
         ExecPrank(S)
     else
-      if Command='SENDRAW' then
-        ExecSendraw(S)
+      if Command='SENDFROM' then
+        ExecSendfrom(S)
     else
       if Command='FORCEGAMEID' then
         ExecForcegameid(S)
+    else
+      if Command='ADDCHANNEL' then
+        ExecAddchannel(S)
+    else
+      if Command='REMOVECHANNEL' then
+        ExecRemovechannel(S)
+    else
+      if Command='RELOADSETTINGS' then
+        ExecReload(S)
+    else
+      if Command='SHUTDOWN' then
+        ExecShutdown(S)
     else
       if Command='BACK' then
         ExecAway('')
@@ -439,13 +454,16 @@ begin
       if (Command='PRIVMSG') or (Command='NOTICE') then
         ExecMessage(Command,S)
     else
-      if (Command='KICK') or (Command='KILL') then
+      if (Command='KICK') then
+        ExecKick(S)
+    else
+      if (Command='KILL') then
         ExecKill(S)
     else
       if (Command='PERMABAN') or (Command='REMOVEBAN') then
         ExecBan(Command,S)
     else
-      if (Command='OPER') or (Command='TAKEOWN') then
+      if (Command='OPER') or (Command='SOPER') or (Command='OWNER') or (Command='TAKEOWN') then
         ExecOper(Command,S)
     else
       if Command='MUTE' then
@@ -459,7 +477,7 @@ begin
     else
       SendError(421,Command)
   else
-    if (Command<>'') then
+    if (Command<>'') and (Command<>'PING') then
       SendError(451,Command);
 end;
 
