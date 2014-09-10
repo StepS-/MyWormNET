@@ -1648,42 +1648,41 @@ end;
 procedure TUser.ExecPart(S: String);
 const Command='PART';
 var
-   I, N: Integer;
    Chan, PartMsg, Appendix: String;
    Channel: TChannel;
 begin
   if S<>'' then
   begin
-    Chan:=Copy(S, 1, Pos(' ',S+' ')-1);
-    Delete(S, 1, Pos(' ',S+' '));
-    if Pos(':',S) = 1 then
-      Delete(S, 1, 1);
-    PartMsg:=Copy(S, 1, 160);
-    Channel:=ChannelByName(Chan);
+    Chan:=StringSection(S, 0);
+    PartMsg:=Copy(GetTrail(S), 1, 160);
+    Channel:=LockChannelByName(Chan);
     if Channel <> nil then
     begin
       Chan:=Channel.Name;
-      N:=Channel.Number;
-      if InChannel[N] then
+      if InChannel(Channel) then
       begin
         if PartMsg <> '' then
           Appendix:=' :'+PartMsg
         else
           Appendix:='';
-        EventLog(Format(L_IRC_PART, [Nickname, Chan]));
         if not Quit then
           if Modes['i'] then
-            SendLn(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Chan+Appendix)
+            SendLn('PART '+Chan+Appendix)
           else
-            Broadcast(':'+Nickname+'!'+Username+'@'+StealthIP+' PART '+Chan+Appendix, Channel);
-        InChannel[N]:=False;
+            Broadcast('PART '+Chan+Appendix, Channel);
+        ChannelsJoined.Remove(Channel);
+        if PartMsg <> '' then
+          EventLog(Format(L_IRC_PART_EX, [Nickname, Chan, PartMsg]))
+        else
+          EventLog(Format(L_IRC_PART, [Nickname, Chan]));
       end;
     end
     else
-      SendError(403, Command);
+      SendError(403, Chan);
+    ChannelThreadList.UnlockList;
   end
-  else
-    SendError(461, Command);
+//  else
+//    SendError(461, Command);   //Commenting to mitigate W:A's kick handling
 end;
 
 procedure TUser.ExecMode(S: String);
