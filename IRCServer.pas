@@ -2576,61 +2576,69 @@ var
   FilePath: String;
   N: Integer;
 begin
-  FilePath := ExtractFilePath(ParamStr(0))+'Channels.ini';
+  FilePath := 'Channels.ini';
   ChanFile := TMemIniFile.Create(FilePath);
   if not (FileExists(FilePath)) then
   begin
     EventLog('[IRC] '+L_IRC_CHANNEL_NOT_FOUND);
-    AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx');
-    EventLog('[IRC] '+Format(L_IRC_CHANNEL_ADDED, ['#AnythingGoes']));
+    AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx', ServerHost);
   end
   else
   begin
     N:=1;
-    while ChanFile.ReadString(IntToStr(N), 'Name', 'ENDOFLIST') <> 'ENDOFLIST' do
+    while ChanFile.ReadString(IntToStr(N), 'Name', #0) <> #0 do
     begin
       Name   :=ChanFile.ReadString (IntToStr(N),'Name',   '');
       Scheme :=ChanFile.ReadString (IntToStr(N),'Scheme', 'Pf,Be');
       Topic  :=ChanFile.ReadString (IntToStr(N),'Topic',  '00');
+
 
       while Pos(' ',Name) <> 0 do
         Delete(Name,Pos(' ',Name),1);
       while Pos(' ',Scheme) <> 0 do
         Delete(Scheme,Pos(' ',Scheme),1);
 
-      if Length(Name) > 30 then
-        Name:=Copy(Name, 1, 30);
+      if Length(Name) > CHANNELLEN then
+        Name:=Copy(Name, 1, CHANNELLEN);
 
       if (Name='') or (Name='#') then Name:='#AnythingGoes';
       if Name[1] <> '#' then Name:='#'+Name;
 
-      if not AddChannel(Name,Scheme,Topic) then
-        EventLog('[IRC] '+Format(L_IRC_CHANNEL_ALREADY, [Name]))
-      else
-        EventLog('[IRC] '+Format(L_IRC_CHANNEL_ADDED, [Name]));
+      AddChannel(Name,Scheme,Topic,ServerHost);
       Inc(N);
     end;
     if N=1 then
     begin 
       EventLog('[IRC] '+L_IRC_CHANNEL_EMPTY);
-      AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx');
-      EventLog('[IRC] '+Format(L_IRC_CHANNEL_ADDED, ['#AnythingGoes']));
+      AddChannel('#AnythingGoes','Pf,Be','00 Open games with ''rope knocking'' allowed & blood fx',ServerHost);
     end;
   end;
 end;
 
-procedure AddSeen(Nick, QuitMsg: String);
-var I: Integer;
+function AddChannel(Name, Scheme, Topic, CreatedBy: String): Boolean;
 begin
-  if Length(Seens) < 1 then SetLength(Seens,1);
-  for I:=0 to Length(Seens)-1 do
-    if TextMatch(Nick,Seens[I].Nick) then
-    begin
-      Seens[I].LastSeen:=Now;
-      Seens[I].QuitMsg:=QuitMsg;
-      Break;
-    end
-    else if I=Length(Seens)-1 then
+  Result:=false;
+  if not ChannelExists(Name) then
+  begin
+    TChannel.Create(Name, Scheme, Topic, CreatedBy);
+    EventLog('[IRC] '+Format(L_IRC_CHANNEL_ADDED, [Name]));
+    Result:=true;
+  end
+  else
+    EventLog('[IRC] '+Format(L_IRC_CHANNEL_ALREADY, [Name]))
+end;
+
+function RemoveChannel(Channel: TChannel): Boolean;
+begin
+  Result:=false;
+  if Channel <> nil then
+  begin
+    EventLog('[IRC] '+Format(L_IRC_CHANNEL_REMOVED, [Channel.Name]));
+    Channel.Free;
+    Result:=true;
+  end;
+end;
+
 // ***************************************************************
 
 function LockUserByIP(IP: String): TUser;
