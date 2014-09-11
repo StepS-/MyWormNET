@@ -854,7 +854,7 @@ begin
   SendEvent(371, ':supporting custom set of IRC features.', false);
   SendEvent(371, ':The server software was written by', false);
   SendEvent(371, ':The_CyberShadow <thecybershadow@gmail.com>', false);
-  SendEvent(371, ':and extended by StepS <github.com/StepS->', false);
+  SendEvent(371, ':and extended by StepS <github.steps.club>', false);
   if WormNATServer.ThreadID <> 0 then
     SendEvent(371, ':[WormNATRouteOn:'+IntToStr(WormNATPort)+'] This server supports built-in WormNAT routing.', false);    
   SendEvent(371, ':This server was compiled '+CreationTime, false);
